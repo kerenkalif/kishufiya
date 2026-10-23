@@ -31,7 +31,22 @@ const ThrottledPropertyHOC = function (propName, throttleTime) {
                     return true; // Allow this update to go to render
                 }
 
+                // Kishufiya: a change held back here used to be lost for good when nothing changed after it -
+                // the code area kept the default project's sprite (Nitzotzi) as its watermark after the lesson's
+                // game loaded a moment later. Render the held-back value once the throttle time is over.
+                if (nextProps[propName] !== this._lastRenderedValue) this.scheduleTrailing();
                 return false;
+            }
+            componentWillUnmount () {
+                clearTimeout(this._trailing);
+            }
+            scheduleTrailing () {
+                if (this._trailing) return;
+                const wait = Math.max(0, throttleTime - (Date.now() - this._lastRenderTime));
+                this._trailing = setTimeout(() => {
+                    this._trailing = null;
+                    if (this.props[propName] !== this._lastRenderedValue) this.forceUpdate();
+                }, wait);
             }
             render () {
                 this._lastRenderTime = Date.now();
