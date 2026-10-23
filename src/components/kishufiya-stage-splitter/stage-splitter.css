@@ -1,0 +1,21 @@
+.splitter {
+    flex: none;
+    width: 10px;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+}
+
+.grip {
+    width: 4px;
+    height: 48px;
+    border-radius: 2px;
+    background-color: #b3cccc;
+}
+
+.splitter:hover .grip,
+.splitter:active .grip {
+    background-color: #009999;
+}

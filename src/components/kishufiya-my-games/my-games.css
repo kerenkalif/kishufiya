@@ -1,0 +1,143 @@
+.body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+    font-family: Heebo, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.top {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.new-game {
+    background: #ffd54f;
+    color: #004d4d;
+    border: 0;
+    border-radius: 0.75rem;
+    padding: 0.6rem 1.2rem;
+    font-family: inherit;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.new-game:disabled {
+    opacity: 0.6;
+}
+
+.error {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+.note {
+    color: #4b5563;
+    font-size: 1.05rem;
+}
+
+.grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.card,
+.current {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #ffc000;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.current {
+    border-color: #009999;
+    box-shadow: 0 0 0 3px rgba(0, 153, 153, 0.25);
+}
+
+.open {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2rem;
+    border: 0;
+    padding: 0 0 0.5rem;
+    background: transparent;
+    text-align: right;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.picture {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 4 / 3;
+    background: #fff8e1;
+}
+
+.picture img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.wand {
+    font-size: 2.5rem;
+}
+
+.title {
+    padding: 0 0.75rem;
+    color: #007373;
+    font-weight: 800;
+    font-size: 1.05rem;
+}
+
+.meta {
+    padding: 0 0.75rem;
+    color: #6b7280;
+    font-size: 0.8rem;
+}
+
+.remove,
+.yes,
+.no {
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.remove {
+    align-self: flex-start;
+    margin: 0 0.75rem 0.6rem;
+    color: #9ca3af;
+}
+
+.confirm {
+    display: flex;
+    gap: 0.4rem;
+    margin: 0 0.75rem 0.6rem;
+}
+
+.yes {
+    background: #dc2626;
+    color: #ffffff;
+    border-radius: 0.4rem;
+    padding: 0.2rem 0.6rem;
+}
+
+.no {
+    border: 1px solid #d1d5db;
+    border-radius: 0.4rem;
+    padding: 0.2rem 0.6rem;
+}
