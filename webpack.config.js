@@ -148,6 +148,7 @@ module.exports = [
         entry: {
             'editor': './src/playground/editor.jsx',
             'kishufiya': './src/playground/kishufiya.jsx',
+            'kishufiya-player': './src/playground/kishufiya-player.jsx',
             'player': './src/playground/player.jsx',
             'fullscreen': './src/playground/fullscreen.jsx',
             'embed': './src/playground/embed.jsx',
@@ -201,6 +202,13 @@ module.exports = [
                 filename: 'kishufiya.html',
                 title: 'כישופייה - קסם הקוד',
                 isEditor: true,
+                ...htmlWebpackPluginCommon
+            }),
+            new HtmlWebpackPlugin({
+                chunks: ['kishufiya-player'],
+                template: 'src/playground/embed.ejs',
+                filename: 'kishufiya-player.html',
+                title: 'כישופייה - קסם הקוד',
                 ...htmlWebpackPluginCommon
             }),
             new HtmlWebpackPlugin({
