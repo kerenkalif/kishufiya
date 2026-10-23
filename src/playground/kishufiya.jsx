@@ -79,18 +79,25 @@ let markSaved = () => {};
 let gameId = null; // the open game's id in "המשחקים שלי"
 let knownTitle = null; // the name as the platform has it: a change from it is the child's
 
-// The game as the lesson sees it, a moment after a change: dragging a block fires many changes.
+// The game as the lesson sees it, a moment after a change: dragging a block fires many changes, and a
+// change that leaves the game as it was (a click on a block) sends nothing. Measured 2026-10-24: the
+// biggest lesson game is 27KB and the lesson's check of it takes about 3ms.
 let projectTimer = null;
-const sendProject = () => {
+let lastSent = null;
+const sendProject = (again = false) => {
     clearTimeout(projectTimer);
     projectTimer = setTimeout(() => {
-        if (vm) post({kishufiya: 'to-lesson', msg: {type: 'project', project: vm.toJSON()}});
-    }, 300);
+        if (!vm) return;
+        const project = vm.toJSON();
+        if (project === lastSent && !again) return;
+        lastSent = project;
+        post({kishufiya: 'to-lesson', msg: {type: 'project', project}});
+    }, 500);
 };
 
 // What the lesson asks of the editor.
 const fromLesson = msg => {
-    if (msg.type === 'project-please') sendProject();
+    if (msg.type === 'project-please') sendProject(true);
 };
 
 const load = async (url, title, lesson, id) => {
@@ -107,7 +114,7 @@ const load = async (url, title, lesson, id) => {
         }
         dirty = false;
         post({kishufiya: 'loaded'});
-        sendProject();
+        sendProject(true);
     } catch (e) {
         post({kishufiya: 'error', message: String((e && e.message) || e)});
     }
@@ -139,9 +146,9 @@ window.addEventListener('message', e => {
     else if (e.data.kishufiya === 'save') save(e.data.id, e.data.thumbnail);
     else if (e.data.kishufiya === 'to-editor' && e.data.msg) fromLesson(e.data.msg);
     else if (e.data.kishufiya === 'chrome') {
-        setChrome({status: e.data.status || '', lessonHidden: Boolean(e.data.lessonHidden), alone: Boolean(e.data.alone)});
-    }
-    else if (e.data.kishufiya === 'title' && e.data.title) {
+        const {status, lessonHidden, alone} = e.data;
+        setChrome({status: status || '', lessonHidden: Boolean(lessonHidden), alone: Boolean(alone)});
+    } else if (e.data.kishufiya === 'title' && e.data.title) {
         knownTitle = e.data.title;
         nameProject(e.data.title);
     }
@@ -155,7 +162,7 @@ const onVmInit = _vm => {
         dirty = true;
         post({kishufiya: 'changed'});
     });
-    vm.on('EXTENSION_ADDED', sendProject); // the pen, for one, is not a change of the project for the VM
+    vm.on('EXTENSION_ADDED', () => sendProject()); // the pen, for one, is not a change of the project for the VM
 };
 
 // The default project loads first; a project loaded before it finished would be replaced by it.
