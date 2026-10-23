@@ -15,7 +15,8 @@
  *                                                    what the page shows in the editor's menu bar
  *                                                    (kishufiya-chrome): the save status, the lesson's button
  *   editor -> parent  {kishufiya: 'lesson-open'}     the child wants the hidden lesson back
- *   parent -> editor  {kishufiya: 'save', id}        ask for the project as .sb3
+ *   parent -> editor  {kishufiya: 'save', id, thumbnail}  ask for the project as .sb3; thumbnail false:
+ *                                                    without the stage's picture (the page wants it seldom)
  *   editor -> parent  {kishufiya: 'ready'}           the editor is up and listening
  *   editor -> parent  {kishufiya: 'loaded'} / {kishufiya: 'error', message}
  *   editor -> parent  {kishufiya: 'changed'}         the child changed something since the last save
@@ -35,6 +36,7 @@ import {connect} from 'react-redux';
 import {compose} from 'redux';
 import {setStageSize, setStageWidth} from '../reducers/stage-size';
 import {setProjectTitle} from '../reducers/project-title';
+import {setProjectUnchanged} from '../reducers/project-changed';
 import {STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH} from '../lib/layout-constants';
 import AppStateHOC from '../lib/app-state-hoc.jsx';
 import ErrorBoundaryHOC from '../lib/error-boundary-hoc.jsx';
@@ -66,6 +68,9 @@ setChromeSender(message => post(message));
 let up = false; // the VM exists and the editor's own default project has finished loading
 let dirty = false;
 let nameProject = () => {}; // set by <Bridge>, which can reach the GUI's store
+// Also set by <Bridge>: the game as the page has it now is saved, so the editor's own "leave this page?"
+// question (project-saver-hoc) stops popping up when the child presses home after a save.
+let markSaved = () => {};
 let gameId = null; // the open game's id in "המשחקים שלי"
 let knownTitle = null; // the name as the platform has it: a change from it is the child's
 
@@ -98,11 +103,12 @@ const snapshot = () => new Promise(resolve => {
     }
 });
 
-const save = async id => {
+const save = async (id, withThumbnail) => {
     const blob = await vm.saveProjectSb3();
     const data = await blob.arrayBuffer();
     dirty = false;
-    const thumbnail = await snapshot();
+    markSaved();
+    const thumbnail = withThumbnail === false ? null : await snapshot();
     post({kishufiya: 'saved', id, data, thumbnail}, thumbnail ? [data, thumbnail] : [data]);
 };
 
@@ -110,7 +116,7 @@ window.addEventListener('message', e => {
     if (e.origin !== location.origin || e.source !== parent || !e.data || !up) return;
     if (e.data.kishufiya === 'hello') post({kishufiya: 'ready'});
     else if (e.data.kishufiya === 'load') load(e.data.url, e.data.title, e.data.lesson, e.data.gameId);
-    else if (e.data.kishufiya === 'save') save(e.data.id);
+    else if (e.data.kishufiya === 'save') save(e.data.id, e.data.thumbnail);
     else if (e.data.kishufiya === 'chrome') setChrome({status: e.data.status || '', lessonHidden: Boolean(e.data.lessonHidden)});
     else if (e.data.kishufiya === 'title' && e.data.title) {
         knownTitle = e.data.title;
@@ -158,11 +164,13 @@ const Bridge = connect(
     dispatch => ({
         onSmall: () => dispatch(setStageSize(STAGE_SIZE_MODES.small)),
         onTitle: title => dispatch(setProjectTitle(title)),
-        onFit: stageWidth => dispatch(setStageWidth(stageWidth))
+        onFit: stageWidth => dispatch(setStageWidth(stageWidth)),
+        onSaved: () => dispatch(setProjectUnchanged())
     })
-)(({size, width, title, onSmall, onTitle, onFit}) => {
+)(({size, width, title, onSmall, onTitle, onFit, onSaved}) => {
     useEffect(onSmall, []);
     nameProject = onTitle;
+    markSaved = onSaved;
     // The child renamed the game in the title field: the platform keeps the name ("המשחקים שלי").
     useEffect(() => {
         const name = (title || '').trim();
@@ -204,7 +212,8 @@ Bridge.propTypes = {
     title: PropTypes.string,
     onSmall: PropTypes.func,
     onTitle: PropTypes.func,
-    onFit: PropTypes.func
+    onFit: PropTypes.func,
+    onSaved: PropTypes.func
 };
 
 // File > New (menu-bar.jsx): a new game of the child's own, never the open one emptied.
