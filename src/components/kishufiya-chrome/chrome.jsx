@@ -4,7 +4,7 @@
 import React, {useEffect, useState} from 'react';
 import styles from './chrome.css';
 
-let state = {status: '', lessonHidden: false};
+let state = {status: '', lessonHidden: false, alone: false};
 const listeners = new Set();
 
 export const setChrome = next => {
@@ -30,16 +30,17 @@ const useChrome = () => {
 const openLesson = () => send({kishufiya: 'lesson-open'});
 const goHome = () => send({kishufiya: 'navigate', href: '/my'});
 
-// The row's first button, only while the lesson is hidden: back to it, "בחזרה ל" and the starred
-// name of "קסם הקוד" (its logo on the platform) - Keren, 2026-10-23.
+// The row's first button, while the lesson is hidden - back to it - or, in a game with no lesson, back
+// to the child's main page: "בחזרה ל" and the starred name of "קסם הקוד" (its logo on the platform) -
+// Keren, 2026-10-23.
 export const LessonButton = () => {
-    const {lessonHidden} = useChrome();
-    if (!lessonHidden) return null;
+    const {lessonHidden, alone} = useChrome();
+    if (!lessonHidden && !alone) return null;
     return (
         <button
             className={styles.lesson}
             aria-label="בחזרה לקסם הקוד"
-            onClick={openLesson}
+            onClick={alone ? goHome : openLesson}
         >
             {'בחזרה ל'}
             <span

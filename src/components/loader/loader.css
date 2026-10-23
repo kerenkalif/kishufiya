@@ -21,8 +21,8 @@
 .fullscreen {
     /* Break out of the layout using position: fixed to cover the whole screen */
     position: fixed;
-    /* Use the fullscreen stage z-index to allow covering full-screen mode */
-    z-index: $z-index-stage-wrapper-overlay;
+    /* כישופייה: behind the menu bar, as before - the full-screen stage now goes over the menu bar */
+    z-index: $z-index-loader;
 }
 
 .block-animation {

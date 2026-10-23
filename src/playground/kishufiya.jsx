@@ -11,7 +11,7 @@
  *                                                    gameId: the game's id in "המשחקים שלי", once it has one
  *   editor -> parent  {kishufiya: 'navigate', href}  the child picked a game in "המשחקים שלי": save, then go
  *   editor -> parent  {kishufiya: 'renamed', title}  the child renamed the game in the menu bar's title field
- *   parent -> editor  {kishufiya: 'chrome', status, lessonHidden}
+ *   parent -> editor  {kishufiya: 'chrome', status, lessonHidden, alone}  alone: a game with no lesson
  *                                                    what the page shows in the editor's menu bar
  *                                                    (kishufiya-chrome): the save status, the lesson's button
  *   editor -> parent  {kishufiya: 'lesson-open'}     the child wants the hidden lesson back
@@ -24,6 +24,11 @@
  *   editor -> parent  {kishufiya: 'saved', id, data, thumbnail}
  *                                                    data: the .sb3, thumbnail: a PNG of the stage (or null);
  *                                                    both ArrayBuffers, transferred
+ *   lesson <-> editor through the page, passed on as they are (the platform's KishufiyaLesson):
+ *   lesson -> editor  {kishufiya: 'to-editor', msg: {type, ...}}
+ *   editor -> lesson  {kishufiya: 'to-lesson', msg: {type, ...}}
+ *     msg {type: 'project-please'} -> {type: 'project', project}: the game as project.json, also sent a
+ *     moment after every change - the lesson opens a step once the game shows it done
  *   editor -> parent  {kishufiya: 'width', px}       the least width the editor can work in (its stage shrinks
  *                                                    to fit whatever it is given above that)
  */
@@ -74,6 +79,20 @@ let markSaved = () => {};
 let gameId = null; // the open game's id in "המשחקים שלי"
 let knownTitle = null; // the name as the platform has it: a change from it is the child's
 
+// The game as the lesson sees it, a moment after a change: dragging a block fires many changes.
+let projectTimer = null;
+const sendProject = () => {
+    clearTimeout(projectTimer);
+    projectTimer = setTimeout(() => {
+        if (vm) post({kishufiya: 'to-lesson', msg: {type: 'project', project: vm.toJSON()}});
+    }, 300);
+};
+
+// What the lesson asks of the editor.
+const fromLesson = msg => {
+    if (msg.type === 'project-please') sendProject();
+};
+
 const load = async (url, title, lesson, id) => {
     setLibraryLesson(lesson);
     gameId = id || null;
@@ -88,6 +107,7 @@ const load = async (url, title, lesson, id) => {
         }
         dirty = false;
         post({kishufiya: 'loaded'});
+        sendProject();
     } catch (e) {
         post({kishufiya: 'error', message: String((e && e.message) || e)});
     }
@@ -117,7 +137,10 @@ window.addEventListener('message', e => {
     if (e.data.kishufiya === 'hello') post({kishufiya: 'ready'});
     else if (e.data.kishufiya === 'load') load(e.data.url, e.data.title, e.data.lesson, e.data.gameId);
     else if (e.data.kishufiya === 'save') save(e.data.id, e.data.thumbnail);
-    else if (e.data.kishufiya === 'chrome') setChrome({status: e.data.status || '', lessonHidden: Boolean(e.data.lessonHidden)});
+    else if (e.data.kishufiya === 'to-editor' && e.data.msg) fromLesson(e.data.msg);
+    else if (e.data.kishufiya === 'chrome') {
+        setChrome({status: e.data.status || '', lessonHidden: Boolean(e.data.lessonHidden), alone: Boolean(e.data.alone)});
+    }
     else if (e.data.kishufiya === 'title' && e.data.title) {
         knownTitle = e.data.title;
         nameProject(e.data.title);
@@ -127,10 +150,12 @@ window.addEventListener('message', e => {
 const onVmInit = _vm => {
     vm = _vm;
     vm.on('PROJECT_CHANGED', () => {
+        sendProject();
         if (dirty) return;
         dirty = true;
         post({kishufiya: 'changed'});
     });
+    vm.on('EXTENSION_ADDED', sendProject); // the pen, for one, is not a change of the project for the VM
 };
 
 // The default project loads first; a project loaded before it finished would be replaced by it.
