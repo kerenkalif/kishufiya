@@ -358,16 +358,17 @@ export default function (vm) {
         return true;
     };
 
-    // Kishufiya: in Hebrew the blocks are drawn right to left, so "%1 < %2" puts %1 on the right and the
-    // sign's mouth faces the smaller value. Mirroring the sign makes it point at the bigger one, as in
-    // math class. Only the label changes; the opcodes and what they compute stay the same. Hebrew only:
-    // other right-to-left translations may already handle it (Persian writes "%2 > %1"). Once, because
-    // this runs on every editor mount and the locale table is shared.
+    // Kishufiya: in Hebrew the comparisons say it in words, "קטן מ-" and "גדול מ-". Drawn right to left,
+    // a sign reads one way by its mouth and the other way in the order of the sentence, and children (and
+    // the club's teacher) read it wrong either way (2026-10-24). Read from the right, "%1 קטן מ- %2" is a
+    // sentence. Only the label changes; the opcodes and what they compute stay the same. Hebrew only, and
+    // only over the original strings. Once, because this runs on every editor mount and the locale table
+    // is shared.
     const he = ScratchBlocks.ScratchMsgs.locales.he;
-    if (he && !ScratchBlocks.ScratchMsgs.kishufiyaSigns) {
-        ScratchBlocks.ScratchMsgs.kishufiyaSigns = true;
-        if (he.OPERATORS_LT === '%1 < %2') he.OPERATORS_LT = '%1 > %2';
-        if (he.OPERATORS_GT === '%1 > %2') he.OPERATORS_GT = '%1 < %2';
+    if (he && !ScratchBlocks.ScratchMsgs.kishufiyaWords) {
+        ScratchBlocks.ScratchMsgs.kishufiyaWords = true;
+        if (he.OPERATORS_LT === '%1 < %2') he.OPERATORS_LT = '%1 קטן מ- %2';
+        if (he.OPERATORS_GT === '%1 > %2') he.OPERATORS_GT = '%1 גדול מ- %2';
     }
 
     return ScratchBlocks;
