@@ -1,0 +1,116 @@
+/* כישופייה guide: above the editor and its stage header (500), below windows (510) and the menu bar (511) */
+.layer {
+    position: fixed;
+    inset: 0;
+    z-index: 505;
+    pointer-events: none;
+    font-family: "Heebo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* a light veil: the editor reads as "not now", the code under it stays readable */
+.veil {
+    position: fixed;
+    display: none;
+    background: rgba(0, 77, 77, 0.1);
+    pointer-events: auto;
+    cursor: not-allowed;
+}
+
+.note {
+    position: fixed;
+    display: none;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #007373;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+    direction: rtl;
+    white-space: nowrap;
+}
+
+.ring,
+.flash {
+    position: fixed;
+    display: none;
+    border: 3px solid #ffd54f;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.ring::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border: 3px solid #ffd54f;
+    border-radius: 11px;
+    animation: pulse 1.2s ease-out infinite;
+}
+
+@keyframes pulse {
+    from { opacity: 0.9; }
+    to { opacity: 0; }
+}
+
+.flash {
+    border-color: #009999;
+    opacity: 0;
+}
+
+.flashing {
+    animation: flash 0.9s ease-out;
+}
+
+@keyframes flash {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.bubble {
+    position: fixed;
+    display: none;
+    max-width: 260px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #009999;
+    color: #ffffff;
+    font-size: 15px;
+    line-height: 1.45;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.22);
+    text-align: right;
+}
+
+.text {
+    position: relative;
+    z-index: 1;
+    white-space: pre-line;
+}
+
+.arrow {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: -7px;
+    background: #009999;
+    transform: rotate(45deg);
+}
+
+.bubble[data-side="left"] .arrow { left: 100%; }
+.bubble[data-side="right"] .arrow { left: 0; }
+.bubble[data-side="below"] .arrow { top: 0; }
+.bubble[data-side="above"] .arrow { top: 100%; }
+
+/* while picking, blocks in the code show they can be chosen */
+.picking :global(.blocklySvg) :global(.blocklyDraggable) {
+    cursor: pointer;
+}
+
+/* frozen: what stays open for a spotlight still cannot add or delete (the add menus open on hover) */
+.frozen :global([class*="_add-button_"]),
+.frozen :global([class*="delete-button"]) {
+    pointer-events: none;
+    opacity: 0.5;
+}

@@ -29,6 +29,7 @@
  *   editor -> lesson  {kishufiya: 'to-lesson', msg: {type, ...}}
  *     msg {type: 'project-please'} -> {type: 'project', project}: the game as project.json, also sent a
  *     moment after every change - the lesson opens a step once the game shows it done
+ *     every other msg is the guide's: pointing, freezing, picking (components/kishufiya-guide/guide.js)
  *   editor -> parent  {kishufiya: 'width', px}       the least width the editor can work in (its stage shrinks
  *                                                    to fit whatever it is given above that)
  */
@@ -52,6 +53,7 @@ import {setLibraryLesson} from '../lib/libraries/tw-async-libraries';
 import MyGames from '../components/kishufiya-my-games/my-games.jsx';
 import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.jsx';
 import {Theme} from '../lib/themes';
+import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
 
 // Always Hebrew, whatever the class PC's browser was set to last.
 try {
@@ -98,6 +100,7 @@ const sendProject = (again = false) => {
 // What the lesson asks of the editor.
 const fromLesson = msg => {
     if (msg.type === 'project-please') sendProject(true);
+    else handleGuide(msg);
 };
 
 const load = async (url, title, lesson, id) => {
@@ -156,6 +159,8 @@ window.addEventListener('message', e => {
 
 const onVmInit = _vm => {
     vm = _vm;
+    // the lesson points into the editor and hears what the child does (kishufiya-guide)
+    attachGuide(vm, msg => post({kishufiya: 'to-lesson', msg}));
     vm.on('PROJECT_CHANGED', () => {
         sendProject();
         if (dirty) return;
