@@ -52,6 +52,7 @@ const UI = {
     'stop': '[class*="stop-all_stop-all_"]',
     'add-sprite': '[class*="sprite-selector_add-button_"]',
     'add-backdrop': '[class*="stage-selector_add-button_"]',
+    'stage-tile': '[class*="stage-selector_stage-selector_"]',
     'stage': '[class*="stage_stage_"]',
     'sprite-info': '[class*="sprite-info_sprite-info_"]',
     'code-tab': '[class*="gui_tab-list_"] > li:nth-child(1)',
@@ -208,6 +209,19 @@ const fieldOf = (block, name) => {
 // or {missing: reason} when it is nowhere on the screen.
 export const resolve = (target, vm) => {
     if (!target) return {missing: 'no-target'};
+    if (target.ui === 'make-variable') {
+        // the palette's "Make a Variable" button, by its callback (its words are translated); out of the
+        // palette's view, its category - as for a block
+        const ws = workspace();
+        const flyout = ws && ws.getFlyout();
+        const create = ws && ws.getButtonCallback && ws.getButtonCallback('CREATE_VARIABLE');
+        const button = flyout && create && (flyout.buttons_ || []).find(one => one.callback_ === create);
+        const rect = button && rectOf(button.svgGroup_);
+        const area = rectOf(flyoutSvg(ws));
+        if (rect && area && rect.top >= area.top && rect.bottom <= area.bottom) return {rect, via: 'ui'};
+        const item = rectOf(document.querySelector('.scratchCategoryId-variables'));
+        return item ? {rect: item, via: 'category', category: 'variables'} : {missing: 'ui'};
+    }
     if (target.ui) {
         const el = uiElement(target.ui);
         const rect = rectOf(el);
