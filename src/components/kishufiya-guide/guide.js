@@ -462,6 +462,7 @@ export const handleGuide = msg => {
         missingSince = 0;
         reported = null;
         scrolledTo = null;
+        lastAt = ''; // a new guide is told where its target is even when it is where the last one was
         break;
     case 'guide-clear':
         state.guide = null;
