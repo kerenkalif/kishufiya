@@ -4,6 +4,15 @@
 //   {block: opcode, in: 'code', inside?: opcode}
 //                                              a block in the open sprite's code; inside: prefer the one
 //                                              that sits inside a block of that kind (e.g. control_forever)
+//   {block, in: 'code', field}                 one of its inputs or fields, by Scratch's name (X, DY,
+//                                              STOP_OPTION, TOUCHINGOBJECTMENU...): where to type a number
+//                                              or open a menu; its value is reported with it
+//   {block, in: 'palette' | 'code', to: {block, inside?, top?, where}}
+//                                              a palette block, and where in the code it goes: under that
+//                                              block (where 'next'), into its mouth ('substack') or into
+//                                              one of its inputs ('input:NAME') - a ghost of it is shown
+//                                              moving there. A block of the code moves with the ones under
+//                                              it. top: of several such blocks, the one under that hat
 //   {blockId}                                  one block of the open sprite's code, by id
 //   {category: id}                             a category of the palette (motion, looks, control, ...)
 //   {ui: name}                                 a part of the editor, see UI below
@@ -111,7 +120,9 @@ const spriteTile = name => {
 
 const codeBlock = (ws, target) => {
     if (target.blockId) return realBlock(ws.getBlockById(target.blockId));
-    const all = ws.getAllBlocks(false).filter(b => b.type === target.block && !b.isShadow());
+    let all = ws.getAllBlocks(false).filter(b => b.type === target.block && !b.isShadow());
+    // top: the one in the script that starts with that hat (two forevers: the flag's, not the clone's)
+    if (target.top) all = all.filter(b => b.getRootBlock().type === target.top);
     if (target.inside) {
         const within = all.find(b => surrounding(b).includes(target.inside));
         if (within) return within;
@@ -119,7 +130,51 @@ const codeBlock = (ws, target) => {
     return all[0] || null;
 };
 
-// → {rect, via} where via says what is pointed at: 'block', 'category', 'ui', 'sprite';
+// A point of the workspace (a connection's x_, y_) on the screen: the canvas's own matrix carries the
+// scroll, the zoom and the right-to-left mirroring.
+const toScreen = (ws, x, y) => {
+    const point = ws.getParentSvg().createSVGPoint();
+    point.x = x;
+    point.y = y;
+    const p = point.matrixTransform(ws.getCanvas().getScreenCTM());
+    return {x: p.x, y: p.y};
+};
+
+// Where a dragged block goes: the anchor block's connection, on the screen; or the anchor block to scroll
+// to when it is out of the code area's view.
+const dropPoint = (ws, to) => {
+    const anchor = codeBlock(ws, to);
+    if (!anchor) return {missing: 'no-anchor'};
+    if (!rectOf(anchor.getSvgRoot())) return {offscreen: anchor};
+    let connection = null;
+    if (to.where === 'substack') {
+        const mouth = anchor.getInput('SUBSTACK');
+        connection = mouth && mouth.connection;
+    } else if (to.where && to.where.startsWith('input:')) {
+        const input = anchor.getInput(to.where.slice(6));
+        connection = input && input.connection;
+    } else connection = anchor.nextConnection;
+    if (!connection) return {missing: 'no-connection'};
+    return {point: toScreen(ws, connection.x_, connection.y_), anchor};
+};
+
+// One input or field of a block: the field itself (a menu on the block), or what fills the input (the
+// number's own shadow block, a menu block, or a block the child put there). With its value as shown.
+const fieldOf = (block, name) => {
+    const field = block.getField && block.getField(name);
+    if (field) return {rect: rectOf(field.getSvgRoot()), value: field.getText()};
+    const input = block.getInput && block.getInput(name);
+    const filler = input && input.connection && input.connection.targetBlock();
+    if (!filler) return null;
+    const row = filler.inputList && filler.inputList[0] && filler.inputList[0].fieldRow;
+    const own = row && row[0];
+    return {
+        rect: rectOf(filler.svgPath_ || filler.getSvgRoot()),
+        value: filler.isShadow() && own ? own.getText() : null
+    };
+};
+
+// → {rect, via} where via says what is pointed at: 'block', 'category', 'ui', 'sprite', 'field';
 // {offscreen: true, block} for a block of the code out of the code area's view;
 // or {missing: reason} when it is nowhere on the screen.
 export const resolve = (target, vm) => {
@@ -145,7 +200,12 @@ export const resolve = (target, vm) => {
         const rect = block && rectOf(block.getSvgRoot());
         const area = rectOf(flyoutSvg(ws));
         const middle = rect && (rect.top + (Math.min(rect.height, 40) / 2));
-        if (rect && area && middle >= area.top && middle <= area.bottom) return {rect, via: 'block'};
+        if (rect && area && middle >= area.top && middle <= area.bottom) {
+            if (!target.to) return {rect, via: 'block'};
+            const drop = dropPoint(ws, target.to);
+            if (drop.offscreen) return {rect, via: 'block', block: drop.offscreen};
+            return drop.point ? {rect, via: 'block', drop: drop.point} : {rect, via: 'block'};
+        }
         const category = categoryOf(target.block);
         const item = category && rectOf(document.querySelector(`.scratchCategoryId-${category}`));
         return item ? {rect: item, via: 'category', category} : {missing: block ? 'palette' : 'not-in-palette'};
@@ -161,6 +221,17 @@ export const resolve = (target, vm) => {
     const rect = rectOf(block.getSvgRoot());
     // scratch-blocks does not draw blocks out of the code area's view: there, but not on the screen
     if (!rect) return {offscreen: true, block};
+    if (target.to) {
+        const drop = dropPoint(ws, target.to);
+        const own = block.svgPath_ ? rectOf(block.svgPath_) : rect;
+        if (drop.offscreen) return {rect: own, via: 'block', block: drop.offscreen};
+        return drop.point ? {rect: own, via: 'block', block, drop: drop.point} : {rect: own, via: 'block', block};
+    }
+    if (target.field) {
+        const field = fieldOf(block, target.field);
+        if (!field || !field.rect) return {missing: 'no-field'};
+        return {rect: field.rect, via: 'field', block, value: field.value};
+    }
     // only the block's own row, not the blocks it holds (a forever's mouth)
     const path = block.svgPath_ ? rectOf(block.svgPath_) : null;
     return {rect: path || rect, via: 'block', block};

@@ -25,9 +25,10 @@
 //   category-opened {id}                            the palette's category now in view
 //   picked {opcode, blockId, sprite, inside: [opcode], top}
 //   guide-missing {target, reason}                  the target is nowhere on the screen (for half a second)
-//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below'}
+//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, drop?}
 //                                                   where the guided target is now, in this frame's pixels,
-//                                                   and on which side of it the arrow is - sent on change
+//                                                   and on which side of it the arrow is; a field's value;
+//                                                   a dragged block's drop point {x, y} - sent on change
 //   ui {name: 'run' | 'stop'}                       the green flag / stop sign
 //   found {id, sprites: [name]}                     the answer to 'find' ('Stage' is the stage)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace} from './targets.js';
@@ -52,6 +53,7 @@ let bubbleText = null;
 let note = null;
 let flash = null;
 let pointer = null; // the bouncing arrow
+let ghost = null; // a dragged block's way to where it goes
 
 const div = className => {
     const el = document.createElement('div');
@@ -73,7 +75,8 @@ const build = () => {
     bubble.appendChild(bubbleText);
     bubble.appendChild(div(styles.arrow));
     pointer = div(styles.pointer);
-    for (const el of [note, ring, flash, pointer, bubble]) layer.appendChild(el);
+    ghost = div(styles.ghost);
+    for (const el of [note, ring, flash, ghost, pointer, bubble]) layer.appendChild(el);
     document.body.appendChild(layer);
 };
 
@@ -202,17 +205,38 @@ const inView = (r, area) => area &&
 
 // Where the page is told the target is: sent only when it changes.
 let lastAt = '';
-const tellAt = (rect, via, arrow) => {
+const tellAt = (rect, via, arrow, extra) => {
     const at = rect ? {
         left: Math.round(rect.left),
         top: Math.round(rect.top),
         width: Math.round(rect.right - rect.left),
         height: Math.round(rect.bottom - rect.top)
     } : null;
-    const key = JSON.stringify([at, via, arrow]);
+    const more = extra || {};
+    const drop = more.drop ? {x: Math.round(more.drop.x), y: Math.round(more.drop.y)} : null;
+    const value = typeof more.value === 'string' ? more.value : null;
+    const key = JSON.stringify([at, via, arrow, value, drop]);
     if (key === lastAt) return;
     lastAt = key;
-    send({type: 'guide-at', rect: at, via: via || null, arrow: arrow || null});
+    send({type: 'guide-at', rect: at, via: via || null, arrow: arrow || null, value, drop});
+};
+
+// A dragged block's way: a ghost of its size slides from it to its drop point, again and again. Only
+// a transform moves; the distance is two CSS variables.
+let lastGhost = '';
+const placeGhost = (r, drop) => {
+    if (!r || !drop) {
+        ghost.style.display = 'none';
+        lastGhost = '';
+        return;
+    }
+    const key = [r.left, r.top, r.right, r.bottom, drop.x, drop.y].map(Math.round).join();
+    if (key === lastGhost) return;
+    lastGhost = key;
+    // the corner a block joins by goes to the drop point: its top-right in a right-to-left editor
+    place(ghost, r);
+    ghost.style.setProperty('--dx', `${Math.round(drop.x - r.right)}px`);
+    ghost.style.setProperty('--dy', `${Math.round(drop.y - r.top)}px`);
 };
 
 // The arrow bounces above the target, pointing down; below it, pointing up, when there is no room above.
@@ -230,6 +254,7 @@ const hideGuide = () => {
     place(ring, null);
     pointer.style.display = 'none';
     bubble.style.display = 'none';
+    placeGhost(null, null);
 };
 
 const drawGuide = () => {
@@ -262,7 +287,8 @@ const drawGuide = () => {
     reported = null;
     const r = found.rect;
     place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
-    tellAt(r, found.via, placePointer(r));
+    placeGhost(r, found.drop);
+    tellAt(r, found.via, placePointer(r), found);
     const {text, textCategory, textSprite} = state.guide;
     const say = (found.via === 'category' && textCategory) || (found.via === 'sprite' && textSprite) || text;
     if (bubbleText.textContent !== say) bubbleText.textContent = say;
