@@ -259,8 +259,30 @@ const placePointer = r => {
 // What the ring is on now, for a click on it.
 let shown = null;
 
+// A target shown this long and not pressed gets a louder ring (Keren, 2026-10-25). Counted only while it
+// is shown: one that was hidden (missing, under a library) starts again when it shows.
+const LOUDER_AFTER_MS = 4000;
+let louderKey = '';
+let louderSince = 0;
+const louder = on => {
+    ring.classList.toggle(styles.louder, on);
+    pointer.classList.toggle(styles.louder, on);
+};
+
+// An open field editor (the direction dial, the number pad, a menu) belongs to the step that opened it:
+// when the guide moves on it is closed, or it stays open over the code (Keren, 2026-10-25).
+const closeFieldEditors = () => {
+    const SB = window.ScratchBlocks;
+    try {
+        if (SB && SB.DropDownDiv) SB.DropDownDiv.hideWithoutAnimation();
+        if (SB && SB.WidgetDiv) SB.WidgetDiv.hide();
+    } catch (e) { /* the blocks are not loaded yet */ }
+};
+
 const hideGuide = () => {
     shown = null;
+    louderKey = '';
+    louder(false);
     place(ring, null);
     pointer.style.display = 'none';
     bubble.style.display = 'none';
@@ -298,6 +320,13 @@ const drawGuide = () => {
     const r = found.rect;
     shown = {rect: r, via: found.via, input: Boolean(found.input)};
     place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
+    const now = performance.now();
+    const key = `${state.guide.id}|${found.via}`;
+    if (key !== louderKey) {
+        louderKey = key;
+        louderSince = now;
+    }
+    louder(!state.frozen && now - louderSince >= LOUDER_AFTER_MS);
     placeGhost(r, found.drop);
     tellAt(r, found.via, placePointer(r), found);
     const {text, textCategory, textSprite} = state.guide;
@@ -478,6 +507,7 @@ export const handleGuide = msg => {
     if (!msg || !layer) return false;
     switch (msg.type) {
     case 'guide':
+        if (!state.guide || state.guide.id !== msg.id) closeFieldEditors();
         state.guide = {
             id: msg.id,
             target: msg.target,
@@ -495,6 +525,7 @@ export const handleGuide = msg => {
         break;
     case 'freeze':
         if (msg.on) {
+            closeFieldEditors();
             state.frozen = msg;
             if (msg.stop !== false) stopGame();
             document.body.classList.add(styles.frozen);

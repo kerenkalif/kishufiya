@@ -36,7 +36,7 @@
 .flash {
     position: fixed;
     display: none;
-    border: 3px solid #e53935;
+    border: 4px solid #e53935;
     border-radius: 8px;
     box-sizing: border-box;
 }
@@ -45,7 +45,7 @@
     content: "";
     position: absolute;
     inset: -6px;
-    border: 3px solid #e53935;
+    border: 4px solid #e53935;
     border-radius: 11px;
     animation: pulse 1.2s ease-out infinite;
 }
@@ -53,6 +53,25 @@
 @keyframes pulse {
     from { opacity: 0.9; }
     to { opacity: 0; }
+}
+
+/* not pressed after a few seconds: the ring grows and glows, the arrow is bigger (Keren, 2026-10-25) */
+.ring.louder {
+    box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.35), 0 0 18px 6px rgba(229, 57, 53, 0.55);
+    animation: louder 0.7s ease-in-out infinite alternate;
+}
+
+.pointer.louder {
+    scale: 1.45;
+}
+
+@keyframes louder {
+    from { scale: 1; }
+    to { scale: 1.12; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ring.louder { animation: none; }
 }
 
 .flash {
