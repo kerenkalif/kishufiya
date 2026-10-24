@@ -232,7 +232,7 @@ class SpriteInfo extends React.Component {
                             </Label>
                         </div>
                     </div>
-                    <div className={classNames(styles.row, styles.rowPrimary)}>
+                    <div className={classNames(styles.row, styles.rowPrimary, styles.rowTogether)}>
                         {xPosition}
                         {yPosition}
                     </div>
