@@ -103,9 +103,14 @@ const fromLesson = msg => {
     else handleGuide(msg);
 };
 
+// Loading a game builds it block by block, and the VM calls each block a change: not the child's, so not
+// a reason to save (it cost one save per opened game, 2026-10-24).
+let loading = false;
+
 const load = async (url, title, lesson, id) => {
     setLibraryLesson(lesson);
     gameId = id || null;
+    loading = true;
     try {
         const res = await fetch(url, {credentials: 'same-origin'});
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -120,6 +125,8 @@ const load = async (url, title, lesson, id) => {
         sendProject(true);
     } catch (e) {
         post({kishufiya: 'error', message: String((e && e.message) || e)});
+    } finally {
+        loading = false;
     }
 };
 
@@ -162,6 +169,7 @@ const onVmInit = _vm => {
     // the lesson points into the editor and hears what the child does (kishufiya-guide)
     attachGuide(vm, msg => post({kishufiya: 'to-lesson', msg}));
     vm.on('PROJECT_CHANGED', () => {
+        if (loading) return;
         sendProject();
         if (dirty) return;
         dirty = true;
