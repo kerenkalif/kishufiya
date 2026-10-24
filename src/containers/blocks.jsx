@@ -44,6 +44,7 @@ import AddonHooks from '../addons/hooks.js';
 import LoadScratchBlocksHOC from '../lib/tw-load-scratch-blocks-hoc.jsx';
 import {findTopBlock} from '../lib/backpack/code-payload.js';
 import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
+import tidyOverlaps from '../lib/kishufiya-tidy.js';
 
 // TW: Strings we add to scratch-blocks are localized here
 const messages = defineMessages({
@@ -507,6 +508,14 @@ class Blocks extends React.Component {
         // fresh workspace and we don't want any changes made to another sprites
         // workspace to be 'undone' here.
         this.workspace.clearUndo();
+
+        // כישופייה: a script covering another moves just below it (kishufiya-tidy.js) - entering the code
+        // tab and choosing a sprite both come here.
+        if (this.props.isVisible) {
+            setTimeout(() => {
+                if (!this.unmounted) tidyOverlaps(this.workspace, this.ScratchBlocks);
+            }, 0);
+        }
     }
     handleMonitorsUpdate (monitors) {
         // Update the checkboxes of the relevant monitors.
