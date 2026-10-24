@@ -208,8 +208,11 @@ const fieldOf = (block, name) => {
 export const resolve = (target, vm) => {
     if (!target) return {missing: 'no-target'};
     if (target.ui) {
-        const rect = rectOf(uiElement(target.ui));
-        return rect ? {rect, via: 'ui'} : {missing: 'ui'};
+        const el = uiElement(target.ui);
+        const rect = rectOf(el);
+        // a box to type in (the sprite's name, size...): its value, as for a block's field
+        const value = el && el.tagName === 'INPUT' ? el.value : null;
+        return rect ? {rect, via: 'ui', value, input: Boolean(el && el.tagName === 'INPUT')} : {missing: 'ui'};
     }
     if (target.library) {
         const item = libraryItem(target.library);

@@ -30,6 +30,9 @@
 //                                                   and on which side of it the arrow is; a field's value;
 //                                                   a dragged block's drop point {x, y} - sent on change
 //   ui {name: 'run' | 'stop'}                       the green flag / stop sign
+//   key {key}                                       a key pressed while a step is guided (KeyboardEvent.key)
+//   guide-clicked {via}                             the child clicked the guided target itself (a button, a
+//                                                   sprite's tile, a library item) - for the lesson, a step done
 //   found {id, sprites: [name]}                     the answer to 'find' ('Stage' is the stage)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace} from './targets.js';
 import styles from './guide.css';
@@ -250,7 +253,11 @@ const placePointer = r => {
     return above ? 'above' : 'below';
 };
 
+// What the ring is on now, for a click on it.
+let shown = null;
+
 const hideGuide = () => {
+    shown = null;
     place(ring, null);
     pointer.style.display = 'none';
     bubble.style.display = 'none';
@@ -286,6 +293,7 @@ const drawGuide = () => {
     missingSince = 0;
     reported = null;
     const r = found.rect;
+    shown = {rect: r, via: found.via, input: Boolean(found.input)};
     place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
     placeGhost(r, found.drop);
     tellAt(r, found.via, placePointer(r), found);
@@ -327,6 +335,8 @@ const swallow = e => {
 
 const onKey = e => {
     if (state.frozen) swallow(e);
+    // a key the child pressed while a step is guided ("לחצו על חץ ימני"): the lesson may be waiting for it
+    else if (state.guide && e.type === 'keydown' && !e.repeat) send({type: 'key', key: e.key});
 };
 
 const PRESS = new Set(['pointerdown', 'mousedown', 'touchstart']);
@@ -339,6 +349,17 @@ const onPointer = e => {
     if (state.frozen && e.type === 'contextmenu') {
         swallow(e);
         return;
+    }
+    // a click on the target itself: a button, a sprite's tile, a library item (not a box to type in, a
+    // category or a search box - those lead on to the target, they do not end the step)
+    if (shown && !state.frozen && (e.type === 'pointerdown' || e.type === 'touchstart') && !shown.input &&
+        ['ui', 'sprite', 'library'].includes(shown.via)) {
+        const point = e.touches ? e.touches[0] : e;
+        const {rect} = shown;
+        if (point.clientX >= rect.left - 4 && point.clientX <= rect.right + 4 &&
+            point.clientY >= rect.top - 4 && point.clientY <= rect.bottom + 4) {
+            send({type: 'guide-clicked', via: shown.via});
+        }
     }
     if (!state.picking) return;
     const block = blockAt(e.target);
