@@ -158,32 +158,33 @@ const codeBlock = (ws, target) => {
     return all[0] || null;
 };
 
-// A point of the workspace (a connection's x_, y_) on the screen: the canvas's own matrix carries the
-// scroll, the zoom and the right-to-left mirroring.
-const toScreen = (ws, x, y) => {
-    const point = ws.getParentSvg().createSVGPoint();
-    point.x = x;
-    point.y = y;
-    const p = point.matrixTransform(ws.getCanvas().getScreenCTM());
-    return {x: p.x, y: p.y};
-};
-
-// Where a dragged block goes: the anchor block's connection, on the screen; or the anchor block to scroll
+// Where a dragged block goes, measured on the blocks as drawn (the connections' own coordinates came
+// out shifted in a right-to-left editor): the anchor block's starting corner and its bottom ('next'),
+// the top of its mouth ('substack'), or the input's slot ('input:NAME'); or the anchor block to scroll
 // to when it is out of the code area's view.
 const dropPoint = (ws, to) => {
     const anchor = codeBlock(ws, to);
     if (!anchor) return {missing: 'no-anchor'};
-    if (!rectOf(anchor.getSvgRoot())) return {offscreen: anchor};
-    let connection = null;
+    const own = rectOf(anchor.svgPath_ || anchor.getSvgRoot());
+    if (!own) return {offscreen: anchor};
+    const startX = r => (ws.RTL ? r.right : r.left);
+    if (to.where && to.where.startsWith('input:')) {
+        const input = anchor.getInput(to.where.slice(6));
+        const filler = input && input.connection && input.connection.targetBlock();
+        const slot = filler && rectOf(filler.svgPath_ || filler.getSvgRoot());
+        return slot ? {point: {x: startX(slot), y: slot.top}, anchor} : {missing: 'no-connection'};
+    }
     if (to.where === 'substack') {
         const mouth = anchor.getInput('SUBSTACK');
-        connection = mouth && mouth.connection;
-    } else if (to.where && to.where.startsWith('input:')) {
-        const input = anchor.getInput(to.where.slice(6));
-        connection = input && input.connection;
-    } else connection = anchor.nextConnection;
-    if (!connection) return {missing: 'no-connection'};
-    return {point: toScreen(ws, connection.x_, connection.y_), anchor};
+        const first = mouth && mouth.connection && mouth.connection.targetBlock();
+        const inside = first && rectOf(first.svgPath_ || first.getSvgRoot());
+        if (inside) return {point: {x: startX(inside), y: inside.top}, anchor};
+        // an empty mouth: under the C-block's top arm, one row down
+        const arm = 16 * ws.scale;
+        return {point: {x: ws.RTL ? own.right - arm : own.left + arm, y: own.top + (48 * ws.scale)}, anchor};
+    }
+    // next: right under the block's own row (its notch at the bottom left aside)
+    return {point: {x: startX(own), y: own.bottom - (8 * ws.scale)}, anchor};
 };
 
 // One input or field of a block: the field itself (a menu on the block), or what fills the input (the
