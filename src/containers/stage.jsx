@@ -373,7 +373,14 @@ class Stage extends React.Component {
     positionDragCanvas (mouseX, mouseY) {
         // mouseX/Y are relative to stage top/left, and dragCanvas is already
         // positioned so that the pick location is at (0,0).
-        this.dragCanvas.style.transform = `translate(${mouseX}px, ${mouseY}px)`;
+        // כישופייה: relative to the stage itself, not to the box holding it - a box wider than the stage
+        // (the sprite pane) centred the stage in it, and the dragged picture trailed the mouse by the gap
+        // (Keren, 2026-10-24).
+        const box = this.dragCanvas.offsetParent;
+        const at = box ? box.getBoundingClientRect() : null;
+        const dx = at ? this.rect.left - at.left : 0;
+        const dy = at ? this.rect.top - at.top : 0;
+        this.dragCanvas.style.transform = `translate(${mouseX + dx}px, ${mouseY + dy}px)`;
     }
     onStartDrag (x, y) {
         if (this.state.dragId) return;

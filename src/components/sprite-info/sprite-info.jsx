@@ -161,7 +161,11 @@ class SpriteInfo extends React.Component {
         // כישופייה: the second row in the small layout too (Keren, 2026-10-24) - it opens with the small
         // stage, and lessons say "בתיבה גודל מקלידים 70"; Scratch's small layout left show, size and direction out.
         const secondaryRow = (
-            <div className={classNames(styles.row, styles.rowSecondary)}>
+            <div
+                className={classNames(styles.row, styles.rowSecondary, {
+                    [styles.rowWrap]: stageSize === STAGE_DISPLAY_SIZES.small
+                })}
+            >
                 <div className={labelAbove ? styles.column : styles.group}>
                     {
                         stageSize === STAGE_DISPLAY_SIZES.full || stageSize === STAGE_DISPLAY_SIZES.large ?
