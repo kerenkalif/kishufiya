@@ -1,8 +1,8 @@
-/* כישופייה guide: above the editor and its stage header (500), below windows (510) and the menu bar (511) */
+/* כישופייה guide: above the editor, its windows (510: a library item may be the target) and the menu bar */
 .layer {
     position: fixed;
     inset: 0;
-    z-index: 505;
+    z-index: 512;
     pointer-events: none;
     font-family: "Heebo", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }

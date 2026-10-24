@@ -12,11 +12,16 @@
 //                                              block (where 'next'), into its mouth ('substack') or into
 //                                              one of its inputs ('input:NAME') - a ghost of it is shown
 //                                              moving there. A block of the code moves with the ones under
-//                                              it. top: of several such blocks, the one under that hat
+//                                              it. top: of several such blocks, the one under that hat;
+//                                              nth: 'last', the newest of them
 //   {blockId}                                  one block of the open sprite's code, by id
 //   {category: id}                             a category of the palette (motion, looks, control, ...)
 //   {ui: name}                                 a part of the editor, see UI below
 //   {sprite: name}                             a sprite's tile in the sprite list
+//   {library: name}                            an item of the open library (sprites, backdrops...) by
+//                                              the name it shows; while it is not in sight, the library's
+//                                              search box (via 'search') - the child searches, nothing is
+//                                              searched for them
 // A palette block whose category is not in view resolves to its category: the child opens the
 // category; the palette is never scrolled for them (Keren, 2026-10-23). A code block of a sprite that
 // is not open resolves to that sprite's tile, the same way.
@@ -52,9 +57,30 @@ const UI = {
     'code-tab': '[class*="gui_tab-list_"] > li:nth-child(1)',
     'costumes-tab': '[class*="gui_tab-list_"] > li:nth-child(2)',
     'sounds-tab': '[class*="gui_tab-list_"] > li:nth-child(3)',
-    'menu-bar': '[class*="menu-bar_menu-bar_"]'
+    'menu-bar': '[class*="menu-bar_menu-bar_"]',
+    'sprite-name': '[class*="sprite-info_sprite-info_"] input[type="text"]',
+    'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
-export const uiElement = name => (UI[name] ? document.querySelector(UI[name]) : null);
+// The sprite's numbers, in the order the sprite info shows them.
+const NUMBERS = {'sprite-x': 0, 'sprite-y': 1, 'sprite-size': 2, 'sprite-direction': 3};
+export const uiElement = name => {
+    if (name in NUMBERS) {
+        return document.querySelectorAll('[class*="sprite-info_sprite-info_"] input[type="number"]')[NUMBERS[name]] ||
+            null;
+    }
+    return UI[name] ? document.querySelector(UI[name]) : null;
+};
+
+const libraryItem = name => {
+    const wanted = String(name).trim()
+        .toLowerCase();
+    for (const el of document.querySelectorAll('[class*="library-item_library-item-name_"]')) {
+        if (el.textContent.trim().toLowerCase() === wanted) {
+            return el.closest('[class*="library-item_library-item_"]') || el;
+        }
+    }
+    return null;
+};
 
 export const workspace = () => {
     const SB = window.ScratchBlocks;
@@ -127,6 +153,8 @@ const codeBlock = (ws, target) => {
         const within = all.find(b => surrounding(b).includes(target.inside));
         if (within) return within;
     }
+    // last: the newest of them (the second "when key pressed" the child just added)
+    if (target.nth === 'last') return all[all.length - 1] || null;
     return all[0] || null;
 };
 
@@ -182,6 +210,16 @@ export const resolve = (target, vm) => {
     if (target.ui) {
         const rect = rectOf(uiElement(target.ui));
         return rect ? {rect, via: 'ui'} : {missing: 'ui'};
+    }
+    if (target.library) {
+        const item = libraryItem(target.library);
+        const rect = rectOf(item);
+        const grid = item && item.closest('[class*="library_library-scroll-grid_"]');
+        const area = rectOf(grid) || {top: 0, bottom: window.innerHeight};
+        const middle = rect && ((rect.top + rect.bottom) / 2);
+        if (rect && middle >= area.top && middle <= area.bottom) return {rect, via: 'library'};
+        const search = rectOf(uiElement('library-search'));
+        return search ? {rect: search, via: 'search'} : {missing: 'library'};
     }
     if (target.sprite && !target.block && !target.blockId) {
         const rect = rectOf(spriteTile(target.sprite));
