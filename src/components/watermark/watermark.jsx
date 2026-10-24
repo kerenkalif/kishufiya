@@ -28,10 +28,15 @@ const place = url => {
         image.setAttribute('pointer-events', 'none');
         background.after(image);
     }
-    const dir = svg.closest('[dir]');
-    const rtl = Boolean(dir && dir.getAttribute('dir') === 'rtl');
-    image.setAttribute('x', rtl ? MARGIN : svg.clientWidth - MARGIN - SIZE);
-    image.setAttribute('y', MARGIN);
+    // Where it always stood: gui.css still places the (now empty) watermark box in the code area's corner,
+    // left in Hebrew, right in English. The workspace SVG itself is marked ltr, so its direction says nothing.
+    const box = document.querySelector('[class*="gui_watermark"]');
+    const at = svg.getBoundingClientRect();
+    const corner = box && box.getBoundingClientRect();
+    const rtl = Boolean(box && box.closest('[dir="rtl"]'));
+    const x = corner ? corner.left - at.left - (rtl ? 0 : SIZE) : MARGIN;
+    image.setAttribute('x', Math.max(0, x));
+    image.setAttribute('y', corner ? Math.max(0, corner.top - at.top) : MARGIN);
     image.setAttribute('href', url);
     return true;
 };
