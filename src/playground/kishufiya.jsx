@@ -190,8 +190,9 @@ const onProjectLoaded = () => {
     post({kishufiya: 'ready'});
 };
 
-// The stage starts small, so the editor fits beside the lesson (864px instead of 1024px);
-// the child can still make it large, and the lesson page then makes room.
+// The stage starts large (Keren, 2026-10-24: the lesson starts hidden, so the editor has the room);
+// fit() below makes it smaller when there is no room - the lesson strip opened, a small screen - and
+// gives it back when the room returns.
 // What the editor needs besides its stage, as gui.jsx works out its minWidth: more in the small
 // layout, whose sprite pane is laid out differently. Narrow dragged stages take the small layout.
 const NON_STAGE = {small: 624, large: 544};
@@ -211,13 +212,13 @@ const Bridge = connect(
         title: state.scratchGui.projectTitle
     }),
     dispatch => ({
-        onSmall: () => dispatch(setStageSize(STAGE_SIZE_MODES.small)),
+        onLarge: () => dispatch(setStageSize(STAGE_SIZE_MODES.large)),
         onTitle: title => dispatch(setProjectTitle(title)),
         onFit: stageWidth => dispatch(setStageWidth(stageWidth)),
         onSaved: () => dispatch(setProjectUnchanged())
     })
-)(({size, width, title, onSmall, onTitle, onFit, onSaved}) => {
-    useEffect(onSmall, []);
+)(({size, width, title, onLarge, onTitle, onFit, onSaved}) => {
+    useEffect(onLarge, []);
     nameProject = onTitle;
     markSaved = onSaved;
     // The child renamed the game in the title field: the platform keeps the name ("המשחקים שלי").
@@ -233,7 +234,7 @@ const Bridge = connect(
     useEffect(() => post({kishufiya: 'width', px: LEAST_WIDTH}), []);
     useEffect(() => {
         const current = () => STAGE_DISPLAY_SCALE_METADATA[size === STAGE_SIZE_MODES.small ? 'small' : 'large'].width;
-        // The editor starts in 'full' for a moment before the small stage it opens with: not a choice.
+        // The editor starts in 'full' for a moment before the large stage it opens with: not a choice.
         if (size === STAGE_SIZE_MODES.full) return;
         if (fitting) fitting = false;
         else preferredStage = current();
@@ -259,7 +260,7 @@ Bridge.propTypes = {
     size: PropTypes.string,
     width: PropTypes.number,
     title: PropTypes.string,
-    onSmall: PropTypes.func,
+    onLarge: PropTypes.func,
     onTitle: PropTypes.func,
     onFit: PropTypes.func,
     onSaved: PropTypes.func
