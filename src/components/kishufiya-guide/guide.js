@@ -2,10 +2,11 @@
 // Generic on purpose - it knows nothing of lessons, children or answers; the platform decides what to
 // show and what a pick means. Messages (msg.type), from the page around the editor:
 //   guide        {target, text?, textCategory?, textSprite?}
-//                                      ring the target (targets.js) and put a speech bubble beside it;
-//                                      while the target is reached through its category or its sprite's
-//                                      tile (the child has to open it first), textCategory / textSprite
-//                                      are shown instead of text, when given
+//                                      ring the target (targets.js) and bounce an arrow at it; with a
+//                                      text, also a speech bubble beside it (the page may draw its own
+//                                      instead, where 'guide-at' says the target is). While the target is
+//                                      reached through its category or its sprite's tile (the child has
+//                                      to open it first), textCategory / textSprite replace text
 //   guide-clear  {}
 //   freeze       {on, note?, stop?, spotlight?}
 //                                      a light veil over the editor (below the menu bar): nothing in it
@@ -24,6 +25,9 @@
 //   category-opened {id}                            the palette's category now in view
 //   picked {opcode, blockId, sprite, inside: [opcode], top}
 //   guide-missing {target, reason}                  the target is nowhere on the screen (for half a second)
+//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below'}
+//                                                   where the guided target is now, in this frame's pixels,
+//                                                   and on which side of it the arrow is - sent on change
 //   ui {name: 'run' | 'stop'}                       the green flag / stop sign
 //   found {id, sprites: [name]}                     the answer to 'find' ('Stage' is the stage)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace} from './targets.js';
@@ -47,6 +51,7 @@ let bubble = null;
 let bubbleText = null;
 let note = null;
 let flash = null;
+let pointer = null; // the bouncing arrow
 
 const div = className => {
     const el = document.createElement('div');
@@ -67,7 +72,8 @@ const build = () => {
     bubbleText = div(styles.text);
     bubble.appendChild(bubbleText);
     bubble.appendChild(div(styles.arrow));
-    for (const el of [note, ring, flash, bubble]) layer.appendChild(el);
+    pointer = div(styles.pointer);
+    for (const el of [note, ring, flash, pointer, bubble]) layer.appendChild(el);
     document.body.appendChild(layer);
 };
 
@@ -194,10 +200,42 @@ let scrolledTo = null; // the code block brought into view for this guide, once
 const inView = (r, area) => area &&
     r.top >= area.top && r.bottom <= area.bottom && r.left >= area.left && r.right <= area.right;
 
+// Where the page is told the target is: sent only when it changes.
+let lastAt = '';
+const tellAt = (rect, via, arrow) => {
+    const at = rect ? {
+        left: Math.round(rect.left),
+        top: Math.round(rect.top),
+        width: Math.round(rect.right - rect.left),
+        height: Math.round(rect.bottom - rect.top)
+    } : null;
+    const key = JSON.stringify([at, via, arrow]);
+    if (key === lastAt) return;
+    lastAt = key;
+    send({type: 'guide-at', rect: at, via: via || null, arrow: arrow || null});
+};
+
+// The arrow bounces above the target, pointing down; below it, pointing up, when there is no room above.
+const ARROW = 34;
+const placePointer = r => {
+    const above = r.top - ARROW - 8 > 0;
+    pointer.style.display = 'block';
+    pointer.style.left = `${Math.round(((r.left + r.right) / 2) - (ARROW / 2))}px`;
+    pointer.style.top = `${Math.round(above ? r.top - ARROW - 6 : r.bottom + 6)}px`;
+    pointer.setAttribute('data-side', above ? 'above' : 'below');
+    return above ? 'above' : 'below';
+};
+
+const hideGuide = () => {
+    place(ring, null);
+    pointer.style.display = 'none';
+    bubble.style.display = 'none';
+};
+
 const drawGuide = () => {
     if (!state.guide) {
-        place(ring, null);
-        bubble.style.display = 'none';
+        hideGuide();
+        tellAt(null);
         return;
     }
     const found = resolve(state.guide.target, vm);
@@ -205,14 +243,13 @@ const drawGuide = () => {
     if (found.block && scrolledTo !== found.block.id && (found.offscreen || !inView(found.rect, codeArea()))) {
         scrolledTo = found.block.id;
         workspace().centerOnBlock(found.block.id);
-        place(ring, null);
-        bubble.style.display = 'none';
+        hideGuide();
         return;
     }
     if (found.offscreen) found.missing = 'offscreen';
     if (found.missing) {
-        place(ring, null);
-        bubble.style.display = 'none';
+        hideGuide();
+        tellAt(null);
         const now = performance.now();
         if (!missingSince) missingSince = now;
         if (now - missingSince >= MISSING_AFTER_MS && reported !== found.missing) {
@@ -225,6 +262,7 @@ const drawGuide = () => {
     reported = null;
     const r = found.rect;
     place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
+    tellAt(r, found.via, placePointer(r));
     const {text, textCategory, textSprite} = state.guide;
     const say = (found.via === 'category' && textCategory) || (found.via === 'sprite' && textSprite) || text;
     if (bubbleText.textContent !== say) bubbleText.textContent = say;
