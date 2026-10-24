@@ -1,16 +1,61 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import {useEffect} from 'react';
 
-import styles from './watermark.css';
+// כישופייה: the selected sprite's faint picture in the code area's corner sits BEHIND the blocks (Keren,
+// 2026-10-24) - an image over the blocks hid the script a child put in that corner. It is drawn inside the
+// workspace's own SVG, between its dotted background and its blocks, at the same corner as before; it
+// stays there when the code scrolls, since it is outside the layer that scrolls.
+const SIZE = 48;
+const MARGIN = 20;
+const IMAGE_CLASS = 'kishufiya-watermark';
 
-const Watermark = props => (
-    <img
-        className={styles.spriteImage}
-        loading="lazy"
-        src={props.costumeURL}
-        draggable={false}
-    />
-);
+const place = url => {
+    const svg = document.querySelector('.injectionDiv > svg.blocklySvg');
+    const background = svg && svg.querySelector(':scope > g.blocklyWorkspace > rect.blocklyMainBackground');
+    if (!svg || !background) return false;
+    let image = background.parentNode.querySelector(`:scope > image.${IMAGE_CLASS}`);
+    if (!url) {
+        if (image) image.remove();
+        return true;
+    }
+    if (!image) {
+        image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        image.setAttribute('class', IMAGE_CLASS);
+        image.setAttribute('width', SIZE);
+        image.setAttribute('height', SIZE);
+        image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        image.setAttribute('opacity', '0.35');
+        image.setAttribute('pointer-events', 'none');
+        background.after(image);
+    }
+    const dir = svg.closest('[dir]');
+    const rtl = Boolean(dir && dir.getAttribute('dir') === 'rtl');
+    image.setAttribute('x', rtl ? MARGIN : svg.clientWidth - MARGIN - SIZE);
+    image.setAttribute('y', MARGIN);
+    image.setAttribute('href', url);
+    return true;
+};
+
+const Watermark = ({costumeURL}) => {
+    useEffect(() => {
+        // The workspace may not be in the page yet on the first render.
+        let tries = 0;
+        let timer = null;
+        const tryPlace = () => {
+            if (!place(costumeURL) && tries++ < 50) timer = setTimeout(tryPlace, 100);
+        };
+        tryPlace();
+        const onResize = () => place(costumeURL);
+        window.addEventListener('resize', onResize);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', onResize);
+        };
+    }, [costumeURL]);
+    useEffect(() => () => place(null), []);
+    // Nothing of its own over the code area any more.
+    return null;
+};
 
 Watermark.propTypes = {
     costumeURL: PropTypes.string
