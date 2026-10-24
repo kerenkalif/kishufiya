@@ -5,6 +5,7 @@
  */
 
 import './import-first';
+import '../lib/kishufiya-rtl-bubbles';
 
 import React from 'react';
 import {compose} from 'redux';
