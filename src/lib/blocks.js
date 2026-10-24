@@ -358,5 +358,17 @@ export default function (vm) {
         return true;
     };
 
+    // Kishufiya: in Hebrew the blocks are drawn right to left, so "%1 < %2" puts %1 on the right and the
+    // sign's mouth faces the smaller value. Mirroring the sign makes it point at the bigger one, as in
+    // math class. Only the label changes; the opcodes and what they compute stay the same. Hebrew only:
+    // other right-to-left translations may already handle it (Persian writes "%2 > %1"). Once, because
+    // this runs on every editor mount and the locale table is shared.
+    const he = ScratchBlocks.ScratchMsgs.locales.he;
+    if (he && !ScratchBlocks.ScratchMsgs.kishufiyaSigns) {
+        ScratchBlocks.ScratchMsgs.kishufiyaSigns = true;
+        if (he.OPERATORS_LT === '%1 < %2') he.OPERATORS_LT = '%1 > %2';
+        if (he.OPERATORS_GT === '%1 > %2') he.OPERATORS_GT = '%1 < %2';
+    }
+
     return ScratchBlocks;
 }
