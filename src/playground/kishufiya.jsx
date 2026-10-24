@@ -123,6 +123,8 @@ const load = async (url, title, lesson, id) => {
         }
         dirty = false;
         post({kishufiya: 'loaded'});
+        // and to the page beside it: what it sent before the game was in never arrived (the guide, a freeze)
+        post({kishufiya: 'to-lesson', msg: {type: 'editor-ready'}});
         sendProject(true);
     } catch (e) {
         post({kishufiya: 'error', message: String((e && e.message) || e)});
@@ -142,9 +144,10 @@ const snapshot = () => new Promise(resolve => {
 });
 
 const save = async (id, withThumbnail) => {
+    // the project is read the moment it is asked for: a change from here on is the next save's, and says so
+    dirty = false;
     const blob = await vm.saveProjectSb3();
     const data = await blob.arrayBuffer();
-    dirty = false;
     markSaved();
     const thumbnail = withThumbnail === false ? null : await snapshot();
     post({kishufiya: 'saved', id, data, thumbnail}, thumbnail ? [data, thumbnail] : [data]);

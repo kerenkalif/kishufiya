@@ -24,7 +24,9 @@
 //   code-changed {sprite}                           any change to it (a block moved too), at most every 150ms
 //   category-opened {id}                            the palette's category now in view
 //   picked {opcode, blockId, sprite, inside: [opcode], top}
-//   guide-missing {target, reason}                  the target is nowhere on the screen (for half a second)
+//   (guide-missing, guide-at and guide-clicked carry the guide's `id`, as it was sent with 'guide', so the
+//   page tells them apart from what was said about the guide before)
+//   guide-missing {id, target, reason}              the target is nowhere on the screen (for half a second)
 //   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, drop?}
 //                                                   where the guided target is now, in this frame's pixels,
 //                                                   and on which side of it the arrow is; a field's value;
@@ -221,7 +223,8 @@ const tellAt = (rect, via, arrow, extra) => {
     const key = JSON.stringify([at, via, arrow, value, drop]);
     if (key === lastAt) return;
     lastAt = key;
-    send({type: 'guide-at', rect: at, via: via || null, arrow: arrow || null, value, drop});
+    const id = state.guide ? state.guide.id : null;
+    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, drop});
 };
 
 // A dragged block's way: a ghost of its size slides from it to its drop point, again and again. Only
@@ -286,7 +289,7 @@ const drawGuide = () => {
         if (!missingSince) missingSince = now;
         if (now - missingSince >= MISSING_AFTER_MS && reported !== found.missing) {
             reported = found.missing;
-            send({type: 'guide-missing', target: state.guide.target, reason: found.missing});
+            send({type: 'guide-missing', id: state.guide.id, target: state.guide.target, reason: found.missing});
         }
         return;
     }
@@ -352,13 +355,14 @@ const onPointer = e => {
     }
     // a click on the target itself: a button, a sprite's tile, a library item (not a box to type in, a
     // category or a search box - those lead on to the target, they do not end the step)
-    if (shown && !state.frozen && (e.type === 'pointerdown' || e.type === 'touchstart') && !shown.input &&
+    // pointerdown only: it covers mouse, touch and pen, and a tap is one of it (touchstart came as a second)
+    if (shown && !state.frozen && e.type === 'pointerdown' && !shown.input &&
         ['ui', 'sprite', 'library'].includes(shown.via)) {
         const point = e.touches ? e.touches[0] : e;
         const {rect} = shown;
         if (point.clientX >= rect.left - 4 && point.clientX <= rect.right + 4 &&
             point.clientY >= rect.top - 4 && point.clientY <= rect.bottom + 4) {
-            send({type: 'guide-clicked', via: shown.via});
+            send({type: 'guide-clicked', id: state.guide ? state.guide.id : null, via: shown.via});
         }
     }
     if (!state.picking) return;
@@ -475,6 +479,7 @@ export const handleGuide = msg => {
     switch (msg.type) {
     case 'guide':
         state.guide = {
+            id: msg.id,
             target: msg.target,
             text: msg.text || '',
             textCategory: msg.textCategory,
