@@ -33,7 +33,7 @@
 /* כישופייה: x and y side by side in the small layout, not pushed to the two edges (Keren, 2026-10-24) */
 .row-together {
     justify-content: flex-start;
-    gap: 1.25rem;
+    gap: 0.5rem; /* wider and the row alone outgrew the small stage */
 }
 
 .label { opacity: 0.8; }

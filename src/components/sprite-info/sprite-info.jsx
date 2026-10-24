@@ -228,8 +228,10 @@ class SpriteInfo extends React.Component {
                 <Box className={styles.spriteInfo}>
                     <div className={classNames(styles.row, styles.rowPrimary)}>
                         <div className={styles.group}>
+                            {/* Above, not beside: beside it the row was wider than the small stage, the
+                                pane grew past the stage and left it narrower than its column. */}
                             <Label
-                                above={labelAbove}
+                                above
                                 text={sprite}
                             >
                                 {spriteNameInput}
