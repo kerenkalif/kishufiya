@@ -122,6 +122,9 @@ const load = async (url, title, lesson, id) => {
             nameProject(title);
         }
         dirty = false;
+        // The editor's own "leave this page?" too: building the game called every block a change, and the
+        // browser asked about unsaved changes over a saved game (Keren, 2026-10-24).
+        markSaved();
         post({kishufiya: 'loaded'});
         // and to the page beside it: what it sent before the game was in never arrived (the guide, a freeze)
         post({kishufiya: 'to-lesson', msg: {type: 'editor-ready'}});
