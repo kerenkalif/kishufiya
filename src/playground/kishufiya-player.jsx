@@ -32,6 +32,42 @@ const source = project && project.startsWith('/') && !project.startsWith('//') ?
 let vm = null;
 let loaded = false;
 
+// The game's report (2026-10-24): a game may keep a list named "דיווח" on its stage, one line per thing
+// worth telling the teacher. Each new line goes up to the page holding the player, which records it.
+// A green flag starts a new run; the game clears the list then, so lines are counted per run.
+const REPORT_LIST = 'דיווח';
+let run = 0;
+let sent = 0;
+
+const reportLines = () => {
+    const stage = vm && vm.runtime.getTargetForStage();
+    if (!stage) return null;
+    const list = Object.values(stage.variables).find(v => v.type === 'list' && v.name === REPORT_LIST);
+    return list ? list.value : null;
+};
+
+const toPage = message => {
+    if (window.parent !== window) window.parent.postMessage({kishufiya: 'report', ...message}, location.origin);
+};
+
+const watchReport = () => {
+    vm.runtime.on('PROJECT_START', () => {
+        run += 1;
+        // Lines of the run before stay in the list until the game clears it: they were sent already.
+        sent = (reportLines() || []).length;
+        toPage({run, start: true});
+    });
+    setInterval(() => {
+        const lines = reportLines();
+        if (!lines) return;
+        if (lines.length < sent) sent = 0; // the game cleared the list
+        if (lines.length > sent) {
+            toPage({run, lines: lines.slice(sent).map(String)});
+            sent = lines.length;
+        }
+    }, 500);
+};
+
 const onVmInit = _vm => {
     vm = _vm;
 };
@@ -44,6 +80,7 @@ const onProjectLoaded = () => {
         .then(res => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(`HTTP ${res.status}`))))
         .then(data => vm.loadProject(data))
         .then(() => {
+            watchReport();
             if (params.has('autoplay')) {
                 vm.start();
                 vm.greenFlag();
