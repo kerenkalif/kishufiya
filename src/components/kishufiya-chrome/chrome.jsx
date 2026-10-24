@@ -28,19 +28,34 @@ const useChrome = () => {
 };
 
 const openLesson = () => send({kishufiya: 'lesson-open'});
-const goHome = () => send({kishufiya: 'navigate', href: '/my'});
+// The child's main page on the platform; opened alone (the open-source editor, no platform around it),
+// its sign-in page.
+export const goHome = () => {
+    if (window.parent === window) window.location.href = 'https://kesemhacode.co.il/my';
+    else send({kishufiya: 'navigate', href: '/my'});
+};
 
-// The row's first button, while the lesson is hidden - back to it - or, in a game with no lesson, back
-// to the child's main page: "בחזרה ל" and the starred name of "קסם הקוד" (its logo on the platform) -
-// Keren, 2026-10-23.
+// The row's first button: while the lesson is hidden, "להצגת תוכן העניינים" brings it back (Keren,
+// 2026-10-24); in a game with no lesson, back to the child's main page: "בחזרה ל" and the starred name of
+// "קסם הקוד" (its logo on the platform) - Keren, 2026-10-23.
 export const LessonButton = () => {
     const {lessonHidden, alone} = useChrome();
     if (!lessonHidden && !alone) return null;
+    if (!alone) {
+        return (
+            <button
+                className={styles.lesson}
+                onClick={openLesson}
+            >
+                {'📖 להצגת תוכן העניינים'}
+            </button>
+        );
+    }
     return (
         <button
             className={styles.lesson}
             aria-label="בחזרה לקסם הקוד"
-            onClick={alone ? goHome : openLesson}
+            onClick={goHome}
         >
             {'בחזרה ל'}
             <span

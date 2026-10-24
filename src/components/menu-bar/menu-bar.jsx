@@ -23,7 +23,7 @@ import {MenuItem, MenuSection} from '../menu/menu.jsx';
 import ProjectTitleInput from './project-title-input.jsx';
 import AuthorInfo from './author-info.jsx';
 import SB3Downloader from '../../containers/sb3-downloader.jsx';
-import {LessonButton, StatusArea} from '../kishufiya-chrome/chrome.jsx';
+import {LessonButton, StatusArea, goHome} from '../kishufiya-chrome/chrome.jsx';
 import DeletionRestorer from '../../containers/deletion-restorer.jsx';
 import TurboMode from '../../containers/turbo-mode.jsx';
 import MenuBarHOC from '../../containers/menu-bar-hoc.jsx';
@@ -972,8 +972,19 @@ class MenuBar extends React.Component {
 
 
                 <StatusArea />
-                {/* כישופייה, מבית "קסם הקוד" (its starred name, as on the platform), pinned to the row's far end */}
-                <div className={classNames(styles.menuBarItem, styles.kishufiyaBrand)}>
+                {/* כישופייה, מבית "קסם הקוד" (its starred name, as on the platform), pinned to the row's far end;
+                    a click goes to the child's main page (Keren, 2026-10-24) */}
+                <div
+                    className={classNames(styles.menuBarItem, styles.kishufiyaBrand)}
+                    role="link"
+                    tabIndex={0}
+                    title="לדף הראשי של קסם הקוד"
+                    style={{cursor: 'pointer'}}
+                    onClick={goHome}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') goHome();
+                    }}
+                >
                     <span className={styles.kishufiyaName}>{'🪄 '}{APP_NAME}</span>
                     <span className={styles.kishufiyaBy}>{'מבית'}</span>
                     <span
