@@ -256,6 +256,15 @@ export const resolve = (target, vm) => {
     }
     const ws = workspace();
     if (!ws) return {missing: 'workspace'};
+    // A block from the palette for another sprite than the one open: its tile first - the palette is the
+    // same for every sprite, and the block went into the wrong one (Keren's tester, donuts 8.8, 2026-10-25:
+    // after a reload the spaceship was open and the ring went to "מפעילים").
+    if (target.sprite && (target.category || target.in === 'palette')) {
+        const open = editingTarget(vm);
+        // no such tile (a sprite the child named otherwise): the palette as before, not "lost"
+        const rect = open && open.getName() !== target.sprite && rectOf(spriteTile(target.sprite));
+        if (rect) return {rect, via: 'sprite'};
+    }
     if (target.category) {
         const rect = rectOf(document.querySelector(`.scratchCategoryId-${target.category}`));
         return rect ? {rect, via: 'category'} : {missing: 'category'};
