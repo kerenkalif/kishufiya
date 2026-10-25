@@ -232,15 +232,19 @@ const tellAt = (rect, via, arrow, extra) => {
 // where the block goes).
 const GHOST_ROW = 44; // a C block's mouth is not drawn: its top row says where it joins
 let lastGhost = '';
-const placeGhost = (r, drop) => {
+const placeGhost = (r, drop, slot) => {
     if (!r || !drop) {
         ghost.style.display = 'none';
         lastGhost = '';
         return;
     }
-    const key = [r.left, r.right, r.top, r.bottom, drop.x, drop.y].map(Math.round).join();
+    const key = [r.left, r.right, r.top, r.bottom, drop.x, drop.y, slot ? slot.left : 0].map(Math.round).join();
     if (key === lastGhost) return;
     lastGhost = key;
+    if (slot) {
+        place(ghost, slot); // a block going into a slot: the slot itself
+        return;
+    }
     // the corner a block joins by is at the drop point: its top-right in a right-to-left editor
     const width = r.right - r.left;
     const height = Math.min(r.bottom - r.top, GHOST_ROW);
@@ -329,7 +333,7 @@ const drawGuide = () => {
         louderSince = now;
     }
     louder(!state.frozen && now - louderSince >= LOUDER_AFTER_MS);
-    placeGhost(r, found.drop);
+    placeGhost(r, found.drop, found.slot);
     tellAt(r, found.via, placePointer(r), found);
     const {text, textCategory, textSprite} = state.guide;
     const say = (found.via === 'category' && textCategory) || (found.via === 'sprite' && textSprite) || text;

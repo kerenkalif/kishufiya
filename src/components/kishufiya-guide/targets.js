@@ -177,7 +177,8 @@ const dropPoint = (ws, to, moved) => {
         const input = anchor.getInput(to.where.slice(6));
         const filler = input && input.connection && input.connection.targetBlock();
         const slot = filler && rectOf(filler.svgPath_ || filler.getSvgRoot());
-        return slot ? {point: {x: startX(slot), y: slot.top}, anchor} : {missing: 'no-connection'};
+        // the slot itself is outlined: a block's width stuck out of it into empty space (2026-10-25)
+        return slot ? {point: {x: startX(slot), y: slot.top}, slot, anchor} : {missing: 'no-connection'};
     }
     if (to.where === 'substack') {
         const mouth = anchor.getInput('SUBSTACK');
@@ -284,11 +285,13 @@ export const resolve = (target, vm) => {
         const rect = block && rectOf(block.getSvgRoot());
         const area = rectOf(flyoutSvg(ws));
         const middle = rect && (rect.top + (Math.min(rect.height, 40) / 2));
+        // while the palette scrolls nothing is ringed: for a moment it was the block passing by (2026-10-25)
+        if (flyout && flyout.scrollTarget) return {missing: 'scrolling'};
         if (rect && area && middle >= area.top && middle <= area.bottom) {
             if (!target.to) return {rect, via: 'block'};
             const drop = dropPoint(ws, target.to);
             if (drop.offscreen) return {rect, via: 'block', block: drop.offscreen};
-            return drop.point ? {rect, via: 'block', drop: drop.point} : {rect, via: 'block'};
+            return drop.point ? {rect, via: 'block', drop: drop.point, slot: drop.slot} : {rect, via: 'block'};
         }
         const category = categoryOf(target.block);
         // The child opened the block's category, and the block is lower down in it (or above, after a
@@ -326,7 +329,8 @@ export const resolve = (target, vm) => {
         const drop = dropPoint(ws, target.to, block.id);
         const own = block.svgPath_ ? rectOf(block.svgPath_) : rect;
         if (drop.offscreen) return {rect: own, via: 'block', block: drop.offscreen};
-        return drop.point ? {rect: own, via: 'block', block, drop: drop.point} : {rect: own, via: 'block', block};
+        if (!drop.point) return {rect: own, via: 'block', block};
+        return {rect: own, via: 'block', block, drop: drop.point, slot: drop.slot};
     }
     if (target.field) {
         const field = fieldOf(block, target.field);

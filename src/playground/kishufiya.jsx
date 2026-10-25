@@ -91,7 +91,9 @@ const sendProject = (again = false) => {
     clearTimeout(projectTimer);
     projectTimer = setTimeout(() => {
         if (!vm) return;
-        const project = vm.toJSON();
+        // the blocks' own ids, not short ones made up for saving: the lesson rings a block of the child's by
+        // its id, and a block just added had another id in the editor (2026-10-25)
+        const project = vm.toJSON(null, {allowOptimization: false});
         if (project === lastSent && !again) return;
         lastSent = project;
         post({kishufiya: 'to-lesson', msg: {type: 'project', project}});
