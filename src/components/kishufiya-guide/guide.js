@@ -568,6 +568,9 @@ export const attachGuide = (theVm, sender) => {
         diffCode(); // a sprite opened: its blocks as they are now are the baseline
     }, 0));
     vm.runtime.on('PROJECT_RUN_START', () => send({type: 'ui', name: 'run'}));
+    // the green flag while the game is already running restarts it without a new "run start" (the threads
+    // never reach zero): every press of the flag is a run (Keren, 2026-10-25 - a guess waited for a run)
+    vm.runtime.on('PROJECT_START', () => send({type: 'ui', name: 'run'}));
     vm.runtime.on('PROJECT_RUN_STOP', () => send({type: 'ui', name: 'stop'}));
     window.addEventListener('resize', wake);
 };
