@@ -9,7 +9,7 @@
 //                                              or open a menu; its value is reported with it
 //   {block, in: 'palette' | 'code', to: {block, inside?, top?, where}}
 //                                              a palette block, and where in the code it goes: under that
-//                                              block (where 'next'), into its mouth ('substack') or into
+//                                              block (where 'next'), into its mouth ('substack'; 'substack2' an if-else's "else") or into
 //                                              one of its inputs ('input:NAME') - that place is outlined
 //                                              (`drop`, or the input's `slot`). A block of the code moves
 //                                              with the ones under it. top: of several such blocks, the one
@@ -203,7 +203,8 @@ const codeBlock = (ws, target, exclude) => {
 
 // Where a dragged block goes, measured on the blocks as drawn (the connections' own coordinates came
 // out shifted in a right-to-left editor): the anchor block's starting corner and its bottom ('next'),
-// the top of its mouth ('substack'), or the input's slot ('input:NAME'); or the anchor block to scroll
+// the top of its mouth ('substack', an if-else's "else" mouth 'substack2'), or the input's slot
+// ('input:NAME'); or the anchor block to scroll
 // to when it is out of the code area's view.
 const dropPoint = (ws, to, moved) => {
     const anchor = codeBlock(ws, to, moved);
@@ -218,15 +219,23 @@ const dropPoint = (ws, to, moved) => {
         // the slot itself is outlined: a block's width stuck out of it into empty space (2026-10-25)
         return slot ? {point: {x: startX(slot), y: slot.top}, slot, anchor} : {missing: 'no-connection'};
     }
-    if (to.where === 'substack') {
-        const mouth = anchor.getInput('SUBSTACK');
+    if (to.where === 'substack' || to.where === 'substack2') {
+        const mouth = anchor.getInput(to.where === 'substack2' ? 'SUBSTACK2' : 'SUBSTACK');
         const first = mouth && mouth.connection && mouth.connection.targetBlock();
         const inside = first && rectOf(first.svgPath_ || first.getSvgRoot());
         if (inside) return {point: {x: startX(inside), y: inside.top}, anchor};
-        // an empty mouth: under the C-block's top arm, one row down
         const arm = METRICS.arm * ws.scale;
-        const y = own.top + (METRICS.row * ws.scale);
-        return {point: {x: ws.RTL ? own.right - arm : own.left + arm, y}, anchor};
+        const x = ws.RTL ? own.right - arm : own.left + arm;
+        // an empty "else": as far down the block as its mouth's connection is (only its height is used - the
+        // connections' own coordinates came out shifted sideways in a right-to-left editor)
+        if (to.where === 'substack2') {
+            const conn = mouth && mouth.connection;
+            const top = anchor.getRelativeToSurfaceXY();
+            if (!conn || typeof conn.y_ !== 'number') return {missing: 'no-connection'};
+            return {point: {x, y: own.top + ((conn.y_ - top.y) * ws.scale)}, anchor};
+        }
+        // an empty mouth: under the C-block's top arm, one row down
+        return {point: {x, y: own.top + (METRICS.row * ws.scale)}, anchor};
     }
     // next: right under the block's own row (its notch at the bottom left aside)
     return {point: {x: startX(own), y: own.bottom - (METRICS.notch * ws.scale)}, anchor};
