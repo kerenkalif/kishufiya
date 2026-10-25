@@ -227,8 +227,10 @@ const tellAt = (rect, via, arrow, extra) => {
     send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, drop});
 };
 
-// A dragged block's way: a ghost of its size slides from it to its drop point, again and again. Only
-// a transform moves; the distance is two CSS variables.
+// Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
+// 2026-10-25: a ghost sliding there over and over looked like a target in empty space, and faded just
+// where the block goes).
+const GHOST_ROW = 44; // a C block's mouth is not drawn: its top row says where it joins
 let lastGhost = '';
 const placeGhost = (r, drop) => {
     if (!r || !drop) {
@@ -236,13 +238,13 @@ const placeGhost = (r, drop) => {
         lastGhost = '';
         return;
     }
-    const key = [r.left, r.top, r.right, r.bottom, drop.x, drop.y].map(Math.round).join();
+    const key = [r.left, r.right, r.top, r.bottom, drop.x, drop.y].map(Math.round).join();
     if (key === lastGhost) return;
     lastGhost = key;
-    // the corner a block joins by goes to the drop point: its top-right in a right-to-left editor
-    place(ghost, r);
-    ghost.style.setProperty('--dx', `${Math.round(drop.x - r.right)}px`);
-    ghost.style.setProperty('--dy', `${Math.round(drop.y - r.top)}px`);
+    // the corner a block joins by is at the drop point: its top-right in a right-to-left editor
+    const width = r.right - r.left;
+    const height = Math.min(r.bottom - r.top, GHOST_ROW);
+    place(ghost, {left: drop.x - width, right: drop.x, top: drop.y, bottom: drop.y + height});
 };
 
 // The arrow bounces above the target, pointing down; below it, pointing up, when there is no room above.

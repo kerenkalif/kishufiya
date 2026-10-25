@@ -148,9 +148,10 @@ const spriteTile = name => {
 // the palette block scrolled into view for the open category, once (resolve below)
 let paletteScrolledTo = null;
 
-const codeBlock = (ws, target) => {
+// `exclude`: a block that is not it (the block being moved is not its own anchor)
+const codeBlock = (ws, target, exclude) => {
     if (target.blockId) return realBlock(ws.getBlockById(target.blockId));
-    let all = ws.getAllBlocks(false).filter(b => b.type === target.block && !b.isShadow());
+    let all = ws.getAllBlocks(false).filter(b => b.type === target.block && !b.isShadow() && b.id !== exclude);
     // top: the one in the script that starts with that hat (two forevers: the flag's, not the clone's)
     if (target.top) all = all.filter(b => b.getRootBlock().type === target.top);
     if (target.inside) {
@@ -166,8 +167,8 @@ const codeBlock = (ws, target) => {
 // out shifted in a right-to-left editor): the anchor block's starting corner and its bottom ('next'),
 // the top of its mouth ('substack'), or the input's slot ('input:NAME'); or the anchor block to scroll
 // to when it is out of the code area's view.
-const dropPoint = (ws, to) => {
-    const anchor = codeBlock(ws, to);
+const dropPoint = (ws, to, moved) => {
+    const anchor = codeBlock(ws, to, moved);
     if (!anchor) return {missing: 'no-anchor'};
     const own = rectOf(anchor.svgPath_ || anchor.getSvgRoot());
     if (!own) return {offscreen: anchor};
@@ -299,7 +300,9 @@ export const resolve = (target, vm) => {
         if (!inIt) paletteScrolledTo = null;
         else if (paletteScrolledTo !== target.block && !flyout.scrollTarget) {
             paletteScrolledTo = target.block;
-            flyout.scrollTo(Math.max(0, block.getRelativeToSurfaceXY().y - 24));
+            // room above it for its neighbour and the category title: at the very top it hid under the
+            // tabs (2026-10-25)
+            flyout.scrollTo(Math.max(0, block.getRelativeToSurfaceXY().y - 90));
             return {missing: 'scrolling'};
         }
         const item = category && rectOf(document.querySelector(`.scratchCategoryId-${category}`));
@@ -320,7 +323,7 @@ export const resolve = (target, vm) => {
     // scratch-blocks does not draw blocks out of the code area's view: there, but not on the screen
     if (!rect) return {offscreen: true, block};
     if (target.to) {
-        const drop = dropPoint(ws, target.to);
+        const drop = dropPoint(ws, target.to, block.id);
         const own = block.svgPath_ ? rectOf(block.svgPath_) : rect;
         if (drop.offscreen) return {rect: own, via: 'block', block: drop.offscreen};
         return drop.point ? {rect: own, via: 'block', block, drop: drop.point} : {rect: own, via: 'block', block};
