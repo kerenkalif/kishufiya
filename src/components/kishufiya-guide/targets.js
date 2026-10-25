@@ -193,6 +193,21 @@ const dropPoint = (ws, to, moved) => {
     return {point: {x: startX(own), y: own.bottom - (8 * ws.scale)}, anchor};
 };
 
+// A free spot for a new script, in screen pixels: under the lowest script of the open sprite, lined up with
+// the scripts' starting edge; null with no code, or when that spot is out of the code area's view.
+const freeSpot = ws => {
+    const rects = ws.getTopBlocks(false)
+        .map(b => rectOf(b.getSvgRoot()))
+        .filter(Boolean);
+    if (!rects.length) return null;
+    const bottom = Math.max(...rects.map(r => r.bottom));
+    const x = ws.RTL ? Math.max(...rects.map(r => r.right)) : Math.min(...rects.map(r => r.left));
+    const area = rectOf(ws.getParentSvg());
+    const y = bottom + (32 * ws.scale);
+    if (area && y + 20 > area.bottom) return null;
+    return {x, y};
+};
+
 // One input or field of a block: the field itself (a menu on the block), or what fills the input (the
 // number's own shadow block, a menu block, or a block the child put there). With its value as shown.
 const fieldOf = (block, name) => {
@@ -288,7 +303,11 @@ export const resolve = (target, vm) => {
         // while the palette scrolls nothing is ringed: for a moment it was the block passing by (2026-10-25)
         if (flyout && flyout.scrollTarget) return {missing: 'scrolling'};
         if (rect && area && middle >= area.top && middle <= area.bottom) {
-            if (!target.to) return {rect, via: 'block'};
+            if (!target.to) {
+                // a new script's hat: a free spot under the code there is ("למקום ריק"), outlined like any drop
+                const spot = block.nextConnection && !block.previousConnection ? freeSpot(ws) : null;
+                return spot ? {rect, via: 'block', drop: spot} : {rect, via: 'block'};
+            }
             const drop = dropPoint(ws, target.to);
             if (drop.offscreen) return {rect, via: 'block', block: drop.offscreen};
             return drop.point ? {rect, via: 'block', drop: drop.point, slot: drop.slot} : {rect, via: 'block'};
