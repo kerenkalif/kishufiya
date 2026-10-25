@@ -145,6 +145,9 @@ const spriteTile = name => {
     return null;
 };
 
+// the palette block scrolled into view for the open category, once (resolve below)
+let paletteScrolledTo = null;
+
 const codeBlock = (ws, target) => {
     if (target.blockId) return realBlock(ws.getBlockById(target.blockId));
     let all = ws.getAllBlocks(false).filter(b => b.type === target.block && !b.isShadow());
@@ -263,6 +266,18 @@ export const resolve = (target, vm) => {
             return drop.point ? {rect, via: 'block', drop: drop.point} : {rect, via: 'block'};
         }
         const category = categoryOf(target.block);
+        // The child opened the block's category, and the block is lower down in it (or above, after a
+        // scroll): the palette scrolls to it, once - within the category the child chose, no switch of
+        // category (Keren, 2026-10-25: "הצג" is low in "מראה", and the arrow went back to "מראה" for ever).
+        const toolbox = ws.getToolbox && ws.getToolbox();
+        const selected = toolbox && toolbox.getSelectedItem && toolbox.getSelectedItem();
+        const inIt = Boolean(block && selected && selected.id_ === category);
+        if (!inIt) paletteScrolledTo = null;
+        else if (paletteScrolledTo !== target.block && !flyout.scrollTarget) {
+            paletteScrolledTo = target.block;
+            flyout.scrollTo(Math.max(0, block.getRelativeToSurfaceXY().y - 24));
+            return {missing: 'scrolling'};
+        }
         const item = category && rectOf(document.querySelector(`.scratchCategoryId-${category}`));
         return item ? {rect: item, via: 'category', category} : {missing: block ? 'palette' : 'not-in-palette'};
     }
