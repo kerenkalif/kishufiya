@@ -350,7 +350,8 @@ export const resolve = (target, vm) => {
             }
             const drop = dropPoint(ws, target.to);
             if (drop.offscreen) return {rect, via: 'block', block: drop.offscreen};
-            return drop.point ? {rect, via: 'block', drop: drop.point, slot: drop.slot} : {rect, via: 'block'};
+            if (!drop.point) return {rect, via: 'block'};
+            return {rect, via: 'block', drop: drop.point, slot: drop.slot, anchor: drop.anchor};
         }
         const category = categoryOf(target.block);
         // The child opened the block's category, and the block is lower down in it (or above, after a
@@ -381,7 +382,7 @@ export const resolve = (target, vm) => {
         const own = block.svgPath_ ? rectOf(block.svgPath_) : rect;
         if (drop.offscreen) return {rect: own, via: 'block', block: drop.offscreen};
         if (!drop.point) return {rect: own, via: 'block', block};
-        return {rect: own, via: 'block', block, drop: drop.point, slot: drop.slot};
+        return {rect: own, via: 'block', block, drop: drop.point, slot: drop.slot, anchor: drop.anchor};
     }
     if (target.field) {
         const field = fieldOf(block, target.field);

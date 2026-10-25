@@ -309,6 +309,15 @@ const drawGuide = () => {
         hideGuide();
         return;
     }
+    // ...and where a block goes, when that place is out of sight (under a long script): to its anchor, once
+    const area = codeArea();
+    const dropOut = found.drop && area && (found.drop.y < area.top || found.drop.y + 20 > area.bottom);
+    if (dropOut && found.anchor && scrolledTo !== found.anchor.id) {
+        scrolledTo = found.anchor.id;
+        workspace().centerOnBlock(found.anchor.id);
+        hideGuide();
+        return;
+    }
     if (found.offscreen) found.missing = 'offscreen';
     if (found.missing) {
         hideGuide();
