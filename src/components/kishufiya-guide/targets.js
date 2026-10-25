@@ -250,7 +250,8 @@ export const resolve = (target, vm) => {
         const search = rectOf(uiElement('library-search'));
         return search ? {rect: search, via: 'search'} : {missing: 'library'};
     }
-    if (target.sprite && !target.block && !target.blockId) {
+    // a sprite alone: its tile (with a category it is only the sprite the category is opened in)
+    if (target.sprite && !target.block && !target.blockId && !target.category) {
         const rect = rectOf(spriteTile(target.sprite));
         return rect ? {rect, via: 'sprite'} : {missing: 'sprite'};
     }
