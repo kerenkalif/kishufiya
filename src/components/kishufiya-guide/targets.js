@@ -212,6 +212,14 @@ const fieldOf = (block, name) => {
 // or {missing: reason} when it is nowhere on the screen.
 export const resolve = (target, vm) => {
     if (!target) return {missing: 'no-target'};
+    if (target.ui === 'variable-name') {
+        // the name box of the "new variable" (or new message) window while it is open; until then, the
+        // button that opens it (Keren, 2026-10-25: the ring stayed on the category, behind the window)
+        const input = document.querySelector('[class*="prompt_variable-name-text-input_"]');
+        const rect = rectOf(input);
+        if (rect) return {rect, via: 'ui', value: input.value, input: true};
+        return resolve({ui: 'make-variable'}, vm);
+    }
     if (target.ui === 'make-variable') {
         // the palette's "Make a Variable" button, by its callback (its words are translated); out of the
         // palette's view, its category - as for a block
