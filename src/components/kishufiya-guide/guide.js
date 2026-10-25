@@ -224,11 +224,22 @@ const tellAt = (rect, via, arrow, extra) => {
     const more = extra || {};
     const drop = more.drop ? {x: Math.round(more.drop.x), y: Math.round(more.drop.y)} : null;
     const value = typeof more.value === 'string' ? more.value : null;
-    const key = JSON.stringify([at, via, arrow, value, drop]);
+    // a block of the code, or one of its values: its whole script, for the page's bubble to keep clear of -
+    // it covered the step's other value in the same script (donuts 8.11, 2026-10-26)
+    const ofCode = state.guide && state.guide.target.in !== 'palette' && via !== 'category';
+    const root = ofCode && more.block && !more.drop && more.block.getRootBlock && more.block.getRootBlock();
+    const box = root && root.getSvgRoot ? root.getSvgRoot().getBoundingClientRect() : null;
+    const clear = box && box.width > 0 ? {
+        left: Math.round(box.left),
+        top: Math.round(box.top),
+        width: Math.round(box.width),
+        height: Math.round(box.height)
+    } : null;
+    const key = JSON.stringify([at, via, arrow, value, drop, clear]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, drop});
+    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, drop, clear});
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
@@ -253,8 +264,22 @@ const placeGhost = (r, drop, slot) => {
 };
 
 // The arrow bounces above the target, pointing down; below it, pointing up, when there is no room above.
+// A block of the palette or a category: beside it, on the code area's side - above it, it covered the block
+// over it ("או" above "לא") or the "קוד" tab (2026-10-26).
 const ARROW = 34;
-const placePointer = r => {
+const placePointer = (r, besideIt) => {
+    const area = besideIt && codeArea();
+    if (area) {
+        const side = (area.left + area.right) / 2 < (r.left + r.right) / 2 ? 'left' : 'right';
+        const x = side === 'left' ? r.left - ARROW - 6 : r.right + 6;
+        if (x >= 0 && x + ARROW <= window.innerWidth) {
+            pointer.style.display = 'block';
+            pointer.style.left = `${Math.round(x)}px`;
+            pointer.style.top = `${Math.round(((r.top + r.bottom) / 2) - (ARROW / 2))}px`;
+            pointer.setAttribute('data-side', side);
+            return side;
+        }
+    }
     const above = r.top - ARROW - 8 > 0;
     pointer.style.display = 'block';
     pointer.style.left = `${Math.round(((r.left + r.right) / 2) - (ARROW / 2))}px`;
@@ -347,7 +372,8 @@ const drawGuide = () => {
     }
     louder(!state.frozen && now - louderSince >= LOUDER_AFTER_MS);
     placeGhost(r, found.drop, found.slot);
-    tellAt(r, found.via, placePointer(r), found);
+    const inPalette = found.via === 'category' || (found.via === 'block' && state.guide.target.in === 'palette');
+    tellAt(r, found.via, placePointer(r, inPalette), found);
     const {text, textCategory, textSprite} = state.guide;
     const say = (found.via === 'category' && textCategory) || (found.via === 'sprite' && textSprite) || text;
     if (bubbleText.textContent !== say) bubbleText.textContent = say;

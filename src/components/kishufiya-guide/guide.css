@@ -154,6 +154,17 @@
     animation-name: bounce-up;
 }
 
+/* beside a block of the palette or a category: pointing at it from the code area's side */
+.pointer[data-side="left"] {
+    transform: rotate(-90deg);
+    animation-name: bounce-right;
+}
+
+.pointer[data-side="right"] {
+    transform: rotate(90deg);
+    animation-name: bounce-left;
+}
+
 @keyframes bounce-down {
     0%, 100% { transform: translateY(-6px); }
     50% { transform: translateY(2px); }
@@ -162,6 +173,16 @@
 @keyframes bounce-up {
     0%, 100% { transform: rotate(180deg) translateY(-6px); }
     50% { transform: rotate(180deg) translateY(2px); }
+}
+
+@keyframes bounce-right {
+    0%, 100% { transform: rotate(-90deg) translateY(-6px); }
+    50% { transform: rotate(-90deg) translateY(2px); }
+}
+
+@keyframes bounce-left {
+    0%, 100% { transform: rotate(90deg) translateY(-6px); }
+    50% { transform: rotate(90deg) translateY(2px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
