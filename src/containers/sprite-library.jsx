@@ -50,7 +50,6 @@ class SpriteLibrary extends React.PureComponent {
                 tags={getLibraryTags('sprite') || spriteTags}
                 initialTag={getLibraryInitialTag('sprite')}
                 title={this.props.intl.formatMessage(messages.libraryTitle)}
-                removedTrademarks
                 onItemSelected={this.handleItemSelect}
                 onRequestClose={this.props.onRequestClose}
             />
