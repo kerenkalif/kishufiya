@@ -302,7 +302,10 @@ export const resolve = (target, vm) => {
     // in the code
     const open = editingTarget(vm);
     if (target.sprite && open && open.getName() !== target.sprite) {
-        const rect = rectOf(spriteTile(target.sprite));
+        // the backdrop's code ("Stage"): its own tile, not one among the sprites (an experiment on the backdrop)
+        const stage = vm.runtime.getTargetForStage && vm.runtime.getTargetForStage();
+        const tile = stage && stage.getName() === target.sprite ? uiElement('stage-tile') : spriteTile(target.sprite);
+        const rect = rectOf(tile);
         return rect ? {rect, via: 'sprite'} : {missing: 'sprite'};
     }
     const block = codeBlock(ws, target);
