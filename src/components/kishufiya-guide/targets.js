@@ -234,6 +234,12 @@ export const resolve = (target, vm) => {
         return item ? {rect: item, via: 'category', category: 'variables'} : {missing: 'ui'};
     }
     if (target.ui) {
+        // a button of one sprite's (its costumes tab, to draw in it): that sprite's tile first
+        const open = target.sprite && editingTarget(vm);
+        if (open && open.getName() !== target.sprite) {
+            const tile = rectOf(spriteTile(target.sprite));
+            if (tile) return {rect: tile, via: 'sprite'};
+        }
         const el = uiElement(target.ui);
         const rect = rectOf(el);
         // a box to type in (the sprite's name, size...): its value, as for a block's field
