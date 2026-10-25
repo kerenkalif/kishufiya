@@ -9,8 +9,9 @@
 //                                              or open a menu; its value is reported with it
 //   {block, in: 'palette' | 'code', to: {block, inside?, top?, where}}
 //                                              a palette block, and where in the code it goes: under that
-//                                              block (where 'next'), into its mouth ('substack'; 'substack2' an if-else's "else") or into
-//                                              one of its inputs ('input:NAME') - that place is outlined
+//                                              block (where 'next'), into its mouth ('substack'; an if-else's
+//                                              "else" 'substack2') or into one of its inputs ('input:NAME') -
+//                                              that place is outlined
 //                                              (`drop`, or the input's `slot`). A block of the code moves
 //                                              with the ones under it. top: of several such blocks, the one
 //                                              under that hat; nth: 'last', the newest of them
@@ -215,7 +216,10 @@ const dropPoint = (ws, to, moved) => {
     if (to.where && to.where.startsWith('input:')) {
         const input = anchor.getInput(to.where.slice(6));
         const filler = input && input.connection && input.connection.targetBlock();
-        const slot = filler && rectOf(filler.svgPath_ || filler.getSvgRoot());
+        // an empty slot with nothing in it (a condition's hexagon): the shape scratch-blocks draws for it - there
+        // was no outline at all for "לא" into "חכה עד ש" (donuts 8.9, 2026-10-26)
+        const shape = !filler && input && input.outlinePath;
+        const slot = filler ? rectOf(filler.svgPath_ || filler.getSvgRoot()) : (shape && rectOf(shape));
         // the slot itself is outlined: a block's width stuck out of it into empty space (2026-10-25)
         return slot ? {point: {x: startX(slot), y: slot.top}, slot, anchor} : {missing: 'no-connection'};
     }

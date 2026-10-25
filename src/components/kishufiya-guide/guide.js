@@ -208,6 +208,7 @@ let missingSince = 0;
 let reported = null;
 let lastCategory = null;
 let scrolledTo = null; // the code block brought into view for this guide, once
+const DROP_MARGIN = 24; // px: a drop's outline is this far inside the code area (its scrollbar at the bottom)
 const inView = (r, area) => area &&
     r.top >= area.top && r.bottom <= area.bottom && r.left >= area.left && r.right <= area.right;
 
@@ -309,9 +310,12 @@ const drawGuide = () => {
         hideGuide();
         return;
     }
-    // ...and where a block goes, when that place is out of sight (under a long script): to its anchor, once
+    // ...and where a block goes, when that place is out of sight (under a long script): to its anchor, once.
+    // All of the outline, clear of the scrollbar at the bottom: half of it sat under it (donuts 8.9, 2026-10-26)
     const area = codeArea();
-    const dropOut = found.drop && area && (found.drop.y < area.top || found.drop.y + 20 > area.bottom);
+    const dropBottom = found.drop && (found.slot ? found.slot.bottom : found.drop.y + GHOST_ROW);
+    const dropTop = found.drop && (found.slot ? found.slot.top : found.drop.y);
+    const dropOut = found.drop && area && (dropTop < area.top + DROP_MARGIN || dropBottom + DROP_MARGIN > area.bottom);
     if (dropOut && found.anchor && scrolledTo !== found.anchor.id) {
         scrolledTo = found.anchor.id;
         workspace().centerOnBlock(found.anchor.id);
