@@ -579,6 +579,10 @@ export const handleGuide = msg => {
             state.picking = false;
             document.body.classList.remove(styles.frozen);
         }
+        // the veil catches the mouse, so it follows the freeze now, not on the next frame: a page the
+        // browser does not draw (behind another window, a slow PC) gets no frame, and the veil left over a
+        // question just answered ate the child's presses of the green flag (donuts 6.9/9.13, 2026-10-25)
+        drawVeil();
         break;
     case 'pick':
         state.picking = Boolean(msg.on);
