@@ -83,8 +83,9 @@ let gameId = null; // the open game's id in "המשחקים שלי"
 let knownTitle = null; // the name as the platform has it: a change from it is the child's
 
 // The game as the lesson sees it, a moment after a change: dragging a block fires many changes, and a
-// change that leaves the game as it was (a click on a block) sends nothing. Measured 2026-10-24: the
-// biggest lesson game is 27KB and the lesson's check of it takes about 3ms.
+// change that leaves the game as it was (a click on a block) sends nothing. Measured 2026-10-24, on the
+// saved (compressed) form: the biggest lesson game was 27KB and the lesson's check of it took about 3ms -
+// the uncompressed form sent since 2026-10-25 is larger, not measured again.
 let projectTimer = null;
 let lastSent = null;
 const sendProject = (again = false) => {

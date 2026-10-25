@@ -10,21 +10,22 @@
 //   {block, in: 'palette' | 'code', to: {block, inside?, top?, where}}
 //                                              a palette block, and where in the code it goes: under that
 //                                              block (where 'next'), into its mouth ('substack') or into
-//                                              one of its inputs ('input:NAME') - a ghost of it is shown
-//                                              moving there. A block of the code moves with the ones under
-//                                              it. top: of several such blocks, the one under that hat;
-//                                              nth: 'last', the newest of them
+//                                              one of its inputs ('input:NAME') - that place is outlined
+//                                              (`drop`, or the input's `slot`). A block of the code moves
+//                                              with the ones under it. top: of several such blocks, the one
+//                                              under that hat; nth: 'last', the newest of them
 //   {blockId}                                  one block of the open sprite's code, by id
 //   {category: id}                             a category of the palette (motion, looks, control, ...)
 //   {ui: name}                                 a part of the editor, see UI below
-//   {sprite: name}                             a sprite's tile in the sprite list
+//   {sprite: name}                             a sprite's tile in the sprite list; with a block, a category
+//                                              or a button, the sprite they belong to
 //   {library: name}                            an item of the open library (sprites, backdrops...) by
 //                                              the name it shows; while it is not in sight, the library's
 //                                              search box (via 'search') - the child searches, nothing is
 //                                              searched for them
 // A palette block whose category is not in view resolves to its category: the child opens the
-// category; the palette is never scrolled for them (Keren, 2026-10-23). A code block of a sprite that
-// is not open resolves to that sprite's tile, the same way.
+// category (the palette then scrolls to a block low in it, once). Any target that names a sprite (or
+// 'Stage') other than the one open resolves to that sprite's tile first (ownerTile).
 
 // Scratch's own prefix of each opcode → the palette's category id.
 const CATEGORY_OF_PREFIX = {
@@ -71,6 +72,15 @@ export const uiElement = name => {
     }
     return UI[name] ? document.querySelector(UI[name]) : null;
 };
+
+// A window of the editor over it (a library, a prompt), and in a prompt the box to name a new message or
+// variable.
+const WINDOW = '[class*="modal_modal-overlay"]';
+const NAME_BOX = '[class*="prompt_variable-name-text-input_"]';
+export const editorWindow = () => ({
+    open: Boolean(document.querySelector(WINDOW)),
+    naming: Boolean(document.querySelector(NAME_BOX))
+});
 
 const libraryItem = name => {
     const wanted = String(name).trim()
@@ -145,6 +155,34 @@ const spriteTile = name => {
     return null;
 };
 
+// Sizes of the editor's blocks the guide measures with, in workspace units (x ws.scale on the screen).
+const METRICS = {
+    notch: 8, // a block's bottom notch: 'next' joins this far above its bottom
+    arm: 16, // a C-block's top arm: its empty mouth starts this far in
+    row: 48, // one row of a block: an empty mouth is this far below the C-block's top
+    scriptGap: 32, // a new script goes this far under the lowest one
+    scrollRoom: 90 // a palette block scrolled to keeps this much room above it (its neighbour, the title)
+};
+// ...and on the screen, in pixels
+const PALETTE_ROW_PX = 40; // a palette block is in view when the middle of its first row is
+const SPOT_ROOM_PX = 20; // a free spot for a new script keeps this much of the code area under it
+
+// The tile of a sprite - or the backdrop's, for the stage's name ('Stage') - in the sprite list.
+const tileOf = (vm, name) => {
+    const stage = vm && vm.runtime.getTargetForStage && vm.runtime.getTargetForStage();
+    return stage && stage.getName() === name ? uiElement('stage-tile') : spriteTile(name);
+};
+
+// A target of one sprite while another is open: that sprite's tile, to open it first - a palette block,
+// a category, a button (its costumes tab) or a block of the code all belong to the sprite they name.
+// -> {rect, via: 'sprite'}; {missing: 'sprite'} when there is no such tile; null when it is open already.
+const ownerTile = (target, vm) => {
+    const open = editingTarget(vm);
+    if (!target.sprite || !open || open.getName() === target.sprite) return null;
+    const rect = rectOf(tileOf(vm, target.sprite));
+    return rect ? {rect, via: 'sprite'} : {missing: 'sprite'};
+};
+
 // the palette block scrolled into view for the open category, once (resolve below)
 let paletteScrolledTo = null;
 
@@ -186,16 +224,17 @@ const dropPoint = (ws, to, moved) => {
         const inside = first && rectOf(first.svgPath_ || first.getSvgRoot());
         if (inside) return {point: {x: startX(inside), y: inside.top}, anchor};
         // an empty mouth: under the C-block's top arm, one row down
-        const arm = 16 * ws.scale;
-        return {point: {x: ws.RTL ? own.right - arm : own.left + arm, y: own.top + (48 * ws.scale)}, anchor};
+        const arm = METRICS.arm * ws.scale;
+        const y = own.top + (METRICS.row * ws.scale);
+        return {point: {x: ws.RTL ? own.right - arm : own.left + arm, y}, anchor};
     }
     // next: right under the block's own row (its notch at the bottom left aside)
-    return {point: {x: startX(own), y: own.bottom - (8 * ws.scale)}, anchor};
+    return {point: {x: startX(own), y: own.bottom - (METRICS.notch * ws.scale)}, anchor};
 };
 
 // A free spot for a new script, in screen pixels: under the lowest script of the open sprite, lined up with
 // the scripts' starting edge; null with no code, or when that spot is out of the code area's view.
-const freeSpot = ws => {
+const findFreeSpot = ws => {
     const rects = ws.getTopBlocks(false)
         .map(b => rectOf(b.getSvgRoot()))
         .filter(Boolean);
@@ -203,9 +242,16 @@ const freeSpot = ws => {
     const bottom = Math.max(...rects.map(r => r.bottom));
     const x = ws.RTL ? Math.max(...rects.map(r => r.right)) : Math.min(...rects.map(r => r.left));
     const area = rectOf(ws.getParentSvg());
-    const y = bottom + (32 * ws.scale);
-    if (area && y + 20 > area.bottom) return null;
+    const y = bottom + (METRICS.scriptGap * ws.scale);
+    if (area && y + SPOT_ROOM_PX > area.bottom) return null;
     return {x, y};
+};
+// While a block is dragged it is among the top blocks: the spot found before the drag stays.
+let lastFreeSpot = null;
+const freeSpot = ws => {
+    if (ws.isDragging && ws.isDragging()) return lastFreeSpot;
+    lastFreeSpot = findFreeSpot(ws);
+    return lastFreeSpot;
 };
 
 // One input or field of a block: the field itself (a menu on the block), or what fills the input (the
@@ -229,10 +275,15 @@ const fieldOf = (block, name) => {
 // or {missing: reason} when it is nowhere on the screen.
 export const resolve = (target, vm) => {
     if (!target) return {missing: 'no-target'};
+    // A sprite's own target while another sprite is open: its tile first. With no such tile a target of
+    // the code is missing (a block of that kind in the open sprite is not it); a palette block, a category
+    // or a button is shown as it is (a sprite the child named otherwise).
+    const owner = (target.block || target.blockId || target.category || target.ui) && ownerTile(target, vm);
+    if (owner && (owner.rect || !(target.in === 'palette' || target.category || target.ui))) return owner;
     if (target.ui === 'variable-name') {
         // the name box of the "new variable" (or new message) window while it is open; until then, the
         // button that opens it (Keren, 2026-10-25: the ring stayed on the category, behind the window)
-        const input = document.querySelector('[class*="prompt_variable-name-text-input_"]');
+        const input = document.querySelector(NAME_BOX);
         const rect = rectOf(input);
         if (rect) return {rect, via: 'ui', value: input.value, input: true};
         return resolve({ui: 'make-variable'}, vm);
@@ -251,12 +302,6 @@ export const resolve = (target, vm) => {
         return item ? {rect: item, via: 'category', category: 'variables'} : {missing: 'ui'};
     }
     if (target.ui) {
-        // a button of one sprite's (its costumes tab, to draw in it): that sprite's tile first
-        const open = target.sprite && editingTarget(vm);
-        if (open && open.getName() !== target.sprite) {
-            const tile = rectOf(spriteTile(target.sprite));
-            if (tile) return {rect: tile, via: 'sprite'};
-        }
         const el = uiElement(target.ui);
         const rect = rectOf(el);
         // a box to type in (the sprite's name, size...): its value, as for a block's field
@@ -275,20 +320,11 @@ export const resolve = (target, vm) => {
     }
     // a sprite alone: its tile (with a category it is only the sprite the category is opened in)
     if (target.sprite && !target.block && !target.blockId && !target.category) {
-        const rect = rectOf(spriteTile(target.sprite));
+        const rect = rectOf(tileOf(vm, target.sprite));
         return rect ? {rect, via: 'sprite'} : {missing: 'sprite'};
     }
     const ws = workspace();
     if (!ws) return {missing: 'workspace'};
-    // A block from the palette for another sprite than the one open: its tile first - the palette is the
-    // same for every sprite, and the block went into the wrong one (Keren's tester, donuts 8.8, 2026-10-25:
-    // after a reload the spaceship was open and the ring went to "מפעילים").
-    if (target.sprite && (target.category || target.in === 'palette')) {
-        const open = editingTarget(vm);
-        // no such tile (a sprite the child named otherwise): the palette as before, not "lost"
-        const rect = open && open.getName() !== target.sprite && rectOf(spriteTile(target.sprite));
-        if (rect) return {rect, via: 'sprite'};
-    }
     if (target.category) {
         const rect = rectOf(document.querySelector(`.scratchCategoryId-${target.category}`));
         return rect ? {rect, via: 'category'} : {missing: 'category'};
@@ -299,8 +335,9 @@ export const resolve = (target, vm) => {
         const block = fws && fws.getTopBlocks(false).find(b => b.type === target.block);
         const rect = block && rectOf(block.getSvgRoot());
         const area = rectOf(flyoutSvg(ws));
-        const middle = rect && (rect.top + (Math.min(rect.height, 40) / 2));
-        // while the palette scrolls nothing is ringed: for a moment it was the block passing by (2026-10-25)
+        const middle = rect && (rect.top + (Math.min(rect.height, PALETTE_ROW_PX) / 2));
+        // While the palette scrolls nothing is ringed: for a moment it was the block passing by (2026-10-25).
+        // scratch-blocks itself takes a target of 0 for none (it never animates to 0, and the 0 stays).
         if (flyout && flyout.scrollTarget) return {missing: 'scrolling'};
         if (rect && area && middle >= area.top && middle <= area.bottom) {
             if (!target.to) {
@@ -320,25 +357,17 @@ export const resolve = (target, vm) => {
         const selected = toolbox && toolbox.getSelectedItem && toolbox.getSelectedItem();
         const inIt = Boolean(block && selected && selected.id_ === category);
         if (!inIt) paletteScrolledTo = null;
-        else if (paletteScrolledTo !== target.block && !flyout.scrollTarget) {
+        else if (paletteScrolledTo !== target.block) {
             paletteScrolledTo = target.block;
-            // room above it for its neighbour and the category title: at the very top it hid under the
-            // tabs (2026-10-25)
-            flyout.scrollTo(Math.max(0, block.getRelativeToSurfaceXY().y - 90));
+            // room above it for its neighbour and the category title (at the very top it hid under the
+            // tabs). Not 0: scratch-blocks takes a target of 0 for none, and does not scroll.
+            flyout.scrollTo(Math.max(1, block.getRelativeToSurfaceXY().y - METRICS.scrollRoom));
             return {missing: 'scrolling'};
         }
         const item = category && rectOf(document.querySelector(`.scratchCategoryId-${category}`));
         return item ? {rect: item, via: 'category', category} : {missing: block ? 'palette' : 'not-in-palette'};
     }
-    // in the code
-    const open = editingTarget(vm);
-    if (target.sprite && open && open.getName() !== target.sprite) {
-        // the backdrop's code ("Stage"): its own tile, not one among the sprites (an experiment on the backdrop)
-        const stage = vm.runtime.getTargetForStage && vm.runtime.getTargetForStage();
-        const tile = stage && stage.getName() === target.sprite ? uiElement('stage-tile') : spriteTile(target.sprite);
-        const rect = rectOf(tile);
-        return rect ? {rect, via: 'sprite'} : {missing: 'sprite'};
-    }
+    // in the code (of the sprite open: ownerTile above)
     const block = codeBlock(ws, target);
     if (!block) return {missing: 'not-in-code'};
     const rect = rectOf(block.getSvgRoot());

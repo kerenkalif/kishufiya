@@ -168,7 +168,7 @@
     .pointer { animation: none; }
 }
 
-/* a dragged block's way to its place: an outline of its size slides there and fades, again and again */
+/* where a dragged block goes: an outline of its first row (or the slot it fills), still, at its drop point */
 .ghost {
     position: fixed;
     display: none;

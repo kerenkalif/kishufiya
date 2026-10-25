@@ -343,7 +343,6 @@ class LibraryComponent extends React.Component {
                                 iconRawURL={dataItem.rawURL}
                                 icons={dataItem.costumes}
                                 id={index}
-                                incompatibleWithScratch={dataItem.incompatibleWithScratch}
                                 favorite={this.state.favorites.includes(dataItem[this.props.persistableKey])}
                                 onFavorite={this.handleFavorite}
                                 insetIconURL={dataItem.insetIconURL}

@@ -36,7 +36,10 @@
 //   guide-clicked {via}                             the child clicked the guided target itself (a button, a
 //                                                   sprite's tile, a library item) - for the lesson, a step done
 //   found {id, sprites: [name]}                     the answer to 'find' ('Stage' is the stage)
-import {resolve, codeArea, blockAt, surrounding, uiElement, workspace} from './targets.js';
+//   window {open, naming}                           a window of the editor is open over it (a library, a
+//                                                   prompt); naming: the box to name a new message or variable
+//                                                   is in it - sent on change, and with every new guide
+import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
 import styles from './guide.css';
 
 let vm = null;
@@ -230,7 +233,7 @@ const tellAt = (rect, via, arrow, extra) => {
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
 // 2026-10-25: a ghost sliding there over and over looked like a target in empty space, and faded just
 // where the block goes).
-const GHOST_ROW = 44; // a C block's mouth is not drawn: its top row says where it joins
+const GHOST_ROW = 44; // px: a C block's mouth is not drawn, its top row says where it joins
 let lastGhost = '';
 const placeGhost = (r, drop, slot) => {
     if (!r || !drop) {
@@ -238,17 +241,14 @@ const placeGhost = (r, drop, slot) => {
         lastGhost = '';
         return;
     }
-    const key = [r.left, r.right, r.top, r.bottom, drop.x, drop.y, slot ? slot.left : 0].map(Math.round).join();
+    // a block going into a slot: the slot itself; else the block's first row with the corner it joins by
+    // (its top-right in a right-to-left editor) at the drop point
+    const height = Math.min(r.bottom - r.top, GHOST_ROW);
+    const box = slot || {left: drop.x - (r.right - r.left), right: drop.x, top: drop.y, bottom: drop.y + height};
+    const key = [box.left, box.right, box.top, box.bottom].map(Math.round).join();
     if (key === lastGhost) return;
     lastGhost = key;
-    if (slot) {
-        place(ghost, slot); // a block going into a slot: the slot itself
-        return;
-    }
-    // the corner a block joins by is at the drop point: its top-right in a right-to-left editor
-    const width = r.right - r.left;
-    const height = Math.min(r.bottom - r.top, GHOST_ROW);
-    place(ghost, {left: drop.x - width, right: drop.x, top: drop.y, bottom: drop.y + height});
+    place(ghost, box);
 };
 
 // The arrow bounces above the target, pointing down; below it, pointing up, when there is no room above.
@@ -500,6 +500,35 @@ const find = ({opcode, inside}) => {
     return sprites;
 };
 
+// ---- the editor's windows (a library, a prompt): told to the page, which draws nothing over them ----
+
+let lastWindow = '';
+const tellWindow = again => {
+    const now = editorWindow();
+    const key = `${now.open}|${now.naming}`;
+    if (key === lastWindow && !again) return;
+    lastWindow = key;
+    send({type: 'window', open: now.open, naming: now.naming});
+};
+// Each window is a react-modal portal of its own on the body, filled a moment after it is added: the
+// body's children are watched for portals, and each portal's own content - never the editor's subtree,
+// which changes all the time.
+const watchWindows = () => {
+    const inPortal = new MutationObserver(() => tellWindow());
+    const watched = new WeakSet();
+    const onBody = () => {
+        for (const el of document.body.children) {
+            if (el.classList.contains('ReactModalPortal') && !watched.has(el)) {
+                watched.add(el);
+                inPortal.observe(el, {childList: true, subtree: true});
+            }
+        }
+        tellWindow();
+    };
+    new MutationObserver(onBody).observe(document.body, {childList: true});
+    onBody();
+};
+
 // ---- the messages ----
 
 const stopGame = () => {
@@ -525,6 +554,7 @@ export const handleGuide = msg => {
         reported = null;
         scrolledTo = null;
         lastAt = ''; // a new guide is told where its target is even when it is where the last one was
+        tellWindow(true); // ...and whether a window is open: the page may have been loaded since
         break;
     case 'guide-clear':
         state.guide = null;
@@ -559,7 +589,10 @@ export const handleGuide = msg => {
 export const attachGuide = (theVm, sender) => {
     vm = theVm;
     send = sender;
-    if (!layer) build();
+    if (!layer) {
+        build();
+        watchWindows();
+    }
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('keyup', onKey, true);
     const inputs = [
