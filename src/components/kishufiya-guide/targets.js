@@ -332,7 +332,10 @@ export const resolve = (target, vm) => {
     if (target.in === 'palette') {
         const flyout = ws.getFlyout();
         const fws = flyout && flyout.getWorkspace();
-        const block = fws && fws.getTopBlocks(false).find(b => b.type === target.block);
+        // a variable's reporter by its name: all of them are one kind of block
+        const ofIt = b => b.type === target.block &&
+            (!target.variable || (b.getField('VARIABLE') && b.getField('VARIABLE').getText() === target.variable));
+        const block = fws && fws.getTopBlocks(false).find(ofIt);
         const rect = block && rectOf(block.getSvgRoot());
         const area = rectOf(flyoutSvg(ws));
         const middle = rect && (rect.top + (Math.min(rect.height, PALETTE_ROW_PX) / 2));
