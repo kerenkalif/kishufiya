@@ -212,6 +212,11 @@ const DROP_MARGIN = 24; // px: a drop's outline is this far inside the code area
 const inView = (r, area) => area &&
     r.top >= area.top && r.bottom <= area.bottom && r.left >= area.left && r.right <= area.right;
 
+const uiRect = selector => {
+    const el = document.querySelector(selector);
+    return el ? el.getBoundingClientRect() : null;
+};
+
 // Where the page is told the target is: sent only when it changes.
 let lastAt = '';
 const tellAt = (rect, via, arrow, extra) => {
@@ -263,24 +268,40 @@ const placeGhost = (r, drop, slot) => {
     place(ghost, box);
 };
 
-// The arrow bounces above the target, pointing down; below it, pointing up, when there is no room above.
-// A block of the palette or a category: beside it, on the code area's side - above it, it covered the block
-// over it ("או" above "לא") or the "קוד" tab (2026-10-26).
+// The arrow bounces above the target, pointing down; below it, pointing up, when there is no room above -
+// unless that covers something the child reads (2026-10-26), by `how`:
+//   'beside'  a palette block or a button (the new-sprite one, whose menu opens above it): beside it, on the
+//             code area's side - above it, it covered the block over it ("או" above "לא") or the menu's brush
+//   'script'  a block of the code or its value: outside its script (`within`), at its height - in the script
+//             it covered a neighbour's text ("0" in "=", "ניקוד")
+//   'menu'    a category: above or below it inside the categories' column (`within`) - not on the "קוד" tab
+//             above the column, nor on the palette's blocks beside it
 const ARROW = 34;
-const placePointer = (r, besideIt) => {
-    const area = besideIt && codeArea();
-    if (area) {
+const sideways = (r, x, side) => {
+    if (x < 0 || x + ARROW > window.innerWidth) return null;
+    pointer.style.display = 'block';
+    pointer.style.left = `${Math.round(x)}px`;
+    pointer.style.top = `${Math.round(((r.top + r.bottom) / 2) - (ARROW / 2))}px`;
+    pointer.setAttribute('data-side', side);
+    return side;
+};
+const placePointer = (r, how, within) => {
+    const area = how && codeArea();
+    if (how === 'beside' && area) {
         const side = (area.left + area.right) / 2 < (r.left + r.right) / 2 ? 'left' : 'right';
-        const x = side === 'left' ? r.left - ARROW - 6 : r.right + 6;
-        if (x >= 0 && x + ARROW <= window.innerWidth) {
-            pointer.style.display = 'block';
-            pointer.style.left = `${Math.round(x)}px`;
-            pointer.style.top = `${Math.round(((r.top + r.bottom) / 2) - (ARROW / 2))}px`;
-            pointer.setAttribute('data-side', side);
-            return side;
-        }
+        const done = sideways(r, side === 'left' ? r.left - ARROW - 6 : r.right + 6, side);
+        if (done) return done;
     }
-    const above = r.top - ARROW - 8 > 0;
+    if (how === 'script' && area && within) {
+        const left = within.left - ARROW - 6;
+        const right = within.right + 6;
+        const done = (left >= area.left && sideways(r, left, 'left')) ||
+            (right + ARROW <= area.right && sideways(r, right, 'right'));
+        if (done) return done;
+    }
+    const top = how === 'menu' && within ? within.top : 0;
+    const bottom = how === 'menu' && within ? within.bottom : window.innerHeight;
+    const above = r.top - ARROW - 8 > top || r.bottom + ARROW + 8 > bottom;
     pointer.style.display = 'block';
     pointer.style.left = `${Math.round(((r.left + r.right) / 2) - (ARROW / 2))}px`;
     pointer.style.top = `${Math.round(above ? r.top - ARROW - 6 : r.bottom + 6)}px`;
@@ -372,8 +393,17 @@ const drawGuide = () => {
     }
     louder(!state.frozen && now - louderSince >= LOUDER_AFTER_MS);
     placeGhost(r, found.drop, found.slot);
-    const inPalette = found.via === 'category' || (found.via === 'block' && state.guide.target.in === 'palette');
-    tellAt(r, found.via, placePointer(r, inPalette), found);
+    const target = state.guide.target;
+    const ofCode = found.block && !found.drop && target.in !== 'palette' &&
+        (found.via === 'block' || found.via === 'field');
+    const root = ofCode && found.block.getRootBlock && found.block.getRootBlock();
+    const beside = (found.via === 'block' && target.in === 'palette') ||
+        target.ui === 'add-sprite' || target.ui === 'add-backdrop';
+    let how = root ? 'script' : null;
+    if (beside) how = 'beside';
+    if (found.via === 'category') how = 'menu';
+    const within = how === 'menu' ? uiRect('.blocklyToolboxDiv') : (root && root.getSvgRoot().getBoundingClientRect());
+    tellAt(r, found.via, placePointer(r, how, within), found);
     const {text, textCategory, textSprite} = state.guide;
     const say = (found.via === 'category' && textCategory) || (found.via === 'sprite' && textSprite) || text;
     if (bubbleText.textContent !== say) bubbleText.textContent = say;
@@ -628,6 +658,26 @@ export const handleGuide = msg => {
     return true;
 };
 
+// The code area's place, told when it changes: the page keeps ניצוצי off the sprite tiles and the zoom
+// buttons (2026-10-26).
+let lastArea = '';
+let areaTicks = 0;
+const tellCodeArea = () => {
+    // said again now and then: a lesson page loaded anew after the editor did not hear it
+    if (++areaTicks % 10 === 0) lastArea = '';
+    const area = codeArea();
+    const rect = area && {
+        left: Math.round(area.left),
+        top: Math.round(area.top),
+        width: Math.round(area.width),
+        height: Math.round(area.height)
+    };
+    const key = JSON.stringify(rect);
+    if (key === lastArea || !send) return;
+    lastArea = key;
+    send({type: 'code-area', rect});
+};
+
 // once, when the VM is up
 export const attachGuide = (theVm, sender) => {
     vm = theVm;
@@ -655,4 +705,6 @@ export const attachGuide = (theVm, sender) => {
     vm.runtime.on('PROJECT_START', () => send({type: 'ui', name: 'run'}));
     vm.runtime.on('PROJECT_RUN_STOP', () => send({type: 'ui', name: 'stop'}));
     window.addEventListener('resize', wake);
+    // the code area, for the page to put ניצוצי where it covers no button (its middle, at the bottom)
+    setInterval(tellCodeArea, 1000);
 };

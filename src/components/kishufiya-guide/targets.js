@@ -166,7 +166,6 @@ const METRICS = {
 };
 // ...and on the screen, in pixels
 const PALETTE_ROW_PX = 40; // a palette block is in view when the middle of its first row is
-const SPOT_ROOM_PX = 20; // a free spot for a new script keeps this much of the code area under it
 
 // The tile of a sprite - or the backdrop's, for the stage's name ('Stage') - in the sprite list.
 const tileOf = (vm, name) => {
@@ -247,17 +246,21 @@ const dropPoint = (ws, to, moved) => {
 
 // A free spot for a new script, in screen pixels: under the lowest script of the open sprite, lined up with
 // the scripts' starting edge; null with no code, or when that spot is out of the code area's view.
+// With `anchor`, the lowest script: the guide scrolls to it when the spot is out of sight (donuts 11.9,
+// 2026-10-26: the outline was under the code area's bottom, and nothing scrolled). {anchor, out: true}: that
+// script is not drawn at all (out of view), so there is no spot to measure yet.
 const findFreeSpot = ws => {
-    const rects = ws.getTopBlocks(false)
-        .map(b => rectOf(b.getSvgRoot()))
-        .filter(Boolean);
-    if (!rects.length) return null;
-    const bottom = Math.max(...rects.map(r => r.bottom));
+    const tops = ws.getTopBlocks(false);
+    if (!tops.length) return null;
+    // the lowest by the workspace's own coordinates: a script out of view is not drawn, and has no rect
+    const bottomOf = b => b.getRelativeToSurfaceXY().y + b.getHeightWidth().height;
+    const lowest = tops.reduce((a, b) => (bottomOf(b) > bottomOf(a) ? b : a));
+    const low = rectOf(lowest.getSvgRoot());
+    if (!low) return {anchor: lowest, out: true};
+    const rects = tops.map(b => rectOf(b.getSvgRoot())).filter(Boolean);
     const x = ws.RTL ? Math.max(...rects.map(r => r.right)) : Math.min(...rects.map(r => r.left));
-    const area = rectOf(ws.getParentSvg());
-    const y = bottom + (METRICS.scriptGap * ws.scale);
-    if (area && y + SPOT_ROOM_PX > area.bottom) return null;
-    return {x, y};
+    const y = Math.max(...rects.map(r => r.bottom)) + (METRICS.scriptGap * ws.scale);
+    return {x, y, anchor: lowest};
 };
 // While a block is dragged it is among the top blocks: the spot found before the drag stays.
 let lastFreeSpot = null;
@@ -359,7 +362,9 @@ export const resolve = (target, vm) => {
             if (!target.to) {
                 // a new script's hat: a free spot under the code there is ("למקום ריק"), outlined like any drop
                 const spot = block.nextConnection && !block.previousConnection ? freeSpot(ws) : null;
-                return spot ? {rect, via: 'block', drop: spot} : {rect, via: 'block'};
+                if (spot && spot.out) return {rect, via: 'block', block: spot.anchor};
+                if (!spot) return {rect, via: 'block'};
+                return {rect, via: 'block', drop: {x: spot.x, y: spot.y}, anchor: spot.anchor};
             }
             const drop = dropPoint(ws, target.to);
             if (drop.offscreen) return {rect, via: 'block', block: drop.offscreen};
