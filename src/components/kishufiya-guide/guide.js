@@ -31,7 +31,7 @@
 //                                                   where the guided target is now, in this frame's pixels,
 //                                                   and on which side of it the arrow is; a field's value;
 //                                                   a dragged block's drop point {x, y} - sent on change
-//   ui {name: 'run' | 'stop'}                       the green flag / stop sign
+//   ui {name: 'run' | 'flag' | 'stop'}              a run / the green flag itself / the stop sign
 //   key {key}                                       a key pressed while a step is guided (KeyboardEvent.key)
 //   guide-clicked {via}                             the child clicked the guided target itself (a button, a
 //                                                   sprite's tile, a library item) - for the lesson, a step done
@@ -714,7 +714,12 @@ export const attachGuide = (theVm, sender) => {
     vm.runtime.on('PROJECT_RUN_START', () => send({type: 'ui', name: 'run'}));
     // the green flag while the game is already running restarts it without a new "run start" (the threads
     // never reach zero): every press of the flag is a run (Keren, 2026-10-25 - a guess waited for a run)
-    vm.runtime.on('PROJECT_START', () => send({type: 'ui', name: 'run'}));
+    // ...and said apart as the flag too: only the flag, not a click on a block (which runs too), passes a
+    // step whose last action is pressing it (platform 2026-10-26)
+    vm.runtime.on('PROJECT_START', () => {
+        send({type: 'ui', name: 'run'});
+        send({type: 'ui', name: 'flag'});
+    });
     vm.runtime.on('PROJECT_RUN_STOP', () => send({type: 'ui', name: 'stop'}));
     window.addEventListener('resize', wake);
     // the code area, for the page to put ניצוצי where it covers no button (its middle, at the bottom)
