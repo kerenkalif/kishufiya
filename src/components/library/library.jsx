@@ -348,6 +348,7 @@ class LibraryComponent extends React.Component {
                                 insetIconURL={dataItem.insetIconURL}
                                 internetConnectionRequired={dataItem.internetConnectionRequired}
                                 isPlaying={this.state.playingItem === index}
+                                kishufiyaAsset={Boolean(dataItem.kishufiyaAsset)}
                                 key={dataItem.key || (
                                     typeof dataItem.name === 'string' ?
                                         dataItem.name :

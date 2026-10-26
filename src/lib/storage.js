@@ -1,6 +1,7 @@
 import ScratchStorage from '@turbowarp/scratch-storage';
 
 import defaultProject from './default-project';
+import {isOurAsset, ourAssetUrl} from './kishufiya-assets';
 
 /**
  * Wrapper for ScratchStorage which adds default web sources.
@@ -26,6 +27,12 @@ class Storage extends ScratchStorage {
             // asset store uses the assetId as part of the create URI.
             this.getAssetCreateConfig.bind(this),
             this.getAssetCreateConfig.bind(this)
+        );
+        // כישופייה: the files of a lesson game's own characters live on the platform (kishufiya-assets.js).
+        // Known ones skip Scratch's store above; any file Scratch's server lacks is asked here too.
+        this.addWebStore(
+            [this.AssetType.ImageVector, this.AssetType.ImageBitmap, this.AssetType.Sound],
+            asset => ourAssetUrl(`${asset.assetId}.${asset.dataFormat}`)
         );
     }
     setProjectHost (projectHost) {
@@ -55,6 +62,8 @@ class Storage extends ScratchStorage {
         this.assetHost = assetHost;
     }
     getAssetGetConfig (asset) {
+        // false: skip to the next store (the platform's), for a file known to be only there
+        if (isOurAsset(`${asset.assetId}.${asset.dataFormat}`)) return false;
         return `${this.assetHost}/internalapi/asset/${asset.assetId}.${asset.dataFormat}/get/`;
     }
     getAssetCreateConfig (asset) {

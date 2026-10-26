@@ -3,6 +3,8 @@
 // The platform sends each item with all its tags and their ancestors, so the library's own tag filter
 // and search work on it unchanged. Its tag buttons come with it (getLibraryTags).
 
+import {rememberOurAssets} from '../kishufiya-assets';
+
 let lesson = null;
 const cache = {};
 
@@ -37,6 +39,7 @@ const asyncLibrary = kind => () => {
     const promise = fromPlatform(kind)
         .catch(() => bundled[kind]().then(mod => ({items: mod.default, tags: null, initialTag: null})))
         .then(body => {
+            rememberOurAssets(body.items);
             cache[kind] = {data: body.items, tags: body.tags, initialTag: body.initialTag};
             return body.items;
         }, err => {
