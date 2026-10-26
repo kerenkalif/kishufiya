@@ -449,8 +449,9 @@ const typing = el => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SE
 const onKey = e => {
     if (state.frozen) swallow(e);
     // a key the child pressed ("לחצו על חץ ימני"): the lesson may be waiting for it - with or without a guide
-    // on show (a guide level that marks nothing sends none, 2026-10-26); not a letter typed into a name box
-    else if (e.type === 'keydown' && !e.repeat && !typing(e.target)) send({type: 'key', key: e.key});
+    // on show (a guide level that marks nothing sends none, 2026-10-26); not a letter typed into a name box.
+    // `code`: the key's place - on a Hebrew layout the "a" key's `key` is "ש" (2026-10-26)
+    else if (e.type === 'keydown' && !e.repeat && !typing(e.target)) send({type: 'key', key: e.key, code: e.code});
 };
 
 const PRESS = new Set(['pointerdown', 'mousedown', 'touchstart']);
