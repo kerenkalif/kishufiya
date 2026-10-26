@@ -369,6 +369,8 @@ export default function (vm) {
         ScratchBlocks.ScratchMsgs.kishufiyaWords = true;
         if (he.OPERATORS_LT === '%1 < %2') he.OPERATORS_LT = '%1 קטן מ- %2';
         if (he.OPERATORS_GT === '%1 > %2') he.OPERATORS_GT = '%1 גדול מ- %2';
+        // "מודולו" means nothing to a child (2026-10-26): the remainder block says what it computes.
+        if (he.OPERATORS_MOD === '%1 מודולו %2') he.OPERATORS_MOD = 'שארית החלוקה של %1 ב- %2';
     }
 
     return ScratchBlocks;
