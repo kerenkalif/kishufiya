@@ -650,6 +650,14 @@ export const handleGuide = msg => {
     case 'find':
         send({type: 'found', id: msg.id, sprites: vm ? find(msg) : []});
         return true;
+    case 'snapshot':
+        // the stage as it is, for the lesson's finish screen: the child's own game, not a gamepad
+        try {
+            vm.renderer.requestSnapshot(url => send({type: 'snapshot', id: msg.id, url}));
+        } catch (e) {
+            send({type: 'snapshot', id: msg.id, url: null});
+        }
+        return true;
     default:
         return false;
     }
@@ -665,17 +673,21 @@ let areaTicks = 0;
 const tellCodeArea = () => {
     // said again now and then: a lesson page loaded anew after the editor did not hear it
     if (++areaTicks % 10 === 0) lastArea = '';
-    const area = codeArea();
-    const rect = area && {
-        left: Math.round(area.left),
-        top: Math.round(area.top),
-        width: Math.round(area.width),
-        height: Math.round(area.height)
+    const box = r => r && r.width > 0 && {
+        left: Math.round(r.left),
+        top: Math.round(r.top),
+        width: Math.round(r.width),
+        height: Math.round(r.height)
     };
-    const key = JSON.stringify(rect);
+    const rect = box(codeArea());
+    // the controls ניצוצי must not cover: the zoom buttons, the sprite tiles' pane, the stage
+    const avoid = ['.blocklyZoom', '[class*="target-pane_target-pane_"]', '[class*="stage-wrapper_stage-wrapper_"]']
+        .map(selector => box(uiRect(selector)))
+        .filter(Boolean);
+    const key = JSON.stringify([rect, avoid]);
     if (key === lastArea || !send) return;
     lastArea = key;
-    send({type: 'code-area', rect});
+    send({type: 'code-area', rect, avoid});
 };
 
 // once, when the VM is up
