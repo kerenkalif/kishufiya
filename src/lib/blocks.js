@@ -1,4 +1,5 @@
 import LazyScratchBlocks from './tw-lazy-scratch-blocks';
+import kishufiyaWords from './kishufiya-words.json';
 
 /**
  * Connect scratch blocks with the vm
@@ -363,14 +364,17 @@ export default function (vm) {
     // the club's teacher) read it wrong either way (2026-10-24). Read from the right, "%1 קטן מ- %2" is a
     // sentence. Only the label changes; the opcodes and what they compute stay the same. Hebrew only, and
     // only over the original strings. Once, because this runs on every editor mount and the locale table
-    // is shared.
-    const he = ScratchBlocks.ScratchMsgs.locales.he;
-    if (he && !ScratchBlocks.ScratchMsgs.kishufiyaWords) {
-        ScratchBlocks.ScratchMsgs.kishufiyaWords = true;
-        if (he.OPERATORS_LT === '%1 < %2') he.OPERATORS_LT = '%1 קטן מ- %2';
-        if (he.OPERATORS_GT === '%1 > %2') he.OPERATORS_GT = '%1 גדול מ- %2';
-        // "מודולו" means nothing to a child (2026-10-26): the remainder block says what it computes.
-        if (he.OPERATORS_MOD === '%1 מודולו %2') he.OPERATORS_MOD = 'שארית החלוקה של %1 ב- %2';
+    // is shared. "מודולו" means nothing to a child either (2026-10-26): the remainder block says what it
+    // computes. The words live in kishufiya-words.json, which scripts/export-words.mjs also hands the
+    // platform (its lesson texts name the blocks as the editor shows them).
+    const done = ScratchBlocks.ScratchMsgs.kishufiyaWords = ScratchBlocks.ScratchMsgs.kishufiyaWords || {};
+    for (const [locale, words] of Object.entries(kishufiyaWords.blocks)) {
+        const table = ScratchBlocks.ScratchMsgs.locales[locale];
+        if (!table || done[locale]) continue;
+        done[locale] = true;
+        for (const [id, {was, is}] of Object.entries(words)) {
+            if (table[id] === was) table[id] = is;
+        }
     }
 
     return ScratchBlocks;
