@@ -32,7 +32,12 @@
 //                                                   and on which side of it the arrow is; a field's value;
 //                                                   a dragged block's drop point {x, y} - sent on change
 //   ui {name: 'run' | 'flag' | 'stop'}              a run / the green flag itself / the stop sign
-//   key {key}                                       a key pressed while a step is guided (KeyboardEvent.key)
+//   key {key}                                       a key pressed (KeyboardEvent.key) - not in a box being typed
+//                                                   into, nor while frozen
+//   editing {sprite}                                the sprite open in the editor ('Stage' for the stage): on
+//                                                   load and whenever another one is opened
+//   sprite-clicked {sprite}                         a sprite (or the stage) clicked on the stage, as its
+//                                                   "when this sprite clicked" scripts start
 //   guide-clicked {via}                             the child clicked the guided target itself (a button, a
 //                                                   sprite's tile, a library item) - for the lesson, a step done
 //   found {id, sprites: [name]}                     the answer to 'find' ('Stage' is the stage)
@@ -440,10 +445,12 @@ const swallow = e => {
     e.stopImmediatePropagation();
 };
 
+const typing = el => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
 const onKey = e => {
     if (state.frozen) swallow(e);
-    // a key the child pressed while a step is guided ("לחצו על חץ ימני"): the lesson may be waiting for it
-    else if (state.guide && e.type === 'keydown' && !e.repeat) send({type: 'key', key: e.key});
+    // a key the child pressed ("לחצו על חץ ימני"): the lesson may be waiting for it - with or without a guide
+    // on show (a guide level that marks nothing sends none, 2026-10-26); not a letter typed into a name box
+    else if (e.type === 'keydown' && !e.repeat && !typing(e.target)) send({type: 'key', key: e.key});
 };
 
 const PRESS = new Set(['pointerdown', 'mousedown', 'touchstart']);
@@ -710,7 +717,20 @@ export const attachGuide = (theVm, sender) => {
     vm.on('workspaceUpdate', () => setTimeout(() => {
         watchCategory();
         diffCode(); // a sprite opened: its blocks as they are now are the baseline
+        // which one: a lesson step "עוברים לרקע" is done once it is open (platform 2026-10-26)
+        const target = vm.editingTarget;
+        if (target) send({type: 'editing', sprite: target.getName()});
     }, 0));
+    // a sprite clicked on the stage: its "when this sprite clicked" scripts start here (scratch-vm io/mouse.js)
+    const mouse = vm.runtime.ioDevices && vm.runtime.ioDevices.mouse;
+    if (mouse && mouse._activateClickHats && !mouse.kishufiyaClicks) {
+        const activate = mouse._activateClickHats.bind(mouse);
+        mouse.kishufiyaClicks = true;
+        mouse._activateClickHats = target => {
+            if (target) send({type: 'sprite-clicked', sprite: target.getName()});
+            return activate(target);
+        };
+    }
     vm.runtime.on('PROJECT_RUN_START', () => send({type: 'ui', name: 'run'}));
     // the green flag while the game is already running restarts it without a new "run start" (the threads
     // never reach zero): every press of the flag is a run (Keren, 2026-10-25 - a guess waited for a run)
