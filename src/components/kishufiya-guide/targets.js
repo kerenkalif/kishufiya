@@ -296,6 +296,14 @@ export const resolve = (target, vm) => {
     // or a button is shown as it is (a sprite the child named otherwise).
     const owner = (target.block || target.blockId || target.category || target.ui) && ownerTile(target, vm);
     if (owner && (owner.rect || !(target.in === 'palette' || target.category || target.ui))) return owner;
+    // A target of the code or the palette while the costumes or the sounds are open: the code tab first
+    // (a step that drew a costume left the child there, and the next block was "nowhere" - donuts 12.2,
+    // 2026-10-26)
+    if (target.block || target.blockId || target.category || target.ui === 'make-variable' || target.ui === 'variable-name') {
+        const tab = uiElement('code-tab');
+        const rect = tab && !/is-selected/.test(tab.className) && rectOf(tab);
+        if (rect && !document.querySelector(NAME_BOX)) return {rect, via: 'ui'};
+    }
     if (target.ui === 'variable-name') {
         // the name box of the "new variable" (or new message) window while it is open; until then, the
         // button that opens it (Keren, 2026-10-25: the ring stayed on the category, behind the window)
