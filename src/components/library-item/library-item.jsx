@@ -234,6 +234,15 @@ class LibraryItemComponent extends React.PureComponent {
                             draggable={false}
                         />
                     </Box>
+                    {/* כישופייה: a temporary (seasonal) item's label, set on the platform */}
+                    {this.props.badge ? (
+                        <span
+                            className={styles.libraryItemBadge}
+                            dir="rtl"
+                        >
+                            {this.props.badge}
+                        </span>
+                    ) : null}
                 </Box>
                 <span className={styles.libraryItemName}>{this.props.name}</span>
                 {this.props.showPlayButton ? (
@@ -254,6 +263,7 @@ class LibraryItemComponent extends React.PureComponent {
 
 LibraryItemComponent.propTypes = {
     intl: intlShape,
+    badge: PropTypes.string,
     bluetoothRequired: PropTypes.bool,
     collaborator: PropTypes.string,
     description: PropTypes.oneOfType([

@@ -131,6 +131,7 @@ class LibraryItem extends React.PureComponent {
         return (
             <LibraryItemComponent
                 intl={this.props.intl}
+                badge={this.props.badge}
                 bluetoothRequired={this.props.bluetoothRequired}
                 collaborator={this.props.collaborator}
                 description={this.props.description}
@@ -166,6 +167,7 @@ class LibraryItem extends React.PureComponent {
 
 LibraryItem.propTypes = {
     intl: intlShape,
+    badge: PropTypes.string,
     bluetoothRequired: PropTypes.bool,
     collaborator: PropTypes.string,
     description: PropTypes.oneOfType([

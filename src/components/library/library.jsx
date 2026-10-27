@@ -331,6 +331,7 @@ class LibraryComponent extends React.Component {
                             <Separator key={index} />
                         ) : (
                             <LibraryItem
+                                badge={typeof dataItem.badge === 'string' ? dataItem.badge : null}
                                 bluetoothRequired={dataItem.bluetoothRequired}
                                 collaborator={dataItem.collaborator}
                                 description={dataItem.description}

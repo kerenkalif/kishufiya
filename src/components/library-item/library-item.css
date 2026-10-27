@@ -57,6 +57,29 @@
     width: 100%;
 }
 
+/* כישופייה: a temporary (seasonal) item's label over the top of its picture */
+.library-item-badge {
+    position: absolute;
+    top: -0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% + 1rem);
+    box-sizing: border-box;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #ffd54f;
+    color: #007373;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: rtl;
+    pointer-events: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
 .library-item-inset-image-container {
     position: relative;
     display: flex;
