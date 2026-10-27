@@ -32,6 +32,10 @@
  *     every other msg is the guide's: pointing, freezing, picking (components/kishufiya-guide/guide.js)
  *   editor -> parent  {kishufiya: 'width', px}       the least width the editor can work in (its stage shrinks
  *                                                    to fit whatever it is given above that)
+ *   editor -> parent  {kishufiya: 'cloud', values}   the game's ☁ variables changed: all of their values,
+ *                                                    {name: number as text}, for the page to keep for this child
+ *                                                    and game; they come back with the game, in its response's
+ *                                                    X-Kishufiya-Cloud header (lib/kishufiya-cloud.js)
  */
 
 import './import-first';
@@ -55,6 +59,7 @@ import MyGames from '../components/kishufiya-my-games/my-games.jsx';
 import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.jsx';
 import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
+import {attachCloud, readCloudHeader} from '../lib/kishufiya-cloud.js';
 
 // Always Hebrew, whatever the class PC's browser was set to last.
 try {
@@ -72,6 +77,7 @@ const post = (message, transfer) => {
 };
 
 let vm = null;
+let cloud = null; // the game's ☁ variables (attachCloud)
 setChromeSender(message => post(message));
 let up = false; // the VM exists and the editor's own default project has finished loading
 let dirty = false;
@@ -120,6 +126,7 @@ const load = async (url, title, lesson, id) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         // 204: nothing to load, the child starts from the editor's own empty project
         if (res.status !== 204) await vm.loadProject(await res.arrayBuffer());
+        cloud.start(readCloudHeader(res));
         if (title) {
             knownTitle = title;
             nameProject(title);
@@ -178,6 +185,7 @@ const onVmInit = _vm => {
     vm = _vm;
     // the lesson points into the editor and hears what the child does (kishufiya-guide)
     attachGuide(vm, msg => post({kishufiya: 'to-lesson', msg}));
+    cloud = attachCloud(vm, values => post({kishufiya: 'cloud', values}));
     vm.on('PROJECT_CHANGED', () => {
         if (loading) return;
         sendProject();
@@ -316,6 +324,8 @@ render(<WrappedGUI
     onVmInit={onVmInit}
     onProjectLoaded={onProjectLoaded}
     routingStyle="none"
+    cloudHost="" // no cloud server: the ☁ variables are kept by the platform (lib/kishufiya-cloud.js)
+    canUseCloud // so the ☁ box shows in the new-variable dialog for every child
     canEditTitle
     canChangeLanguage={false}
     canChangeTheme={false}

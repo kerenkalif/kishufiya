@@ -7,8 +7,6 @@ import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
 
 import styles from './prompt.css';
-import {SCRATCH_MAX_CLOUD_VARIABLES} from '../../lib/tw-cloud-limits.js';
-import isScratchDesktop from '../../lib/isScratchDesktop.js';
 
 
 const messages = defineMessages({
@@ -21,11 +19,6 @@ const messages = defineMessages({
         defaultMessage: 'For this sprite only',
         description: 'Option message when creating a varaible for making it only available to the current sprite',
         id: 'gui.gui.variableScopeOptionSpriteOnly'
-    },
-    cloudVarOptionMessage: {
-        defaultMessage: 'Cloud variable (stored on server)',
-        description: 'Option message when creating a variable for making it a cloud variable, a variable that is stored on the server', /* eslint-disable-line max-len */
-        id: 'gui.gui.cloudVariableOption'
     },
     availableToAllSpritesMessage: {
         defaultMessage: 'This variable will be available to all sprites.',
@@ -40,17 +33,6 @@ const messages = defineMessages({
         id: 'gui.gui.listPromptAllSpritesMessage'
     }
 });
-
-const Packager = () => (
-    <a
-        href="https://packager.turbowarp.org"
-        target="_blank"
-        rel="noopener noreferrer"
-    >
-        {/* Should not be translated */}
-        {'TurboWarp Packager'}
-    </a>
-);
 
 const PromptComponent = props => (
     <Modal
@@ -128,52 +110,18 @@ const PromptComponent = props => (
                                     type="checkbox"
                                     onChange={props.onCloudVarOptionChange}
                                 />
-                                <FormattedMessage
-                                    {...messages.cloudVarOptionMessage}
-                                />
+                                {/* כישופייה: kept by the platform, not "stored on server" */}
+                                {'משתנה ענן ☁ (נשמר לפעם הבאה)'}
                             </label>
                         </Box> : null}
                 </div> : null}
 
-            {props.cloudSelected && !props.isAddingCloudVariableScratchSafe && (
-                <Box className={styles.infoMessage}>
-                    <FormattedMessage
-                        // eslint-disable-next-line max-len
-                        defaultMessage="If you make this cloud variable, the project will exceed Scratch's limit of {number} variables, and some variables will not function if you upload the project to Scratch."
-                        // eslint-disable-next-line max-len
-                        description="Warning that appears when adding a new cloud variable will make it exceeded Scratch's cloud variable limit. number will be 10."
-                        id="tw.scratchUnsafeCloud"
-                        values={{
-                            number: SCRATCH_MAX_CLOUD_VARIABLES
-                        }}
-                    />
-                </Box>
-            )}
-
+            {/* כישופייה (2026-10-27): a ☁ variable is kept for this child's copy of this game, by the platform
+                (lib/kishufiya-cloud.js) - not on Scratch's server or TurboWarp's, so their notes are not said here */}
             {props.cloudSelected && props.canAddCloudVariable && (
                 <Box className={styles.infoMessage}>
-                    {isScratchDesktop() ? (
-                        <FormattedMessage
-                            // eslint-disable-next-line max-len
-                            defaultMessage="In the desktop app, cloud variables sync between all desktop app windows on this computer. Upload the project to Scratch or use a tool like the {packager} for them to sync globally."
-                            description="Appears when creating a cloud variable in the desktop app"
-                            values={{
-                                packager: <Packager />
-                            }}
-                            id="tw.desktopCloud"
-                        />
-                    ) : (
-                        <FormattedMessage
-                            /* eslint-disable-next-line max-len */
-                            defaultMessage="Although you can create cloud variables, they won't work unless this project is uploaded to Scratch or converted using a tool like the {packager}."
-                            // eslint-disable-next-line max-len
-                            description="Reminder that cloud variables may not work when the editor is open. {packager} is replaced with a link to open the TurboWarp Packager, always English."
-                            values={{
-                                packager: <Packager />
-                            }}
-                            id="tw.cantUseCloud"
-                        />
-                    )}
+                    {'משתנה ענן ☁ זוכר את הערך שלו גם אחרי שסוגרים את המשחק ופותחים אותו שוב - למשל שיא. ' +
+                        'רק מספרים נשמרים.'}
                 </Box>
             )}
 
