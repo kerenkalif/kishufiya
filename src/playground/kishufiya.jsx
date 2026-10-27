@@ -33,9 +33,10 @@
  *   editor -> parent  {kishufiya: 'width', px}       the least width the editor can work in (its stage shrinks
  *                                                    to fit whatever it is given above that)
  *   editor -> parent  {kishufiya: 'cloud', values}   the game's ☁ variables changed: all of their values,
- *                                                    {name: number as text}, for the page to keep for this child
- *                                                    and game; they come back with the game, in its response's
- *                                                    X-Kishufiya-Cloud header (lib/kishufiya-cloud.js)
+ *                                                    {name: value as text}, for the page to keep for this child
+ *                                                    and game; when the game opens again its response says it
+ *                                                    has some (X-Kishufiya-Cloud), and the editor asks for them
+ *                                                    at the same address with part=cloud (lib/kishufiya-cloud.js)
  */
 
 import './import-first';
@@ -59,7 +60,7 @@ import MyGames from '../components/kishufiya-my-games/my-games.jsx';
 import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.jsx';
 import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
-import {attachCloud, readCloudHeader} from '../lib/kishufiya-cloud.js';
+import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 
 // Always Hebrew, whatever the class PC's browser was set to last.
 try {
@@ -126,7 +127,7 @@ const load = async (url, title, lesson, id) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         // 204: nothing to load, the child starts from the editor's own empty project
         if (res.status !== 204) await vm.loadProject(await res.arrayBuffer());
-        cloud.start(readCloudHeader(res));
+        cloud.start(await readCloud(res, url));
         if (title) {
             knownTitle = title;
             nameProject(title);

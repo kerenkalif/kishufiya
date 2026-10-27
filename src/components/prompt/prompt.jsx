@@ -120,8 +120,8 @@ const PromptComponent = props => (
                 (lib/kishufiya-cloud.js) - not on Scratch's server or TurboWarp's, so their notes are not said here */}
             {props.cloudSelected && props.canAddCloudVariable && (
                 <Box className={styles.infoMessage}>
-                    {'משתנה ענן ☁ זוכר את הערך שלו גם אחרי שסוגרים את המשחק ופותחים אותו שוב - למשל שיא. ' +
-                        'רק מספרים נשמרים.'}
+                    {'משתנה ענן ☁ זוכר את הערך שלו גם אחרי שסוגרים את המשחק ופותחים אותו שוב - ' +
+                        'למשל שיא, שם או שלב. ערך ארוך מ-10,000 תווים לא נשמר.'}
                 </Box>
             )}
 

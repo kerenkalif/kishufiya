@@ -1,38 +1,48 @@
 /**
  * ☁ variables in כישופייה (2026-10-27, stage 1): every child may make one, no "Scratcher" status. Its value
- * is kept for that child's copy of that game - a high score that is still there the next time the game opens.
- * Nothing is shared between children yet.
+ * is kept for that child's copy of that game - a high score, a name, a saved level, still there the next time
+ * the game opens. Nothing is shared between children yet.
  *
  * The VM's cloud provider is our own, not Scratch's or TurboWarp's server (cloudHost is empty, so
  * cloud-manager-hoc never connects): a moment after a ☁ variable changes it tells the page all of the
  * game's ☁ values ({kishufiya: 'cloud', values}); the page keeps them per child and game (the platform's
- * useKishufiya, at most every few seconds) and hands them back with the game the next time it opens, in the
- * game's response header X-Kishufiya-Cloud (base64 of their JSON).
+ * useKishufiya, at most every few seconds) and hands them back when the game opens again: the game's
+ * response says it has some (X-Kishufiya-Cloud), and the editor asks for them (the same address, part=cloud).
  *
- * As on Scratch, only numbers are kept, up to 256 characters: any other value plays on during the run, and
- * the last number before it is the one kept. Multiplayer, later, would be another provider over the same
- * calls - the VM's side of it does not change.
+ * Any value a variable holds is kept, text too (Keren, 2026-10-27 - Scratch keeps numbers only), as text:
+ * up to MAX_CLOUD_VALUE characters each, and all of a game's together up to MAX_CLOUD_BYTES (the page sends
+ * them with keepalive on the way out, and the browser carries at most 64KB that way). A value past a cap
+ * plays on during the run, and the last one that fitted is the one kept. Multiplayer, later, would be another
+ * provider over the same calls - the VM's side of it does not change.
  */
 
-export const MAX_CLOUD_VALUE = 256;
+export const MAX_CLOUD_VALUE = 10000; // characters: a list of names or a saved level, not a book
+export const MAX_CLOUD_BYTES = 60000; // the values as the page sends them (JSON, UTF-8): under keepalive's 64KB
 export const MAX_CLOUD_NAME = 60; // the "☁ " included; the platform refuses longer names
 export const CLOUD_HEADER = 'X-Kishufiya-Cloud';
 const SEND_AFTER_MS = 1000; // a game changing its ☁ every frame tells the page once a second at most
-const NUMBER = /^-?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+// a NUL, or half of a surrogate pair: text the database cannot keep
+const NUL = String.fromCharCode(0);
+const HALF_PAIR = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
-// The value as it is kept, or null when it is not a number Scratch would keep.
+// The value as it is kept (as text), or null when it cannot be kept.
 export const keepable = value => {
     const text = String(value);
-    return text.length <= MAX_CLOUD_VALUE && NUMBER.test(text) ? text : null;
+    return text.length <= MAX_CLOUD_VALUE && !text.includes(NUL) && !HALF_PAIR.test(text) ? text : null;
 };
 
-// The ☁ values the page sent with the game (none when the header is missing or unreadable).
-export const readCloudHeader = response => {
-    const header = response.headers.get(CLOUD_HEADER);
-    if (!header) return {};
+const bytes = values => new TextEncoder().encode(JSON.stringify(values)).length;
+
+// The ☁ values the page has for the game: none when the game's response says it has none, or they cannot
+// be read.
+export const readCloud = async (response, url) => {
+    if (!response.headers.get(CLOUD_HEADER)) return {};
     try {
-        const bytes = Uint8Array.from(atob(header), c => c.charCodeAt(0));
-        const values = JSON.parse(new TextDecoder().decode(bytes));
+        const address = new URL(url, location.href);
+        address.searchParams.set('part', 'cloud');
+        const res = await fetch(address, {credentials: 'same-origin'});
+        if (!res.ok) return {};
+        const values = await res.json();
         return values && typeof values === 'object' && !Array.isArray(values) ? values : {};
     } catch (e) {
         return {};
@@ -50,7 +60,7 @@ const cloudVariables = vm => {
 
 /**
  * @param {VirtualMachine} vm the editor's VM
- * @param {function(object)} send tells the page the game's ☁ values, {name: number as text}
+ * @param {function(object)} send tells the page the game's ☁ values, {name: value as text}
  * @returns {{start: function(object)}} start(values): a game was just loaded, with the values kept for it
  */
 export const attachCloud = (vm, send) => {
@@ -61,9 +71,14 @@ export const attachCloud = (vm, send) => {
     const current = () => {
         const values = {};
         for (const variable of cloudVariables(vm)) {
-            const value = keepable(variable.value);
-            if (value !== null) values[variable.name] = value;
-            else if (typeof kept[variable.name] === 'string') values[variable.name] = kept[variable.name];
+            // its value now; past a cap, the last one kept; past the game's cap even so, none
+            const last = typeof kept[variable.name] === 'string' ? kept[variable.name] : null;
+            for (const value of [keepable(variable.value), last]) {
+                if (value === null) continue;
+                values[variable.name] = value;
+                if (bytes(values) <= MAX_CLOUD_BYTES) break;
+                delete values[variable.name];
+            }
         }
         return values;
     };
@@ -104,7 +119,8 @@ export const attachCloud = (vm, send) => {
                 if (!Object.prototype.hasOwnProperty.call(values, variable.name)) continue;
                 const value = keepable(values[variable.name]);
                 if (value === null) continue;
-                variable.value = String(Number(value)) === value ? Number(value) : value;
+                // kept as text: one that reads back as the same number was a number
+                variable.value = value !== '' && String(Number(value)) === value ? Number(value) : value;
             }
             kept = {};
             kept = current();
