@@ -153,7 +153,8 @@ module.exports = [
             'fullscreen': './src/playground/fullscreen.jsx',
             'embed': './src/playground/embed.jsx',
             'addon-settings': './src/playground/addon-settings.jsx',
-            'credits': './src/playground/credits/credits.jsx'
+            'credits': './src/playground/credits/credits.jsx',
+            'block-render': './src/playground/block-render.jsx'
         },
         output: {
             path: path.resolve(__dirname, 'build')
@@ -237,6 +238,13 @@ module.exports = [
                 template: 'src/playground/simple.ejs',
                 filename: 'addons.html',
                 title: `Addon Settings - ${APP_NAME}`,
+                ...htmlWebpackPluginCommon
+            }),
+            new HtmlWebpackPlugin({
+                chunks: ['block-render'],
+                template: 'src/playground/block-render.ejs',
+                filename: 'block-render.html',
+                title: 'כישופייה - ציור בלוק',
                 ...htmlWebpackPluginCommon
             }),
             new HtmlWebpackPlugin({
