@@ -1,5 +1,6 @@
 import LazyScratchBlocks from './tw-lazy-scratch-blocks';
 import kishufiyaWords from './kishufiya-words.json';
+import {showRemembered} from './kishufiya-cloud.js';
 
 /**
  * Connect scratch blocks with the vm
@@ -269,7 +270,8 @@ export default function (vm) {
                 // Get all the stage variables (no lists) so we can add them to menu when the stage is selected.
                 const stageVariableOptions = vm.runtime.getTargetForStage().getAllVariableNamesInScopeByType('');
                 sort(stageVariableOptions);
-                const stageVariableMenuItems = stageVariableOptions.map(variable => [variable, variable]);
+                const stageVariableMenuItems = stageVariableOptions.map(variable =>
+                    [showRemembered(variable), variable]); // a kept one shows its mark
                 if (sensingOfBlock.inputs.OBJECT.shadow !== sensingOfBlock.inputs.OBJECT.block) {
                     // There's a block dropped on top of the menu. It'd be nice to evaluate it and
                     // return the correct list, but that is tricky. Scratch2 just returns stage options
@@ -289,7 +291,8 @@ export default function (vm) {
                     spriteVariableOptions = target.getAllVariableNamesInScopeByType('', true);
                     sort(spriteVariableOptions);
                 }
-                const spriteVariableMenuItems = spriteVariableOptions.map(variable => [variable, variable]);
+                const spriteVariableMenuItems = spriteVariableOptions.map(variable =>
+                    [showRemembered(variable), variable]); // a kept one shows its mark
                 return spriteOptions.concat(spriteVariableMenuItems);
             }
             return [['', '']];
@@ -375,6 +378,31 @@ export default function (vm) {
         for (const [id, {was, is}] of Object.entries(words)) {
             if (table[id] === was) table[id] = is;
         }
+    }
+
+    // Kishufiya (2026-10-27): a kept variable ("לזכור לפעם הבאה") is named "☁ ..." as Scratch names a cloud
+    // variable, and that name stays what is saved and what the platform keeps its value under. What the child
+    // sees shows the mark instead (kishufiya-cloud.js showRemembered): the name on its blocks (in the palette
+    // too), the variables menu (with its rename and delete lines), and Blockly's "already exists" alert. Only the
+    // drawn text changes: getText() and the field's value (the id) still give the real name, so the VM, the
+    // guide and saving are not touched. Once, because this runs on every editor mount.
+    if (!ScratchBlocks.kishufiyaRemember) {
+        ScratchBlocks.kishufiyaRemember = true;
+        for (const Field of [ScratchBlocks.FieldVariable, ScratchBlocks.FieldVariableGetter]) {
+            const setText = Field.prototype.setText;
+            Field.prototype.setText = function (text) {
+                return setText.call(this, showRemembered(text));
+            };
+        }
+        const dropdownCreate = ScratchBlocks.FieldVariable.dropdownCreate;
+        // each new variable field takes the menu maker in its constructor, so it is replaced before any exists
+        ScratchBlocks.FieldVariable.dropdownCreate = function () {
+            return dropdownCreate.call(this).map(option => [showRemembered(option[0]), option[1]]);
+        };
+        const alert = ScratchBlocks.alert;
+        ScratchBlocks.alert = function (message, callback) {
+            return alert.call(this, showRemembered(message), callback);
+        };
     }
 
     return ScratchBlocks;

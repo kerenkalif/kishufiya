@@ -45,6 +45,7 @@ import LoadScratchBlocksHOC from '../lib/tw-load-scratch-blocks-hoc.jsx';
 import {findTopBlock} from '../lib/backpack/code-payload.js';
 import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
 import tidyOverlaps from '../lib/kishufiya-tidy.js';
+import {showRemembered} from '../lib/kishufiya-cloud.js';
 
 // TW: Strings we add to scratch-blocks are localized here
 const messages = defineMessages({
@@ -599,7 +600,8 @@ class Blocks extends React.Component {
         this.blocks = blocks;
     }
     handlePromptStart (message, defaultValue, callback, optTitle, optVarType) {
-        const p = {prompt: {callback, message, defaultValue}};
+        // כישופייה: the rename dialog names a kept variable with the mark, not "☁ " (kishufiya-cloud.js)
+        const p = {prompt: {callback, message: showRemembered(message), defaultValue}};
         p.prompt.title = optTitle ? optTitle :
             this.ScratchBlocks.Msg.VARIABLE_MODAL_TITLE;
         p.prompt.varType = typeof optVarType === 'string' ?

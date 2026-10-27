@@ -1,4 +1,5 @@
 import OpcodeLabels from './opcode-labels.js';
+import {showRemembered} from './kishufiya-cloud.js';
 import {safeStringify} from './tw-safe-stringify.js';
 
 const isUndefined = a => typeof a === 'undefined';
@@ -22,6 +23,8 @@ export default function ({id, mode, spriteName, opcode, params, value, vm}) {
 
     // Use labelFn if provided for dynamic labelling (e.g. variables)
     if (!isUndefined(labelFn)) label = labelFn(params);
+    // כישופייה: a kept variable ("☁ " name) shows the mark instead (kishufiya-cloud.js showRemembered)
+    label = showRemembered(label);
 
     // Append sprite name for sprite-specific monitors
     if (spriteName) {

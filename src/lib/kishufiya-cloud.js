@@ -20,6 +20,21 @@ export const MAX_CLOUD_VALUE = 10000; // characters: a list of names or a saved 
 export const MAX_CLOUD_BYTES = 60000; // the values as the page sends them (JSON, UTF-8): under keepalive's 64KB
 export const MAX_CLOUD_NAME = 60; // the "☁ " included; the platform refuses longer names
 export const CLOUD_HEADER = 'X-Kishufiya-Cloud';
+
+/*
+ * "לזכור לפעם הבאה" (Keren, 2026-10-27): these are not Scratch's cloud variables - nothing is shared, the value is
+ * kept for this child's copy of this game - so the child never sees "ענן" or ☁. The variable's NAME still
+ * starts with "☁ " (CLOUD_PREFIX, as scratch-blocks names it): that is what is saved in the project and the .sb3,
+ * what the platform keeps the values under, and what Scratch reads as a cloud variable. Only what is shown
+ * changes: palette, blocks, menus, monitors and dialogs show REMEMBER_MARK instead (showRemembered). The mark is
+ * provisional, so it lives here only.
+ */
+export const CLOUD_PREFIX = '☁ ';
+export const REMEMBER_MARK = '📌';
+// The text as the child sees it: "☁ " (the start of a kept variable's name, also inside a sentence) shown as
+// the mark. Anything else is as it was.
+export const showRemembered = text => (typeof text === 'string' && text.includes(CLOUD_PREFIX) ?
+    text.split(CLOUD_PREFIX).join(`${REMEMBER_MARK} `) : text);
 const SEND_AFTER_MS = 1000; // a game changing its ☁ every frame tells the page once a second at most
 // a NUL, or half of a surrogate pair: text the database cannot keep
 const NUL = String.fromCharCode(0);
@@ -55,7 +70,7 @@ const cloudVariables = vm => {
     const stage = vm.runtime.getTargetForStage();
     if (!stage) return [];
     return Object.values(stage.variables).filter(v => v.isCloud && v.type === '' &&
-        v.name.startsWith('☁ ') && v.name.length <= MAX_CLOUD_NAME);
+        v.name.startsWith(CLOUD_PREFIX) && v.name.length <= MAX_CLOUD_NAME);
 };
 
 /**

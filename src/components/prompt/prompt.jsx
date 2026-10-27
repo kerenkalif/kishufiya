@@ -7,6 +7,7 @@ import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
 
 import styles from './prompt.css';
+import {REMEMBER_MARK} from '../../lib/kishufiya-cloud.js';
 
 
 const messages = defineMessages({
@@ -110,18 +111,20 @@ const PromptComponent = props => (
                                     type="checkbox"
                                     onChange={props.onCloudVarOptionChange}
                                 />
-                                {/* כישופייה: kept by the platform, not "stored on server" */}
-                                {'משתנה ענן ☁ (נשמר לפעם הבאה)'}
+                                {/* כישופייה: kept by the platform for this child and game, not shared, so not
+                                    "cloud" (Keren, 2026-10-27); the mark is the one its name shows */}
+                                {`לזכור לפעם הבאה ${REMEMBER_MARK}`}
                             </label>
                         </Box> : null}
                 </div> : null}
 
-            {/* כישופייה (2026-10-27): a ☁ variable is kept for this child's copy of this game, by the platform
-                (lib/kishufiya-cloud.js) - not on Scratch's server or TurboWarp's, so their notes are not said here */}
+            {/* כישופייה (2026-10-27): a kept ("☁ "-named) variable is kept for this child's copy of this game, by the
+                platform (lib/kishufiya-cloud.js) - not on Scratch's server or TurboWarp's, so their notes are not
+                said here */}
             {props.cloudSelected && props.canAddCloudVariable && (
                 <Box className={styles.infoMessage}>
-                    {'משתנה ענן ☁ זוכר את הערך שלו גם אחרי שסוגרים את המשחק ופותחים אותו שוב - ' +
-                        'למשל שיא, שם או שלב. ערך ארוך מ-10,000 תווים לא נשמר.'}
+                    {'הערך יישאר גם אחרי שיוצאים מהמשחק ונכנסים שוב - למשל שיא, שם או שלב. ' +
+                        'ערך ארוך מ-10,000 תווים לא נשמר.'}
                 </Box>
             )}
 
