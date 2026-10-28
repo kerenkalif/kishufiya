@@ -282,14 +282,18 @@ const placeGhost = (r, drop, slot) => {
 //   'menu'    a category: above or below it inside the categories' column (`within`) - not on the "קוד" tab
 //             above the column, nor on the palette's blocks beside it
 const ARROW = 34;
-// Not pressed for a while: the arrow grows slowly, from ARROW_GROW_AFTER_MS over ARROW_GROW_MS, to ARROW_MAX_SCALE times
-// its size, and stays (K11, Keren 2026-10-28; a new guide starts it again at its own size). Its size is its real
+// Not pressed for a while: the arrow grows slowly, from ARROW_GROW_AFTER_MS over ARROW_GROW_MS, to
+// ARROW_MAX_SCALE times its size, and stays (K11, Keren 2026-10-28; a new guide starts it again
+// at its own size). Its size is its real
 // width and height, so the placing below - room above, beside the code, inside the screen - keeps it off the
 // target and inside the frame as it grows. The numbers are the platform's (bubble-words.ts ARROW_*): keep them equal.
 const ARROW_GROW_AFTER_MS = 6000;
 const ARROW_GROW_MS = 10000;
 const ARROW_MAX_SCALE = 2;
-const arrowScale = waited => 1 + (ARROW_MAX_SCALE - 1) * Math.min(1, Math.max(0, (waited - ARROW_GROW_AFTER_MS) / ARROW_GROW_MS));
+const arrowScale = waited => {
+    const t = Math.min(1, Math.max(0, (waited - ARROW_GROW_AFTER_MS) / ARROW_GROW_MS));
+    return 1 + ((ARROW_MAX_SCALE - 1) * t);
+};
 let arrow = ARROW; // its size now, px
 const sideways = (r, x, side) => {
     if (x < 0 || x + arrow > window.innerWidth) return null;
@@ -318,7 +322,8 @@ const placePointer = (r, how, within) => {
     const above = r.top - arrow - 8 > top || r.bottom + arrow + 8 > bottom;
     pointer.style.display = 'block';
     // (kept inside the screen sideways as it grows)
-    pointer.style.left = `${Math.max(0, Math.min(window.innerWidth - arrow, Math.round(((r.left + r.right) / 2) - (arrow / 2))))}px`;
+    const centred = Math.round(((r.left + r.right) / 2) - (arrow / 2));
+    pointer.style.left = `${Math.max(0, Math.min(window.innerWidth - arrow, centred))}px`;
     pointer.style.top = `${Math.round(above ? r.top - arrow - 6 : r.bottom + 6)}px`;
     pointer.setAttribute('data-side', above ? 'above' : 'below');
     return above ? 'above' : 'below';
