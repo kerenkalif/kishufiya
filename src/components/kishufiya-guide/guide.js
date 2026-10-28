@@ -51,12 +51,91 @@
 //   window {open, naming}                           a window of the editor is open over it (a library, a
 //                                                   prompt); naming: the box to name a new message or variable
 //                                                   is in it - sent on change, and with every new guide
+//   library-pick {kind, source, name, asset}        a sprite, backdrop, costume or sound added: kind 'sprite' |
+//                                                   'backdrop' | 'costume' | 'sound'; source 'library' | 'paint'
+//                                                   (the brush, nothing drawn yet) | 'upload' (a file, the camera,
+//                                                   a copy dragged from another sprite); asset: its first
+//                                                   picture's or its sound's md5, or null - once it is in
+//                                                   (platform auto-root, 2026-10-28: a pick is an event)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
 import {forwardedKey, gameHeard, gameKey, quietReports, typing} from './detect.js';
 import styles from './guide.css';
 
 let vm = null;
 let send = () => {};
+
+// ---- picks: what the child adds, told as it happens (library-pick) ----
+// The vm's own add methods, wrapped once: every way into the game passes one of them (the libraries, the
+// brush, a file, "surprise"), and what is added tells where it came from - the brush's empty picture, a
+// library item's tags, a file's own asset.
+const BLANK = ['cd21514d0531fdffb22204e0ec5ed84a', '3339a2953a3bf62bb80e54ff575dbced'];
+const md5Of = value => (typeof value === 'string' && value ? value.split('.')[0] : null);
+const isStageTarget = targetId => {
+    const target = targetId ? vm.runtime.getTargetById(targetId) : vm.editingTarget;
+    return Boolean(target && target.isStage);
+};
+let fromLibrary = false; // inside addCostumeFromLibrary, which adds through addCostume
+const watchPicks = () => {
+    if (!vm || vm.kishufiyaPicks) return;
+    vm.kishufiyaPicks = true;
+    // `describe` reads the pick before the add (loading gives every costume an asset), it is told once in
+    const wrap = (method, describe) => {
+        const own = vm[method] && vm[method].bind(vm);
+        if (!own) return;
+        vm[method] = (...args) => {
+            let pick = null;
+            try {
+                pick = describe(...args);
+            } catch (e) {
+                // a pick not told is a pick the lesson waits for again: never a reason to fail the add
+            }
+            const result = own(...args);
+            const told = () => pick &&
+                send({type: 'library-pick', ...pick, name: pick.name || '', asset: pick.asset || null});
+            if (result && typeof result.then === 'function') result.then(told, () => {});
+            else told();
+            return result;
+        };
+    };
+    wrap('addSprite', input => {
+        if (typeof input !== 'string') return {kind: 'sprite', source: 'upload'}; // a sprite file
+        const item = JSON.parse(input);
+        const costume = (item.costumes || [])[0] || {};
+        const asset = md5Of(costume.md5ext || costume.baseLayerMD5 || costume.assetId);
+        const source = BLANK.includes(asset) ? 'paint' : Array.isArray(item.tags) ? 'library' : 'upload';
+        return {kind: 'sprite', source, name: item.name || item.objName, asset};
+    });
+    const libraryCostume = vm.addCostumeFromLibrary && vm.addCostumeFromLibrary.bind(vm);
+    if (libraryCostume) {
+        vm.addCostumeFromLibrary = (...args) => {
+            fromLibrary = true;
+            try {
+                return libraryCostume(...args);
+            } finally {
+                fromLibrary = false;
+            }
+        };
+    }
+    const costumeSource = (md5ext, costume) => {
+        if (BLANK.includes(md5Of(md5ext))) return 'paint';
+        return fromLibrary || !(costume && costume.asset) ? 'library' : 'upload';
+    };
+    wrap('addCostume', (md5ext, costume, targetId) => ({
+        kind: isStageTarget(targetId) ? 'backdrop' : 'costume',
+        source: costumeSource(md5ext, costume),
+        name: costume && costume.name,
+        asset: md5Of(md5ext)
+    }));
+    wrap('addBackdrop', (md5ext, backdrop) => ({
+        kind: 'backdrop', source: costumeSource(md5ext, backdrop), name: backdrop && backdrop.name, asset: md5Of(md5ext)
+    }));
+    wrap('addSound', sound => ({
+        kind: 'sound',
+        source: sound && sound.asset ? 'upload' : 'library',
+        name: sound && sound.name,
+        asset: md5Of(sound && (sound.md5 || sound.md5ext))
+    }));
+};
 
 const state = {
     guide: null, // {target, text}
@@ -814,6 +893,7 @@ export const attachGuide = (theVm, sender) => {
             return activate(target);
         };
     }
+    watchPicks();
     vm.runtime.on('PROJECT_RUN_START', () => send({type: 'ui', name: 'run'}));
     // the green flag while the game is already running restarts it without a new "run start" (the threads
     // never reach zero): every press of the flag is a run (Keren, 2026-10-25 - a guess waited for a run)
