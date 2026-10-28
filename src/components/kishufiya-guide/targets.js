@@ -30,7 +30,7 @@
 //                                              missing 'stage-hidden' / 'hidden' / 'offstage' / 'covered'
 //                                              (with `by`, the sprite on it) when it cannot be clicked
 //                                              (detect.js). An editor before 2026-10-28 rings the whole stage
-//   {ui: 'stage', pressKey: true}              the stage, for a key to press: missing 'typing' while the
+//   {..., pressKey: true}                      any target, for a key to press: missing 'typing' while the
 //                                              focus is in a box of the editor (the key would go there),
 //                                              'stage-hidden' while the stage is hidden
 // A palette block whose category is not in view resolves to its category: the child opens the
@@ -306,6 +306,9 @@ const fieldOf = (block, name) => {
 // or {missing: reason} when it is nowhere on the screen.
 export const resolve = (target, vm) => {
     if (!target) return {missing: 'no-target'};
+    // a key to press, while the focus is in a box of the editor: the key would go there (any target - an older
+    // lesson's key step points anywhere)
+    if (target.pressKey && typing(document.activeElement)) return {missing: 'typing'};
     // A sprite's own target while another sprite is open: its tile first. With no such tile a target of
     // the code is missing (a block of that kind in the open sprite is not it); a palette block, a category
     // or a button is shown as it is (a sprite the child named otherwise).
@@ -363,7 +366,6 @@ export const resolve = (target, vm) => {
         return {rect: on.rect, via: 'stage-sprite'};
     }
     if (target.ui === 'stage' && !rectOf(uiElement('stage'))) return {missing: 'stage-hidden'};
-    if (target.ui === 'stage' && target.pressKey && typing(document.activeElement)) return {missing: 'typing'};
     if (target.ui) {
         const el = uiElement(target.ui);
         const rect = rectOf(el);

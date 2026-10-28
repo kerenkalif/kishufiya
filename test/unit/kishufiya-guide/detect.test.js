@@ -1,7 +1,7 @@
 // K12 (2026-10-28): what the guide tells the lesson the child did - the pure parts (detect.js).
 //   npx jest test/unit/kishufiya-guide
 import {categoryOf} from '../../../src/components/kishufiya-guide/targets.js';
-import {coveredBy, forwardedKey, gameHeard, gameKey, libraryMissing, samplePoints, spriteOnStage, typing} from '../../../src/components/kishufiya-guide/detect.js';
+import {coveredBy, forwardedKey, gameHeard, gameKey, libraryMissing, quietReports, samplePoints, spriteOnStage, typing} from '../../../src/components/kishufiya-guide/detect.js';
 
 describe('keys', () => {
     test('the game gets the key as scratch-gui gives it', () => {
@@ -100,5 +100,18 @@ describe('a palette block out of view: its category', () => {
         expect(categoryOf('translate_getTranslate')).toBe('translate');
         expect(categoryOf('data_setvariableto')).toBe('variables');
         expect(categoryOf('nothing_here')).toBe(null);
+    });
+});
+
+describe('a quiet guide (levels 2-3) says only what the child can act on', () => {
+    test('covered, hidden, the stage hidden, the focus in a box, a library item', () => {
+        for (const reason of ['covered', 'hidden', 'stage-hidden', 'typing', 'library', 'not-in-library']) {
+            expect(quietReports(reason)).toBe(true);
+        }
+    });
+    test('not a block not built yet, out of view, or the palette scrolling: the usual state there (K12 review)', () => {
+        for (const reason of ['offscreen', 'palette', 'scrolling', 'not-in-code', 'not-in-palette', 'no-field']) {
+            expect(quietReports(reason)).toBe(false);
+        }
     });
 });

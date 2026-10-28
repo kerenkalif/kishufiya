@@ -65,6 +65,13 @@ export const libraryMissing = ({open, search, searched, name}) => {
         .toLowerCase() ? 'not-in-library' : null;
 };
 
+// What a quiet guide (guide levels 2-3: nothing drawn) says is missing: only what the child can act on - a sprite
+// covered or hidden, the stage hidden, the focus in a box, a library item. A block not built yet, out of view, a
+// palette scrolling are the usual state at those levels, where nothing points at them: said, they brought a wrong
+// "lost" (K12 review).
+const QUIET_REPORTS = new Set(['covered', 'hidden', 'stage-hidden', 'typing', 'library', 'not-in-library']);
+export const quietReports = reason => QUIET_REPORTS.has(reason);
+
 // Where on a sprite's rect to ask the renderer what is on top: its middle and four points around it.
 export const samplePoints = r => {
     const x = f => r.left + ((r.right - r.left) * f);

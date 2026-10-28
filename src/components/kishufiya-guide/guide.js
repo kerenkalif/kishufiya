@@ -52,7 +52,7 @@
 //                                                   prompt); naming: the box to name a new message or variable
 //                                                   is in it - sent on change, and with every new guide
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
-import {forwardedKey, gameHeard, gameKey, typing} from './detect.js';
+import {forwardedKey, gameHeard, gameKey, quietReports, typing} from './detect.js';
 import styles from './guide.css';
 
 let vm = null;
@@ -408,7 +408,11 @@ const drawGuide = () => {
         // nothing drawn or scrolled: where it is (or that it is missing), and what is on it for a click
         if (found.offscreen) found.missing = 'offscreen';
         if (found.missing) {
-            tellMissing(found);
+            if (quietReports(found.missing)) tellMissing(found);
+            else {
+                hideGuide();
+                tellAt(null);
+            }
             return;
         }
         hideGuide();
