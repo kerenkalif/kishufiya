@@ -1,5 +1,6 @@
 // K12 (2026-10-28): what the guide tells the lesson the child did - the pure parts (detect.js).
 //   npx jest test/unit/kishufiya-guide
+import {categoryOf} from '../../../src/components/kishufiya-guide/targets.js';
 import {coveredBy, forwardedKey, gameHeard, gameKey, libraryMissing, samplePoints, spriteOnStage, typing} from '../../../src/components/kishufiya-guide/detect.js';
 
 describe('keys', () => {
@@ -88,5 +89,16 @@ describe('a library item not ringed', () => {
         expect(libraryMissing({open: true, search: true, searched: '', name: 'Cat'})).toBe(null);
         expect(libraryMissing({open: true, search: true, searched: 'Ca', name: 'Cat'})).toBe(null);
         expect(libraryMissing({open: true, search: true, searched: ' cat ', name: 'Cat'})).toBe('not-in-library');
+    });
+});
+
+describe('a palette block out of view: its category', () => {
+    test('every extension a lesson may add (add_extension) has its category, translate too', () => {
+        for (const id of ['pen', 'music', 'videoSensing', 'text2speech', 'translate']) {
+            expect(categoryOf(`${id}_someBlock`)).toBe(id);
+        }
+        expect(categoryOf('translate_getTranslate')).toBe('translate');
+        expect(categoryOf('data_setvariableto')).toBe('variables');
+        expect(categoryOf('nothing_here')).toBe(null);
     });
 });

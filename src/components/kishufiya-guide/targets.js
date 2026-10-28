@@ -52,7 +52,9 @@ const CATEGORY_OF_PREFIX = {
     pen: 'pen',
     music: 'music',
     videoSensing: 'videoSensing',
-    text2speech: 'text2speech'
+    text2speech: 'text2speech',
+    // every extension a lesson may add (the platform's schema add_extension): its category's id is its own (K12)
+    translate: 'translate'
 };
 export const categoryOf = opcode => CATEGORY_OF_PREFIX[String(opcode).split('_')[0]] || null;
 
