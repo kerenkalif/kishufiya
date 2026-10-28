@@ -27,9 +27,12 @@
 //                                              open, 'not-in-library' when it is open and the item is not in
 //                                              it (detect.js libraryMissing)
 //   {ui: 'stage', stageSprite: name}           a sprite on the stage itself, to click (via 'stage-sprite');
-//                                              missing 'hidden' / 'offstage' when it cannot be clicked
-//                                              (detect.js spriteOnStage). An editor before 2026-10-28 rings
-//                                              the whole stage
+//                                              missing 'stage-hidden' / 'hidden' / 'offstage' / 'covered'
+//                                              (with `by`, the sprite on it) when it cannot be clicked
+//                                              (detect.js). An editor before 2026-10-28 rings the whole stage
+//   {ui: 'stage', pressKey: true}              the stage, for a key to press: missing 'typing' while the
+//                                              focus is in a box of the editor (the key would go there),
+//                                              'stage-hidden' while the stage is hidden
 // A palette block whose category is not in view resolves to its category: the child opens the
 // category (the palette then scrolls to a block low in it, once). Any target that names a sprite (or
 // 'Stage') other than the one open resolves to that sprite's tile first (ownerTile).
@@ -70,7 +73,7 @@ const UI = {
     'sprite-name': '[class*="sprite-info_sprite-info_"] input[type="text"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
-import {libraryMissing, spriteOnStage} from './detect.js';
+import {coveredBy, libraryMissing, samplePoints, spriteOnStage, typing} from './detect.js';
 
 // The sprite's numbers, in the order the sprite info shows them.
 const NUMBERS = {'sprite-x': 0, 'sprite-y': 1, 'sprite-size': 2, 'sprite-direction': 3};
@@ -344,9 +347,21 @@ export const resolve = (target, vm) => {
         } catch (e) { /* no skin yet */ }
         const canvas = rectOf(vm.renderer.canvas);
         const stage = {width: vm.runtime.stageWidth || 480, height: vm.runtime.stageHeight || 360};
-        const on = spriteOnStage({visible: sprite.visible, bounds, stage, canvas});
-        return on.rect ? {rect: on.rect, via: 'stage-sprite'} : on;
+        const ghost = sprite.effects ? sprite.effects.ghost : 0;
+        const on = spriteOnStage({visible: sprite.visible, ghost, bounds, stage, canvas});
+        if (!on.rect) return on;
+        // another sprite on top of it takes the click (scratch-render picks the top one)
+        const ids = vm.runtime.targets.filter(t => !t.isStage && t.visible).map(t => t.drawableID);
+        const picks = samplePoints(on.rect).map(p => vm.renderer.pick(p.x - canvas.left, p.y - canvas.top, 1, 1, ids));
+        const top = coveredBy(picks, sprite.drawableID);
+        if (top !== null) {
+            const other = vm.runtime.getTargetByDrawableId(top);
+            return {missing: 'covered', by: other ? other.getName() : null};
+        }
+        return {rect: on.rect, via: 'stage-sprite'};
     }
+    if (target.ui === 'stage' && !rectOf(uiElement('stage'))) return {missing: 'stage-hidden'};
+    if (target.ui === 'stage' && target.pressKey && typing(document.activeElement)) return {missing: 'typing'};
     if (target.ui) {
         const el = uiElement(target.ui);
         const rect = rectOf(el);

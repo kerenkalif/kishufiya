@@ -31,7 +31,8 @@
 //   picked {opcode, blockId, sprite, inside: [opcode], top}
 //   (guide-missing, guide-at and guide-clicked carry the guide's `id`, as it was sent with 'guide', so the
 //   page tells them apart from what was said about the guide before)
-//   guide-missing {id, target, reason}              the target is nowhere on the screen (for half a second)
+//   guide-missing {id, target, reason, by}          the target is nowhere on the screen, or cannot be clicked
+//                                                   (for half a second): why - targets.js
 //   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?}
 //                                                   where the guided target is now, in this frame's pixels,
 //                                                   and on which side of it the arrow is; a field's value as
@@ -380,6 +381,22 @@ const hideGuide = () => {
     placeGhost(null, null);
 };
 
+// The target nowhere to be clicked: said once it stays so for a moment, again when the reason changes (with `by`,
+// the sprite covering a sprite on the stage). A quiet guide says it too: a step at guide level 2-3 was stuck (K12
+// review).
+const tellMissing = found => {
+    hideGuide();
+    tellAt(null);
+    const now = performance.now();
+    if (!missingSince) missingSince = now;
+    const why = `${found.missing}|${found.by || ''}`;
+    if (now - missingSince >= MISSING_AFTER_MS && reported !== why) {
+        reported = why;
+        const {id, target} = state.guide;
+        send({type: 'guide-missing', id, target, reason: found.missing, by: found.by || null});
+    }
+};
+
 const drawGuide = () => {
     if (!state.guide) {
         hideGuide();
@@ -389,11 +406,14 @@ const drawGuide = () => {
     const found = resolve(state.guide.target, vm);
     if (state.guide.quiet) {
         // nothing drawn or scrolled: where it is (or that it is missing), and what is on it for a click
-        hideGuide();
-        if (found.offscreen || found.missing) {
-            tellAt(null);
+        if (found.offscreen) found.missing = 'offscreen';
+        if (found.missing) {
+            tellMissing(found);
             return;
         }
+        hideGuide();
+        missingSince = 0;
+        reported = null;
         shown = {rect: found.rect, via: found.via, input: Boolean(found.input)};
         tellAt(found.rect, found.via, null, found);
         return;
@@ -419,14 +439,7 @@ const drawGuide = () => {
     }
     if (found.offscreen) found.missing = 'offscreen';
     if (found.missing) {
-        hideGuide();
-        tellAt(null);
-        const now = performance.now();
-        if (!missingSince) missingSince = now;
-        if (now - missingSince >= MISSING_AFTER_MS && reported !== found.missing) {
-            reported = found.missing;
-            send({type: 'guide-missing', id: state.guide.id, target: state.guide.target, reason: found.missing});
-        }
+        tellMissing(found);
         return;
     }
     missingSince = 0;
