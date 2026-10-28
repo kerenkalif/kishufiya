@@ -289,7 +289,13 @@ const ARROW = 34;
 // field `grow`); these are only for a platform that sends none.
 const GROW_DEFAULT = {afterMs: 6000, ms: 10000, maxScale: 2};
 const arrowScale = (waited, grow) => {
-    const g = Object.assign({}, GROW_DEFAULT, grow);
+    // a field that is missing, not a number, or (for the time and the size) not positive falls back to its default
+    const num = (value, fallback, min) => (Number.isFinite(value) && value >= min ? value : fallback);
+    const g = {
+        afterMs: num(grow && grow.afterMs, GROW_DEFAULT.afterMs, 0),
+        ms: num(grow && grow.ms, GROW_DEFAULT.ms, 1),
+        maxScale: num(grow && grow.maxScale, GROW_DEFAULT.maxScale, 1)
+    };
     const t = Math.min(1, Math.max(0, (waited - g.afterMs) / g.ms));
     return 1 + ((g.maxScale - 1) * t);
 };
