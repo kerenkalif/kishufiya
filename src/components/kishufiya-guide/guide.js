@@ -282,17 +282,16 @@ const placeGhost = (r, drop, slot) => {
 //   'menu'    a category: above or below it inside the categories' column (`within`) - not on the "קוד" tab
 //             above the column, nor on the palette's blocks beside it
 const ARROW = 34;
-// Not pressed for a while: the arrow grows slowly, from ARROW_GROW_AFTER_MS over ARROW_GROW_MS, to
-// ARROW_MAX_SCALE times its size, and stays (K11, Keren 2026-10-28; a new guide starts it again
-// at its own size). Its size is its real
-// width and height, so the placing below - room above, beside the code, inside the screen - keeps it off the
-// target and inside the frame as it grows. The numbers are the platform's (bubble-words.ts ARROW_*): keep them equal.
-const ARROW_GROW_AFTER_MS = 6000;
-const ARROW_GROW_MS = 10000;
-const ARROW_MAX_SCALE = 2;
-const arrowScale = waited => {
-    const t = Math.min(1, Math.max(0, (waited - ARROW_GROW_AFTER_MS) / ARROW_GROW_MS));
-    return 1 + ((ARROW_MAX_SCALE - 1) * t);
+// Not pressed for a while: the arrow grows slowly, from `afterMs` over `ms`, to `maxScale` times its size, and
+// stays (K11, Keren 2026-10-28; a new guide starts it again at its own size). Its size is its real width and
+// height, so the placing below - room above, beside the code, inside the screen - keeps it off the target and
+// inside the frame as it grows. The numbers come with the guide (the platform's bubble-words.ts ARROW_*, message
+// field `grow`); these are only for a platform that sends none.
+const GROW_DEFAULT = {afterMs: 6000, ms: 10000, maxScale: 2};
+const arrowScale = (waited, grow) => {
+    const g = Object.assign({}, GROW_DEFAULT, grow);
+    const t = Math.min(1, Math.max(0, (waited - g.afterMs) / g.ms));
+    return 1 + ((g.maxScale - 1) * t);
 };
 let arrow = ARROW; // its size now, px
 const sideways = (r, x, side) => {
@@ -340,8 +339,8 @@ let louderSince = 0;
 const louder = on => {
     ring.classList.toggle(styles.louder, on);
 };
-const sizeArrow = waited => {
-    arrow = Math.round(ARROW * arrowScale(waited));
+const sizeArrow = (waited, grow) => {
+    arrow = Math.round(ARROW * arrowScale(waited, grow));
     pointer.style.width = `${arrow}px`;
     pointer.style.height = `${arrow}px`;
 };
@@ -416,8 +415,11 @@ const drawGuide = () => {
         louderKey = key;
         louderSince = now;
     }
+    // held (a card, a question): the count starts again when it lets go, so the arrow does not jump at once to its
+    // full size (K11 review)
+    if (state.frozen) louderSince = now;
     louder(!state.frozen && now - louderSince >= LOUDER_AFTER_MS);
-    sizeArrow(state.frozen ? 0 : now - louderSince);
+    sizeArrow(now - louderSince, state.guide.grow);
     placeGhost(r, found.drop, found.slot);
     const target = state.guide.target;
     const ofCode = found.block && !found.drop && target.in !== 'palette' &&
@@ -646,7 +648,8 @@ export const handleGuide = msg => {
             target: msg.target,
             text: msg.text || '',
             textCategory: msg.textCategory,
-            textSprite: msg.textSprite
+            textSprite: msg.textSprite,
+            grow: msg.grow
         };
         missingSince = 0;
         reported = null;
