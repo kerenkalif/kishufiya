@@ -146,6 +146,8 @@ describe('what the lesson counts as a press (platform K17 review)', () => {
         expect(keyOf({key: '!', code: 'Digit1', keyCode: 49})).toEqual({key: '1', keyCode: 49});
         expect(keyOf({key: 'ArrowUp', code: 'ArrowUp', keyCode: 38})).toEqual({key: 'ArrowUp', keyCode: 38});
         expect(keyOf({key: ' ', code: 'Space', keyCode: 32})).toEqual({key: ' ', keyCode: 32});
+        expect(keyOf({key: 'ArrowUp', code: 'Numpad8', keyCode: 38})).toEqual({key: 'ArrowUp', keyCode: 38});
+        expect(keyOf({key: '8', code: 'Numpad8', keyCode: 104})).toEqual({key: '8', keyCode: 104});
     });
     test('a block under the hat ran: ended, moved on, or still running when the look ends; never a bare hat', () => {
         expect(ranUnder({hasNext: true, done: true, atTop: true})).toBe(true);

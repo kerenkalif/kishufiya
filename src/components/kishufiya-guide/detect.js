@@ -3,8 +3,10 @@
 
 // The key as the game gets it, here and in scratch-gui (lib/vm-listener-hoc.jsx): a letter or a digit by its place
 // on the keyboard (KeyboardEvent.code) - on a Hebrew layout the "a" key's `key` is "ש", and a game listening to "a"
-// never heard it (platform K17 review); anything else as scratch-gui gave it.
+// never heard it (platform K17 review); an arrow by its `key` - NumLock off, Numpad8 is the up arrow -; anything else
+// as scratch-gui gave it.
 export const gameKey = e => {
+    if (typeof e.key === 'string' && e.key.startsWith('Arrow')) return {key: e.key, keyCode: e.keyCode};
     const code = typeof e.code === 'string' ? e.code : '';
     const letter = /^Key([A-Z])$/.exec(code);
     const digit = /^(?:Digit|Numpad)([0-9])$/.exec(code);
