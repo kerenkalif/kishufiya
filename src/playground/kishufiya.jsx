@@ -138,7 +138,7 @@ const load = async (url, title, lesson, id) => {
         markSaved();
         post({kishufiya: 'loaded'});
         // and to the page beside it: what it sent before the game was in never arrived (the guide, a freeze)
-        post({kishufiya: 'to-lesson', msg: {type: 'editor-ready'}});
+        post({kishufiya: 'to-lesson', msg: {type: 'editor-ready', runs: true}});
         sendProject(true);
     } catch (e) {
         post({kishufiya: 'error', message: String((e && e.message) || e)});

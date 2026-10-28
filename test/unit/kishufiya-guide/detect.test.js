@@ -115,3 +115,25 @@ describe('a quiet guide (levels 2-3) says only what the child can act on', () =>
         }
     });
 });
+
+describe('script-ran (platform K17)', () => {
+    const {gameState, scriptRan} = require('../../../src/components/kishufiya-guide/detect.js');
+    const ship = {isOriginal: true, sprite: {name: 'חללית'}, x: 0, y: 14, direction: 90, size: 100, visible: true,
+        currentCostume: 0, variables: {}};
+    const stage = {isStage: true, currentCostume: 0, variables: {a: {name: 'ניקוד', value: 0}}};
+    test('a move, a variable, a clone change the state; nothing else does', () => {
+        const before = gameState([stage, ship]);
+        expect(gameState([stage, {...ship}])).toBe(before);
+        expect(gameState([stage, {...ship, y: 0}])).not.toBe(before);
+        expect(gameState([{...stage, variables: {a: {name: 'ניקוד', value: 1}}}, ship])).not.toBe(before);
+        expect(gameState([stage, ship, {...ship, isOriginal: false}])).not.toBe(before);
+    });
+    test('the message: sprites of its threads, its key, changed and done', () => {
+        const threads = [{target: ship}, {target: {...ship, isOriginal: false}}];
+        expect(scriptRan({hat: 'event_whenkeypressed', fields: {KEY_OPTION: 'up arrow'}, threads, before: 'a', after: 'b',
+            done: true})).toEqual({type: 'script-ran', hat: 'event_whenkeypressed', key: 'up arrow', sprites: ['חללית'],
+            changed: true, done: true});
+        expect(scriptRan({hat: 'event_whenflagclicked', threads, before: 'a', after: 'a', done: false}))
+            .toEqual({type: 'script-ran', hat: 'event_whenflagclicked', sprites: ['חללית'], changed: false, done: false});
+    });
+});

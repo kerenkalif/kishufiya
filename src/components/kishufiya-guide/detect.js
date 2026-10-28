@@ -88,3 +88,34 @@ export const coveredBy = (picks, own) => {
     const others = picks.filter(id => id >= 0);
     return others.length ? others[0] : null;
 };
+
+// ---- A script that really ran, and whether it changed the game (platform K17, 2026-10-28) ----
+// The lesson counts a press (the flag, a key, a sprite clicked) only when the child's script under that hat started
+// and did something: donuts 3.2 counted an up arrow the game never got, and 2.1 passed with nothing run.
+export const TOLD_HATS = ['event_whenflagclicked', 'event_whenkeypressed', 'event_whenthisspriteclicked'];
+
+// What a run can change, as one string: each sprite's place, direction, size, look, shown or not, its variables,
+// how many clones it has; the stage's backdrop and variables. `targets`: the runtime's targets.
+export const gameState = targets => JSON.stringify((targets || []).map(t => {
+    const vars = Object.values(t.variables || {}).map(v => [v.name, v.value]);
+    if (t.isStage) return ['stage', t.currentCostume, vars];
+    return [
+        t.isOriginal ? 'o' : 'c', t.sprite && t.sprite.name, Math.round(t.x), Math.round(t.y), t.direction, t.size,
+        t.visible, t.currentCostume, vars
+    ];
+}));
+
+// The message for threads a hat started: the sprites whose scripts they are (a clone's as its sprite's name), the
+// key its hat waits for, and - told when they ended, or a moment after - whether the game changed and they ended.
+export const scriptRan = ({hat, fields, threads, before, after, done}) => {
+    const message = {
+        type: 'script-ran',
+        hat,
+        sprites: [...new Set(threads.map(th => (th.target && th.target.sprite ? th.target.sprite.name : null))
+            .filter(Boolean))],
+        changed: before !== after,
+        done: Boolean(done)
+    };
+    if (fields && typeof fields.KEY_OPTION === 'string') message.key = fields.KEY_OPTION;
+    return message;
+};

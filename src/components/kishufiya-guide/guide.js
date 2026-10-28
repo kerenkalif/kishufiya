@@ -39,6 +39,10 @@
 //                                                   shown, and itself (raw: 'right arrow' for "חץ ימינה");
 //                                                   a dragged block's drop point {x, y} - sent on change
 //   ui {name: 'run' | 'flag' | 'stop'}              a run / the green flag itself / the stop sign
+//   script-ran {hat, key?, sprites, changed, done} scripts a hat started (the flag, a key - `key` its Scratch name -,
+//                                                   a sprite clicked): their sprites, and once they ended or a
+//                                                   moment later, whether the game changed and they ended (K17)
+//   (editor-ready carries runs: true - this build says script-ran)
 //   key {key}                                       a key pressed (KeyboardEvent.key) - not in a box being typed
 //                                                   into, nor while frozen; always one the game got too (K12)
 //   editing {sprite}                                the sprite open in the editor ('Stage' for the stage): on
@@ -58,7 +62,7 @@
 //                                                   picture's or its sound's md5, or null - once it is in
 //                                                   (platform auto-root, 2026-10-28: a pick is an event)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
-import {forwardedKey, gameHeard, gameKey, quietReports, typing} from './detect.js';
+import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, quietReports, scriptRan, typing} from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
 
@@ -788,6 +792,33 @@ const tellCodeArea = () => {
 };
 
 // once, when the VM is up
+// A script started by its hat (the flag, a key, a sprite clicked) - told once its threads ended, or RUN_LOOK_MS after
+// they started for one that goes on (a forever loop), with whether the game changed meanwhile (detect.js scriptRan).
+// The lesson counts a press by it (platform K17): a key the game never got starts nothing.
+const RUN_LOOK_MS = 1200;
+const watchRuns = () => {
+    const runtime = vm.runtime;
+    if (!runtime || runtime.kishufiyaRuns) return;
+    runtime.kishufiyaRuns = true;
+    const startHats = runtime.startHats.bind(runtime);
+    runtime.startHats = (hat, fields, target) => {
+        const threads = startHats(hat, fields, target);
+        if (!threads || !threads.length || !TOLD_HATS.includes(hat)) return threads;
+        const before = gameState(runtime.targets);
+        const started = Date.now();
+        const look = () => {
+            const done = threads.every(th => !runtime.isActiveThread(th));
+            if (!done && Date.now() - started < RUN_LOOK_MS) {
+                setTimeout(look, 50);
+                return;
+            }
+            send(scriptRan({hat, fields, threads, before, after: gameState(runtime.targets), done}));
+        };
+        setTimeout(look, 50);
+        return threads;
+    };
+};
+
 export const attachGuide = (theVm, sender) => {
     vm = theVm;
     send = sender;
@@ -822,6 +853,7 @@ export const attachGuide = (theVm, sender) => {
         };
     }
     watchPicks(vm, msg => send(msg));
+    watchRuns();
     vm.runtime.on('PROJECT_RUN_START', () => send({type: 'ui', name: 'run'}));
     // the green flag while the game is already running restarts it without a new "run start" (the threads
     // never reach zero): every press of the flag is a run (Keren, 2026-10-25 - a guess waited for a run)
