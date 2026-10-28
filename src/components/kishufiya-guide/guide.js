@@ -7,7 +7,12 @@
 //                                      instead, where 'guide-at' says the target is). While the target is
 //                                      reached through its category or its sprite's tile (the child has
 //                                      to open it first), textCategory / textSprite replace text
+//                                      quiet: nothing drawn, nothing scrolled - only told where it is and
+//                                      when it is clicked (a guide level that marks nothing, K12 2026-10-28)
 //   guide-clear  {}
+//   key-press    {key, code, keyCode, down}
+//                                      a key the child pressed while the focus was in the lesson, not here:
+//                                      given to the game, and told back as 'key' like one pressed here (K12)
 //   freeze       {on, note?, stop?, spotlight?}
 //                                      a light veil over the editor (below the menu bar): nothing in it
 //                                      can be used, the code stays readable. note: a short line on the
@@ -27,13 +32,14 @@
 //   (guide-missing, guide-at and guide-clicked carry the guide's `id`, as it was sent with 'guide', so the
 //   page tells them apart from what was said about the guide before)
 //   guide-missing {id, target, reason}              the target is nowhere on the screen (for half a second)
-//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, drop?}
+//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?}
 //                                                   where the guided target is now, in this frame's pixels,
-//                                                   and on which side of it the arrow is; a field's value;
+//                                                   and on which side of it the arrow is; a field's value as
+//                                                   shown, and itself (raw: 'right arrow' for "חץ ימינה");
 //                                                   a dragged block's drop point {x, y} - sent on change
 //   ui {name: 'run' | 'flag' | 'stop'}              a run / the green flag itself / the stop sign
 //   key {key}                                       a key pressed (KeyboardEvent.key) - not in a box being typed
-//                                                   into, nor while frozen
+//                                                   into, nor while frozen; always one the game got too (K12)
 //   editing {sprite}                                the sprite open in the editor ('Stage' for the stage): on
 //                                                   load and whenever another one is opened
 //   sprite-clicked {sprite}                         a sprite (or the stage) clicked on the stage, as its
@@ -45,6 +51,7 @@
 //                                                   prompt); naming: the box to name a new message or variable
 //                                                   is in it - sent on change, and with every new guide
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
+import {forwardedKey, gameHeard, gameKey, typing} from './detect.js';
 import styles from './guide.css';
 
 let vm = null;
@@ -234,6 +241,7 @@ const tellAt = (rect, via, arrow, extra) => {
     const more = extra || {};
     const drop = more.drop ? {x: Math.round(more.drop.x), y: Math.round(more.drop.y)} : null;
     const value = typeof more.value === 'string' ? more.value : null;
+    const raw = typeof more.raw === 'string' ? more.raw : null;
     // a block of the code, or one of its values: its whole script, for the page's bubble to keep clear of -
     // it covered the step's other value in the same script (donuts 8.11, 2026-10-26)
     const ofCode = state.guide && state.guide.target.in !== 'palette' && via !== 'category';
@@ -245,11 +253,11 @@ const tellAt = (rect, via, arrow, extra) => {
         width: Math.round(box.width),
         height: Math.round(box.height)
     } : null;
-    const key = JSON.stringify([at, via, arrow, value, drop, clear]);
+    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, drop, clear});
+    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear});
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
@@ -379,6 +387,17 @@ const drawGuide = () => {
         return;
     }
     const found = resolve(state.guide.target, vm);
+    if (state.guide.quiet) {
+        // nothing drawn or scrolled: where it is (or that it is missing), and what is on it for a click
+        hideGuide();
+        if (found.offscreen || found.missing) {
+            tellAt(null);
+            return;
+        }
+        shown = {rect: found.rect, via: found.via, input: Boolean(found.input)};
+        tellAt(found.rect, found.via, null, found);
+        return;
+    }
     // a block of the code out of sight: the code area scrolls to it, once (the palette never does)
     if (found.block && scrolledTo !== found.block.id && (found.offscreen || !inView(found.rect, codeArea()))) {
         scrolledTo = found.block.id;
@@ -474,13 +493,20 @@ const swallow = e => {
     e.stopImmediatePropagation();
 };
 
-const typing = el => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
 const onKey = e => {
-    if (state.frozen) swallow(e);
+    if (state.frozen) {
+        swallow(e);
+        return;
+    }
     // a key the child pressed ("לחצו על חץ ימני"): the lesson may be waiting for it - with or without a guide
     // on show (a guide level that marks nothing sends none, 2026-10-26); not a letter typed into a name box.
     // `code`: the key's place - on a Hebrew layout the "a" key's `key` is "ש" (2026-10-26)
-    else if (e.type === 'keydown' && !e.repeat && !typing(e.target)) send({type: 'key', key: e.key, code: e.code});
+    if (e.type !== 'keydown' || e.repeat || typing(e.target)) return;
+    // ...pressed with a button or a tab of the editor in focus (the green flag's, a tab just clicked): scratch-gui
+    // gives it to the game only from the page itself, so the lesson passed a key step the game never saw (K12).
+    // Given to the game here; its keyup is always (vm-listener-hoc handleKeyUp).
+    if (vm && !gameHeard(e.target, document)) vm.postIOData('keyboard', {...gameKey(e), isDown: true});
+    send({type: 'key', key: e.key, code: e.code});
 };
 
 const PRESS = new Set(['pointerdown', 'mousedown', 'touchstart']);
@@ -655,7 +681,8 @@ export const handleGuide = msg => {
             text: msg.text || '',
             textCategory: msg.textCategory,
             textSprite: msg.textSprite,
-            grow: msg.grow
+            grow: msg.grow,
+            quiet: Boolean(msg.quiet)
         };
         missingSince = 0;
         reported = null;
@@ -685,6 +712,14 @@ export const handleGuide = msg => {
     case 'pick':
         state.picking = Boolean(msg.on);
         break;
+    case 'key-press': {
+        const key = forwardedKey(msg, Boolean(state.frozen));
+        if (key && vm) {
+            vm.postIOData('keyboard', key.io);
+            if (key.tell) send(key.tell);
+        }
+        return true;
+    }
     case 'find':
         send({type: 'found', id: msg.id, sprites: vm ? find(msg) : []});
         return true;

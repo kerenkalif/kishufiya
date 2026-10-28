@@ -23,7 +23,13 @@
 //   {library: name}                            an item of the open library (sprites, backdrops...) by
 //                                              the name it shows; while it is not in sight, the library's
 //                                              search box (via 'search') - the child searches, nothing is
-//                                              searched for them
+//                                              searched for them. Missing: 'library' while no library is
+//                                              open, 'not-in-library' when it is open and the item is not in
+//                                              it (detect.js libraryMissing)
+//   {ui: 'stage', stageSprite: name}           a sprite on the stage itself, to click (via 'stage-sprite');
+//                                              missing 'hidden' / 'offstage' when it cannot be clicked
+//                                              (detect.js spriteOnStage). An editor before 2026-10-28 rings
+//                                              the whole stage
 // A palette block whose category is not in view resolves to its category: the child opens the
 // category (the palette then scrolls to a block low in it, once). Any target that names a sprite (or
 // 'Stage') other than the one open resolves to that sprite's tile first (ownerTile).
@@ -64,6 +70,8 @@ const UI = {
     'sprite-name': '[class*="sprite-info_sprite-info_"] input[type="text"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
+import {libraryMissing, spriteOnStage} from './detect.js';
+
 // The sprite's numbers, in the order the sprite info shows them.
 const NUMBERS = {'sprite-x': 0, 'sprite-y': 1, 'sprite-size': 2, 'sprite-direction': 3};
 export const uiElement = name => {
@@ -274,7 +282,8 @@ const freeSpot = ws => {
 // number's own shadow block, a menu block, or a block the child put there). With its value as shown.
 const fieldOf = (block, name) => {
     const field = block.getField && block.getField(name);
-    if (field) return {rect: rectOf(field.getSvgRoot()), value: field.getText()};
+    // `raw`: the value itself, not as shown - a menu shows it translated ("חץ ימינה" for 'right arrow')
+    if (field) return {rect: rectOf(field.getSvgRoot()), value: field.getText(), raw: String(field.getValue())};
     const input = block.getInput && block.getInput(name);
     const filler = input && input.connection && input.connection.targetBlock();
     if (!filler) return null;
@@ -282,7 +291,8 @@ const fieldOf = (block, name) => {
     const own = row && row[0];
     return {
         rect: rectOf(filler.svgPath_ || filler.getSvgRoot()),
-        value: filler.isShadow() && own ? own.getText() : null
+        value: filler.isShadow() && own ? own.getText() : null,
+        raw: filler.isShadow() && own && own.getValue ? String(own.getValue()) : null
     };
 };
 
@@ -309,7 +319,7 @@ export const resolve = (target, vm) => {
         // button that opens it (Keren, 2026-10-25: the ring stayed on the category, behind the window)
         const input = document.querySelector(NAME_BOX);
         const rect = rectOf(input);
-        if (rect) return {rect, via: 'ui', value: input.value, input: true};
+        if (rect) return {rect, via: 'ui', value: input.value, raw: input.value, input: true};
         return resolve({ui: 'make-variable'}, vm);
     }
     if (target.ui === 'make-variable') {
@@ -325,12 +335,25 @@ export const resolve = (target, vm) => {
         const item = rectOf(document.querySelector('.scratchCategoryId-variables'));
         return item ? {rect: item, via: 'category', category: 'variables'} : {missing: 'ui'};
     }
+    if (target.stageSprite) {
+        const sprite = vm && vm.runtime.getSpriteTargetByName(target.stageSprite);
+        if (!sprite) return {missing: 'sprite'};
+        let bounds = null;
+        try {
+            bounds = vm.renderer.getBounds(sprite.drawableID);
+        } catch (e) { /* no skin yet */ }
+        const canvas = rectOf(vm.renderer.canvas);
+        const stage = {width: vm.runtime.stageWidth || 480, height: vm.runtime.stageHeight || 360};
+        const on = spriteOnStage({visible: sprite.visible, bounds, stage, canvas});
+        return on.rect ? {rect: on.rect, via: 'stage-sprite'} : on;
+    }
     if (target.ui) {
         const el = uiElement(target.ui);
         const rect = rectOf(el);
         // a box to type in (the sprite's name, size...): its value, as for a block's field
         const value = el && el.tagName === 'INPUT' ? el.value : null;
-        return rect ? {rect, via: 'ui', value, input: Boolean(el && el.tagName === 'INPUT')} : {missing: 'ui'};
+        const input = Boolean(el && el.tagName === 'INPUT');
+        return rect ? {rect, via: 'ui', value, raw: value, input} : {missing: 'ui'};
     }
     if (target.library) {
         const item = libraryItem(target.library);
@@ -339,8 +362,15 @@ export const resolve = (target, vm) => {
         const area = rectOf(grid) || {top: 0, bottom: window.innerHeight};
         const middle = rect && ((rect.top + rect.bottom) / 2);
         if (rect && middle >= area.top && middle <= area.bottom) return {rect, via: 'library'};
-        const search = rectOf(uiElement('library-search'));
-        return search ? {rect: search, via: 'search'} : {missing: 'library'};
+        const box = uiElement('library-search');
+        const search = rectOf(box);
+        const why = libraryMissing({
+            open: Boolean(document.querySelector('[class*="library_library-scroll-grid_"]')) || Boolean(search),
+            search: Boolean(search),
+            searched: box && box.value,
+            name: target.library
+        });
+        return why ? {missing: why} : {rect: search, via: 'search'};
     }
     // a sprite alone: its tile (with a category it is only the sprite the category is opened in)
     if (target.sprite && !target.block && !target.blockId && !target.category) {
