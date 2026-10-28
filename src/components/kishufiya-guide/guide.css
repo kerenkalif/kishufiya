@@ -61,10 +61,7 @@
     animation: louder 0.7s ease-in-out infinite alternate;
 }
 
-.pointer.louder {
-    scale: 1.45;
-}
-
+/* (the arrow grows slowly instead, in guide.js: sizeArrow) */
 @keyframes louder {
     from { scale: 1; }
     to { scale: 1.12; }

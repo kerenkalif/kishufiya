@@ -282,11 +282,20 @@ const placeGhost = (r, drop, slot) => {
 //   'menu'    a category: above or below it inside the categories' column (`within`) - not on the "קוד" tab
 //             above the column, nor on the palette's blocks beside it
 const ARROW = 34;
+// Not pressed for a while: the arrow grows slowly, from ARROW_GROW_AFTER_MS over ARROW_GROW_MS, to ARROW_MAX_SCALE times
+// its size, and stays (K11, Keren 2026-10-28; a new guide starts it again at its own size). Its size is its real
+// width and height, so the placing below - room above, beside the code, inside the screen - keeps it off the
+// target and inside the frame as it grows. The numbers are the platform's (bubble-words.ts ARROW_*): keep them equal.
+const ARROW_GROW_AFTER_MS = 6000;
+const ARROW_GROW_MS = 10000;
+const ARROW_MAX_SCALE = 2;
+const arrowScale = waited => 1 + (ARROW_MAX_SCALE - 1) * Math.min(1, Math.max(0, (waited - ARROW_GROW_AFTER_MS) / ARROW_GROW_MS));
+let arrow = ARROW; // its size now, px
 const sideways = (r, x, side) => {
-    if (x < 0 || x + ARROW > window.innerWidth) return null;
+    if (x < 0 || x + arrow > window.innerWidth) return null;
     pointer.style.display = 'block';
     pointer.style.left = `${Math.round(x)}px`;
-    pointer.style.top = `${Math.round(((r.top + r.bottom) / 2) - (ARROW / 2))}px`;
+    pointer.style.top = `${Math.round(((r.top + r.bottom) / 2) - (arrow / 2))}px`;
     pointer.setAttribute('data-side', side);
     return side;
 };
@@ -294,22 +303,23 @@ const placePointer = (r, how, within) => {
     const area = how && codeArea();
     if (how === 'beside' && area) {
         const side = (area.left + area.right) / 2 < (r.left + r.right) / 2 ? 'left' : 'right';
-        const done = sideways(r, side === 'left' ? r.left - ARROW - 6 : r.right + 6, side);
+        const done = sideways(r, side === 'left' ? r.left - arrow - 6 : r.right + 6, side);
         if (done) return done;
     }
     if (how === 'script' && area && within) {
-        const left = within.left - ARROW - 6;
+        const left = within.left - arrow - 6;
         const right = within.right + 6;
         const done = (left >= area.left && sideways(r, left, 'left')) ||
-            (right + ARROW <= area.right && sideways(r, right, 'right'));
+            (right + arrow <= area.right && sideways(r, right, 'right'));
         if (done) return done;
     }
     const top = how === 'menu' && within ? within.top : 0;
     const bottom = how === 'menu' && within ? within.bottom : window.innerHeight;
-    const above = r.top - ARROW - 8 > top || r.bottom + ARROW + 8 > bottom;
+    const above = r.top - arrow - 8 > top || r.bottom + arrow + 8 > bottom;
     pointer.style.display = 'block';
-    pointer.style.left = `${Math.round(((r.left + r.right) / 2) - (ARROW / 2))}px`;
-    pointer.style.top = `${Math.round(above ? r.top - ARROW - 6 : r.bottom + 6)}px`;
+    // (kept inside the screen sideways as it grows)
+    pointer.style.left = `${Math.max(0, Math.min(window.innerWidth - arrow, Math.round(((r.left + r.right) / 2) - (arrow / 2))))}px`;
+    pointer.style.top = `${Math.round(above ? r.top - arrow - 6 : r.bottom + 6)}px`;
     pointer.setAttribute('data-side', above ? 'above' : 'below');
     return above ? 'above' : 'below';
 };
@@ -324,7 +334,11 @@ let louderKey = '';
 let louderSince = 0;
 const louder = on => {
     ring.classList.toggle(styles.louder, on);
-    pointer.classList.toggle(styles.louder, on);
+};
+const sizeArrow = waited => {
+    arrow = Math.round(ARROW * arrowScale(waited));
+    pointer.style.width = `${arrow}px`;
+    pointer.style.height = `${arrow}px`;
 };
 
 // An open field editor (the direction dial, the number pad, a menu) belongs to the step that opened it:
@@ -341,6 +355,7 @@ const hideGuide = () => {
     shown = null;
     louderKey = '';
     louder(false);
+    sizeArrow(0);
     place(ring, null);
     pointer.style.display = 'none';
     bubble.style.display = 'none';
@@ -397,6 +412,7 @@ const drawGuide = () => {
         louderSince = now;
     }
     louder(!state.frozen && now - louderSince >= LOUDER_AFTER_MS);
+    sizeArrow(state.frozen ? 0 : now - louderSince);
     placeGhost(r, found.drop, found.slot);
     const target = state.guide.target;
     const ofCode = found.block && !found.drop && target.in !== 'palette' &&
