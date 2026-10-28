@@ -1,3 +1,4 @@
+import {gameKey} from '../components/kishufiya-guide/detect.js';
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -160,7 +161,8 @@ const vmListenerHOC = function (WrappedComponent) {
             // Don't capture keys intended for Blockly inputs.
             if (e.target !== document && e.target !== document.body) return;
 
-            const key = (!e.key || e.key === 'Dead') ? e.keyCode : e.key;
+            // כישופייה (platform K17): a letter by its place, whatever the layout (kishufiya-guide/detect.js gameKey)
+            const key = gameKey(e).key;
             this.props.vm.postIOData('keyboard', {
                 key: key,
                 keyCode: e.keyCode,
@@ -202,7 +204,8 @@ const vmListenerHOC = function (WrappedComponent) {
         handleKeyUp (e) {
             // Always capture up events,
             // even those that have switched to other targets.
-            const key = (!e.key || e.key === 'Dead') ? e.keyCode : e.key;
+            // כישופייה (platform K17): a letter by its place, whatever the layout (kishufiya-guide/detect.js gameKey)
+            const key = gameKey(e).key;
             this.props.vm.postIOData('keyboard', {
                 key: key,
                 keyCode: e.keyCode,

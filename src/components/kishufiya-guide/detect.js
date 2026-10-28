@@ -1,8 +1,17 @@
 // כישופייה guide: the pure parts of telling the lesson what the child did (K12, 2026-10-28) - no DOM, no VM, so
 // they are tested (test/unit/kishufiya-guide/detect.test.js).
 
-// The key as scratch-gui gives it to the game (lib/vm-listener-hoc.jsx handleKeyDown).
-export const gameKey = e => ({key: (!e.key || e.key === 'Dead') ? e.keyCode : e.key, keyCode: e.keyCode});
+// The key as the game gets it, here and in scratch-gui (lib/vm-listener-hoc.jsx): a letter or a digit by its place
+// on the keyboard (KeyboardEvent.code) - on a Hebrew layout the "a" key's `key` is "ש", and a game listening to "a"
+// never heard it (platform K17 review); anything else as scratch-gui gave it.
+export const gameKey = e => {
+    const code = typeof e.code === 'string' ? e.code : '';
+    const letter = /^Key([A-Z])$/.exec(code);
+    const digit = /^(?:Digit|Numpad)([0-9])$/.exec(code);
+    if (letter) return {key: letter[1].toLowerCase(), keyCode: e.keyCode};
+    if (digit) return {key: digit[1], keyCode: e.keyCode};
+    return {key: (!e.key || e.key === 'Dead') ? e.keyCode : e.key, keyCode: e.keyCode};
+};
 
 // Whether scratch-gui passed this keydown to the game itself: only one pressed on the page as such, not on a
 // focused button or tab of the editor (vm-listener-hoc: "Don't capture keys intended for Blockly inputs").
@@ -105,12 +114,28 @@ export const gameState = targets => JSON.stringify((targets || []).map(t => {
     ];
 }));
 
+// Whether a thread ran a block under its hat: it has one (`hasNext`), and it ended, moved past the hat, or is still
+// running when the look ends (`late` - a compiled forever shows no place in its stack).
+export const ranUnder = ({hasNext, done, atTop, late}) =>
+    Boolean(hasNext) && (Boolean(done) || !atTop || Boolean(late));
+
+// "מקש נלחץ?" read in a running script (sensing_keypressed): told once each time it turns true for that key - the
+// lesson counts it as the key pressed (a key read inside a forever, with no hat for it). `last`: a Map of the
+// last answer by key. → whether to tell.
+export const keyReadNow = (last, key, pressed) => {
+    const was = last.get(key);
+    last.set(key, Boolean(pressed));
+    return Boolean(pressed) && !was;
+};
+
 // The message for threads a hat started: the sprites whose scripts they are (a clone's as its sprite's name), the
-// key its hat waits for, and - told when they ended, or a moment after - whether the game changed and they ended.
-export const scriptRan = ({hat, fields, threads, before, after, done}) => {
+// key its hat waits for, whether a block under it ran (`blocks` - what the lesson counts), and for the record
+// whether the game changed and they ended.
+export const scriptRan = ({hat, fields, threads, before, after, done, blocks}) => {
     const message = {
         type: 'script-ran',
         hat,
+        blocks: Boolean(blocks),
         sprites: [...new Set(threads.map(th => (th.target && th.target.sprite ? th.target.sprite.name : null))
             .filter(Boolean))],
         changed: before !== after,

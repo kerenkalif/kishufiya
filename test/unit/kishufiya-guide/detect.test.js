@@ -131,9 +131,36 @@ describe('script-ran (platform K17)', () => {
     test('the message: sprites of its threads, its key, changed and done', () => {
         const threads = [{target: ship}, {target: {...ship, isOriginal: false}}];
         expect(scriptRan({hat: 'event_whenkeypressed', fields: {KEY_OPTION: 'up arrow'}, threads, before: 'a', after: 'b',
-            done: true})).toEqual({type: 'script-ran', hat: 'event_whenkeypressed', key: 'up arrow', sprites: ['חללית'],
-            changed: true, done: true});
+            done: true, blocks: true})).toEqual({type: 'script-ran', hat: 'event_whenkeypressed', key: 'up arrow',
+            sprites: ['חללית'], blocks: true, changed: true, done: true});
         expect(scriptRan({hat: 'event_whenflagclicked', threads, before: 'a', after: 'a', done: false}))
-            .toEqual({type: 'script-ran', hat: 'event_whenflagclicked', sprites: ['חללית'], changed: false, done: false});
+            .toEqual({type: 'script-ran', hat: 'event_whenflagclicked', sprites: ['חללית'], blocks: false, changed: false,
+                done: false});
+    });
+});
+
+describe('what the lesson counts as a press (platform K17 review)', () => {
+    const {gameKey: keyOf, keyReadNow, ranUnder} = require('../../../src/components/kishufiya-guide/detect.js');
+    test('a letter by its place on a Hebrew layout; a digit; an arrow as it is', () => {
+        expect(keyOf({key: 'ש', code: 'KeyA', keyCode: 65})).toEqual({key: 'a', keyCode: 65});
+        expect(keyOf({key: '!', code: 'Digit1', keyCode: 49})).toEqual({key: '1', keyCode: 49});
+        expect(keyOf({key: 'ArrowUp', code: 'ArrowUp', keyCode: 38})).toEqual({key: 'ArrowUp', keyCode: 38});
+        expect(keyOf({key: ' ', code: 'Space', keyCode: 32})).toEqual({key: ' ', keyCode: 32});
+    });
+    test('a block under the hat ran: ended, moved on, or still running when the look ends; never a bare hat', () => {
+        expect(ranUnder({hasNext: true, done: true, atTop: true})).toBe(true);
+        expect(ranUnder({hasNext: true, done: false, atTop: false})).toBe(true);
+        expect(ranUnder({hasNext: true, done: false, atTop: true, late: true})).toBe(true);
+        expect(ranUnder({hasNext: true, done: false, atTop: true, late: false})).toBe(false);
+        expect(ranUnder({hasNext: null, done: true, atTop: true})).toBe(false);
+    });
+    test('"מקש נלחץ?" told once each time it turns true', () => {
+        const last = new Map();
+        expect(keyReadNow(last, 'up arrow', false)).toBe(false);
+        expect(keyReadNow(last, 'up arrow', true)).toBe(true);
+        expect(keyReadNow(last, 'up arrow', true)).toBe(false);
+        expect(keyReadNow(last, 'space', true)).toBe(true);
+        expect(keyReadNow(last, 'up arrow', false)).toBe(false);
+        expect(keyReadNow(last, 'up arrow', true)).toBe(true);
     });
 });

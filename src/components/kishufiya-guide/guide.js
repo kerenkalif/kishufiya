@@ -39,9 +39,11 @@
 //                                                   shown, and itself (raw: 'right arrow' for "חץ ימינה");
 //                                                   a dragged block's drop point {x, y} - sent on change
 //   ui {name: 'run' | 'flag' | 'stop'}              a run / the green flag itself / the stop sign
-//   script-ran {hat, key?, sprites, changed, done} scripts a hat started (the flag, a key - `key` its Scratch name -,
-//                                                   a sprite clicked): their sprites, and once they ended or a
-//                                                   moment later, whether the game changed and they ended (K17)
+//   script-ran {hat, key?, sprites, blocks, changed, done}
+//                                                   scripts a hat started (the flag, a key - `key` its Scratch
+//                                                   name -, a sprite clicked): their sprites, whether a block
+//                                                   under the hat ran; changed/done for the record only (K17)
+//   key-read {key}                                  "מקש נלחץ?" of that key turned true in a running script (K17)
 //   (editor-ready carries runs: true - this build says script-ran)
 //   key {key}                                       a key pressed (KeyboardEvent.key) - not in a box being typed
 //                                                   into, nor while frozen; always one the game got too (K12)
@@ -62,7 +64,8 @@
 //                                                   picture's or its sound's md5, or null - once it is in
 //                                                   (platform auto-root, 2026-10-28: a pick is an event)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
-import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, quietReports, scriptRan, typing} from './detect.js';
+import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, keyReadNow, quietReports, ranUnder, scriptRan, typing}
+    from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
 
@@ -806,17 +809,40 @@ const watchRuns = () => {
         if (!threads || !threads.length || !TOLD_HATS.includes(hat)) return threads;
         const before = gameState(runtime.targets);
         const started = Date.now();
+        let blocks = false;
         const look = () => {
             const done = threads.every(th => !runtime.isActiveThread(th));
-            if (!done && Date.now() - started < RUN_LOOK_MS) {
-                setTimeout(look, 50);
+            const late = Date.now() - started >= RUN_LOOK_MS;
+            blocks = blocks || threads.some(th => ranUnder({
+                hasNext: th.target && th.target.blocks.getNextBlock(th.topBlock),
+                done: !runtime.isActiveThread(th),
+                atTop: th.peekStack() === th.topBlock,
+                late: late && runtime.isActiveThread(th)
+            }));
+            // told as soon as a block under the hat ran, or once they ended, or a moment after
+            if (!blocks && !done && Date.now() - started < RUN_LOOK_MS) {
+                setTimeout(look, 30);
                 return;
             }
-            send(scriptRan({hat, fields, threads, before, after: gameState(runtime.targets), done}));
+            send(scriptRan({hat, fields, threads, before, after: gameState(runtime.targets), done, blocks}));
         };
-        setTimeout(look, 50);
+        setTimeout(look, 30);
         return threads;
     };
+    // "מקש נלחץ?" in a running script: told as it turns true (keyReadNow). Read where both the interpreter and the
+    // compiled scripts ask - the keyboard itself, which nothing else asks.
+    const keyboard = runtime.ioDevices && runtime.ioDevices.keyboard;
+    if (keyboard && keyboard.getKeyIsDown && !keyboard.kishufiyaReads) {
+        keyboard.kishufiyaReads = true;
+        const isDown = keyboard.getKeyIsDown.bind(keyboard);
+        const last = new Map();
+        keyboard.getKeyIsDown = keyArg => {
+            const pressed = isDown(keyArg);
+            const key = String(keyArg).toLowerCase();
+            if (keyReadNow(last, key, pressed)) send({type: 'key-read', key});
+            return pressed;
+        };
+    }
 };
 
 export const attachGuide = (theVm, sender) => {
