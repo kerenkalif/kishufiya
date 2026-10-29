@@ -64,7 +64,8 @@
 //                                                   picture's or its sound's md5, or null - once it is in
 //                                                   (platform auto-root, 2026-10-28: a pick is an event)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
-import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, keyReadNow, quietReports, ranUnder, scriptRan, typing}
+import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, keyReadNow, missingStep, quietReports, ranUnder,
+    scriptRan, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -396,16 +397,16 @@ const hideGuide = () => {
 };
 
 // The target nowhere to be clicked: said once it stays so for a moment, again when the reason changes (with `by`,
-// the sprite covering a sprite on the stage). A quiet guide says it too: a step at guide level 2-3 was stuck (K12
-// review).
+// the sprite covering a sprite on the stage); the palette scrolling to it, never (detect.js missingStep). A quiet
+// guide says it too: a step at guide level 2-3 was stuck (K12 review).
 const tellMissing = found => {
     hideGuide();
     tellAt(null);
-    const now = performance.now();
-    if (!missingSince) missingSince = now;
-    const why = `${found.missing}|${found.by || ''}`;
-    if (now - missingSince >= MISSING_AFTER_MS && reported !== why) {
-        reported = why;
+    const step = missingStep({reason: found.missing, by: found.by, since: missingSince, reported,
+        now: performance.now(), after: MISSING_AFTER_MS});
+    missingSince = step.since;
+    reported = step.reported;
+    if (step.tell) {
         const {id, target} = state.guide;
         send({type: 'guide-missing', id, target, reason: found.missing, by: found.by || null});
     }

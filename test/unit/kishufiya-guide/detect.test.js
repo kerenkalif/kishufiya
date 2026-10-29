@@ -166,3 +166,37 @@ describe('what the lesson counts as a press (platform K17 review)', () => {
         expect(keyReadNow(last, 'up arrow', true)).toBe(true);
     });
 });
+
+describe('guide-missing: told once it stays, never for the palette scrolling (2026-10-29)', () => {
+    const {missingStep} = require('../../../src/components/kishufiya-guide/detect.js');
+    const after = 500;
+    test('a target missing is told after half a second, once per reason', () => {
+        let s = missingStep({reason: 'palette', since: 0, reported: null, now: 1000, after});
+        expect(s).toEqual({since: 1000, reported: null, tell: false});
+        s = missingStep({reason: 'palette', since: s.since, reported: s.reported, now: 1499, after});
+        expect(s.tell).toBe(false);
+        s = missingStep({reason: 'palette', since: s.since, reported: s.reported, now: 1500, after});
+        expect(s).toEqual({since: 1000, reported: 'palette|', tell: true});
+        s = missingStep({reason: 'palette', since: s.since, reported: s.reported, now: 2500, after});
+        expect(s.tell).toBe(false);
+        s = missingStep({reason: 'covered', by: 'Cat', since: s.since, reported: s.reported, now: 2600, after});
+        expect(s).toEqual({since: 1000, reported: 'covered|Cat', tell: true});
+    });
+    test('the palette scrolling to the block, however long, is never told (donuts 2.1: a category click and two ' +
+        'scrolls)', () => {
+        let s = {since: 0, reported: null};
+        for (let now = 0; now <= 2000; now += 16) {
+            s = missingStep({reason: 'scrolling', since: s.since, reported: s.reported, now, after});
+            expect(s.tell).toBe(false);
+        }
+        expect(s).toEqual({since: 0, reported: null, tell: false});
+    });
+    test('...and the count starts over after it: a scroll is not half a second of missing already', () => {
+        let s = missingStep({reason: 'palette', since: 0, reported: null, now: 0, after});
+        s = missingStep({reason: 'scrolling', since: s.since, reported: s.reported, now: 400, after});
+        s = missingStep({reason: 'palette', since: s.since, reported: s.reported, now: 700, after});
+        expect(s.tell).toBe(false);
+        s = missingStep({reason: 'palette', since: s.since, reported: s.reported, now: 1200, after});
+        expect(s.tell).toBe(true);
+    });
+});
