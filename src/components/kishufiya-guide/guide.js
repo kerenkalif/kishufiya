@@ -402,8 +402,14 @@ const hideGuide = () => {
 const tellMissing = found => {
     hideGuide();
     tellAt(null);
-    const step = missingStep({reason: found.missing, by: found.by, since: missingSince, reported,
-        now: performance.now(), after: MISSING_AFTER_MS});
+    const step = missingStep({
+        reason: found.missing,
+        by: found.by,
+        since: missingSince,
+        reported,
+        now: performance.now(),
+        after: MISSING_AFTER_MS
+    });
     missingSince = step.since;
     reported = step.reported;
     if (step.tell) {
