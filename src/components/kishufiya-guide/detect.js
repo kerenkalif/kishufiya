@@ -97,10 +97,10 @@ export const missingStep = ({reason, by, since, reported, now, after}) => {
     return {since: from, reported: tell ? why : reported, tell};
 };
 
-// Is `via` (where resolve reached the target) only on the way to it, not the target itself? The tile of the sprite it
-// belongs to, its category (a palette block in a closed one), the code tab, a library's search box. A guide that locates
-// without marking (msg.locate, platform K24 2026-10-29: a new block's "why" is said beside it, with no ring and no arrow)
-// still rings the way - the child has to open the category first - and draws nothing at the target itself.
+// Is `via` (where resolve reached the target) only on the way to it, not the target itself? The tile of the sprite
+// it belongs to, its category (a palette block in a closed one), the code tab, a library's search box. A guide that
+// locates without marking (msg.locate, platform K24 2026-10-29: a new block's "why" is said beside it, with no ring
+// and no arrow) still rings the way - the child has to open the category first - and draws nothing at the target.
 export const onTheWay = (target, via) => {
     if (!target) return false;
     switch (via) {
