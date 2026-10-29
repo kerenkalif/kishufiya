@@ -97,6 +97,21 @@ export const missingStep = ({reason, by, since, reported, now, after}) => {
     return {since: from, reported: tell ? why : reported, tell};
 };
 
+// Is `via` (where resolve reached the target) only on the way to it, not the target itself? The tile of the sprite it
+// belongs to, its category (a palette block in a closed one), the code tab, a library's search box. A guide that locates
+// without marking (msg.locate, platform K24 2026-10-29: a new block's "why" is said beside it, with no ring and no arrow)
+// still rings the way - the child has to open the category first - and draws nothing at the target itself.
+export const onTheWay = (target, via) => {
+    if (!target) return false;
+    switch (via) {
+    case 'sprite': return Boolean(target.block || target.blockId || target.category || target.ui);
+    case 'category': return !target.category;
+    case 'ui': return !target.ui;
+    case 'search': return true;
+    default: return false;
+    }
+};
+
 // Where on a sprite's rect to ask the renderer what is on top: its middle and four points around it.
 export const samplePoints = r => {
     const x = f => r.left + ((r.right - r.left) * f);

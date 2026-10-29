@@ -1,7 +1,7 @@
 // K12 (2026-10-28): what the guide tells the lesson the child did - the pure parts (detect.js).
 //   npx jest test/unit/kishufiya-guide
 import {categoryOf} from '../../../src/components/kishufiya-guide/targets.js';
-import {coveredBy, forwardedKey, gameHeard, gameKey, libraryMissing, quietReports, samplePoints, spriteOnStage, typing} from '../../../src/components/kishufiya-guide/detect.js';
+import {coveredBy, forwardedKey, gameHeard, gameKey, libraryMissing, onTheWay, quietReports, samplePoints, spriteOnStage, typing} from '../../../src/components/kishufiya-guide/detect.js';
 
 describe('keys', () => {
     test('the game gets the key as scratch-gui gives it', () => {
@@ -198,5 +198,25 @@ describe('guide-missing: told once it stays, never for the palette scrolling (20
         expect(s.tell).toBe(false);
         s = missingStep({reason: 'palette', since: s.since, reported: s.reported, now: 1200, after});
         expect(s.tell).toBe(true);
+    });
+});
+
+// Platform K24 (2026-10-29): a new block's "why" is said beside it with no ring and no arrow - the guide locates the
+// block (msg.locate) and marks only the way to it.
+describe('locate without marking: the way is ringed, the target is not', () => {
+    const block = {block: 'event_whenflagclicked', in: 'palette', sprite: 'רקטה'};
+    test('a palette block: its category and its sprite\'s tile are the way; the block itself is the target', () => {
+        expect(onTheWay(block, 'category')).toBe(true);
+        expect(onTheWay(block, 'sprite')).toBe(true);
+        expect(onTheWay(block, 'ui')).toBe(true); // the code tab, while the costumes are open
+        expect(onTheWay(block, 'block')).toBe(false);
+    });
+    test('a target that is itself a category, a button or a field is never "on the way"', () => {
+        expect(onTheWay({category: 'events'}, 'category')).toBe(false);
+        expect(onTheWay({ui: 'green-flag'}, 'ui')).toBe(false);
+        expect(onTheWay({block: 'motion_setx', field: 'X'}, 'field')).toBe(false);
+        expect(onTheWay({sprite: 'רקטה'}, 'sprite')).toBe(false);
+        expect(onTheWay({library: 'Rocketship'}, 'search')).toBe(true);
+        expect(onTheWay(null, 'category')).toBe(false);
     });
 });

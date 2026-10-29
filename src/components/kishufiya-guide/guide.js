@@ -9,6 +9,12 @@
 //                                      to open it first), textCategory / textSprite replace text
 //                                      quiet: nothing drawn, nothing scrolled - only told where it is and
 //                                      when it is clicked (a guide level that marks nothing, K12 2026-10-28)
+//                                      locate: found as a guide is - the code and the palette scroll to it
+//                                      (its category's own scroll too), missing told as usual - but the target
+//                                      itself has no ring, arrow or outline; only the way to it (its category,
+//                                      its sprite's tile) is ringed. For the page's bubble beside a new block
+//                                      (platform K24, 2026-10-29). Not `quiet`: that one scrolls nothing,
+//                                      marks no way either, and keeps most missing to itself (guide levels 2-3)
 //   guide-clear  {}
 //   key-press    {key, code, keyCode, down}
 //                                      a key the child pressed while the focus was in the lesson, not here:
@@ -64,8 +70,8 @@
 //                                                   picture's or its sound's md5, or null - once it is in
 //                                                   (platform auto-root, 2026-10-28: a pick is an event)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
-import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, keyReadNow, missingStep, quietReports, ranUnder,
-    scriptRan, typing}
+import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, keyReadNow, missingStep, onTheWay, quietReports,
+    ranUnder, scriptRan, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -471,6 +477,13 @@ const drawGuide = () => {
     reported = null;
     const r = found.rect;
     shown = {rect: r, via: found.via, input: Boolean(found.input)};
+    if (state.guide.locate && !onTheWay(state.guide.target, found.via)) {
+        // located, not marked: where it is, and nothing drawn at it
+        hideGuide();
+        shown = {rect: r, via: found.via, input: Boolean(found.input)};
+        tellAt(r, found.via, null, found);
+        return;
+    }
     place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
     const now = performance.now();
     const key = `${state.guide.id}|${found.via}`;
@@ -720,7 +733,8 @@ export const handleGuide = msg => {
             textCategory: msg.textCategory,
             textSprite: msg.textSprite,
             grow: msg.grow,
-            quiet: Boolean(msg.quiet)
+            quiet: Boolean(msg.quiet),
+            locate: Boolean(msg.locate)
         };
         missingSince = 0;
         reported = null;
