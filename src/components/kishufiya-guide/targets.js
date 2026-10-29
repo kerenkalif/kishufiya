@@ -71,11 +71,19 @@ const UI = {
     'code-tab': '[class*="gui_tab-list_"] > li:nth-child(1)',
     'costumes-tab': '[class*="gui_tab-list_"] > li:nth-child(2)',
     'sounds-tab': '[class*="gui_tab-list_"] > li:nth-child(3)',
+    // the whole list of the open tab's costumes (backdrops) or sounds - one asset panel is mounted at a time -
+    // and the sprites beside the stage (platform: a "look" step, SPEC-lesson-flow 3.2.3)
+    'costume-list': '[class*="selector_list-area_"]',
+    'sound-list': '[class*="selector_list-area_"]',
+    'sprite-list': '[class*="sprite-selector_items-wrapper_"]',
     'menu-bar': '[class*="menu-bar_menu-bar_"]',
     'sprite-name': '[class*="sprite-info_sprite-info_"] input[type="text"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
 import {coveredBy, libraryMissing, samplePoints, spriteOnStage, typing} from './detect.js';
+
+// The tab a list lives in: while another tab is open the tab is pointed at first, like a closed category.
+export const TAB_OF_LIST = {'costume-list': 'costumes-tab', 'sound-list': 'sounds-tab'};
 
 // The sprite's numbers, in the order the sprite info shows them.
 const NUMBERS = {'sprite-x': 0, 'sprite-y': 1, 'sprite-size': 2, 'sprite-direction': 3};
@@ -366,6 +374,11 @@ export const resolve = (target, vm) => {
         return {rect: on.rect, via: 'stage-sprite'};
     }
     if (target.ui === 'stage' && !rectOf(uiElement('stage'))) return {missing: 'stage-hidden'};
+    if (TAB_OF_LIST[target.ui]) {
+        const tab = uiElement(TAB_OF_LIST[target.ui]);
+        const rect = tab && !/is-selected/.test(tab.className) && rectOf(tab);
+        if (rect) return {rect, via: 'ui'};
+    }
     if (target.ui) {
         const el = uiElement(target.ui);
         const rect = rectOf(el);
