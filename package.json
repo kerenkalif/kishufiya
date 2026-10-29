@@ -24,6 +24,7 @@
     "test:lint": "eslint . --ext .js,.jsx",
     "test:unit": "jest test[\\\\/]unit[\\\\/]addons",
     "test:guide": "jest test[\\\\/]unit[\\\\/]kishufiya-guide",
+    "test:words": "jest test[\\\\/]unit[\\\\/]kishufiya-words",
     "test:smoke": "jest --runInBand test[\\\\/]smoke",
     "watch": "webpack --colors --watch"
   },
