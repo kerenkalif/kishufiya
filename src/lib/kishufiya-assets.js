@@ -8,6 +8,11 @@
 
 const ours = new Set();
 
+// Scratch independence (platform SPEC-scratch-independence): where a library file is asked for, in order.
+// 'ours' is the platform's /api/kishufiya/asset/, 'scratch' is Scratch's asset server. Once the whole
+// library is copied to the platform and verified, removing the fallback is this one line: ['ours'].
+export const ASSET_SOURCES = ['ours', 'scratch'];
+
 // The platform's address for a file: absolute, since storage may fetch it from a worker.
 export const ourAssetUrl = md5ext => `${location.origin}/api/kishufiya/asset/${md5ext}`;
 
@@ -30,4 +35,12 @@ export const rememberOurAssets = items => {
             if (name) ours.add(name);
         }
     }
+};
+
+const SCRATCH_ICON = md5ext => `https://cdn.assets.scratch.mit.edu/internalapi/asset/${md5ext}/get/`;
+
+// A library item's picture: [first choice, fallback or null], in the order of ASSET_SOURCES.
+export const libraryIconUrls = md5ext => {
+    const urls = ASSET_SOURCES.map(source => (source === 'ours' ? ourAssetUrl(md5ext) : SCRATCH_ICON(md5ext)));
+    return [urls[0], urls[1] || null];
 };

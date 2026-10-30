@@ -4,7 +4,7 @@ import React from 'react';
 import {injectIntl, intlShape} from 'react-intl';
 
 import LibraryItemComponent from '../components/library-item/library-item.jsx';
-import {ourAssetUrl} from '../lib/kishufiya-assets';
+import {libraryIconUrls} from '../lib/kishufiya-assets';
 
 class LibraryItem extends React.PureComponent {
     constructor (props) {
@@ -124,10 +124,7 @@ class LibraryItem extends React.PureComponent {
     render () {
         const iconMd5 = this.curIconMd5();
         // כישופייה: a lesson game's own character's files are on the platform (kishufiya-assets.js)
-        const iconURL = iconMd5 ? (this.props.kishufiyaAsset ?
-            ourAssetUrl(iconMd5) :
-            `https://cdn.assets.scratch.mit.edu/internalapi/asset/${iconMd5}/get/`) :
-            this.props.iconRawURL;
+        const [iconURL, iconFallbackURL] = iconMd5 ? libraryIconUrls(iconMd5) : [this.props.iconRawURL, null];
         return (
             <LibraryItemComponent
                 intl={this.props.intl}
@@ -140,6 +137,7 @@ class LibraryItem extends React.PureComponent {
                 featured={this.props.featured}
                 hidden={this.props.hidden}
                 iconURL={iconURL}
+                iconFallbackURL={iconFallbackURL}
                 icons={this.props.icons}
                 id={this.props.id}
                 insetIconURL={this.props.insetIconURL}
