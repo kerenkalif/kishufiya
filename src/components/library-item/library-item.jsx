@@ -28,11 +28,6 @@ const messages = defineMessages({
 /* eslint-disable react/prefer-stateless-function */
 class LibraryItemComponent extends React.PureComponent {
     render () {
-        // Scratch independence: the picture the platform lacks is asked of Scratch's server (once)
-        const handleIconError = event => {
-            const fallback = this.props.iconFallbackURL;
-            if (fallback && event.target.src !== fallback) event.target.src = fallback;
-        };
         const favoriteMessage = this.props.intl.formatMessage(
             this.props.favorite ? messages.unfavorite : messages.favorite
         );
@@ -79,7 +74,6 @@ class LibraryItemComponent extends React.PureComponent {
                         loading="lazy"
                         draggable={false}
                         src={this.props.iconURL}
-                        onError={handleIconError}
                     />
                 </div>
                 {this.props.insetIconURL ? (
@@ -237,8 +231,7 @@ class LibraryItemComponent extends React.PureComponent {
                             className={styles.libraryItemImage}
                             loading="lazy"
                             src={this.props.iconURL}
-                            onError={handleIconError}
-                            draggable={false}
+                                draggable={false}
                         />
                     </Box>
                     {/* כישופייה: a temporary (seasonal) item's label, set on the platform */}
@@ -282,7 +275,6 @@ LibraryItemComponent.propTypes = {
     featured: PropTypes.bool,
     hidden: PropTypes.bool,
     iconURL: PropTypes.string,
-    iconFallbackURL: PropTypes.string,
     insetIconURL: PropTypes.string,
     internetConnectionRequired: PropTypes.bool,
     isPlaying: PropTypes.bool,

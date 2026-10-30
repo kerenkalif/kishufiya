@@ -2,16 +2,15 @@
 // not on Scratch's asset server. The platform marks such an item `kishufiyaAsset: true` and serves its
 // files at /api/kishufiya/asset/<md5>.<ext> (a library file needs no sign-in).
 //
-// Since the Scratch-independence work, every library file is asked of the platform first (ASSET_SOURCES
-// below), with Scratch's server as the fallback until the platform's copy is verified. The files of the
-// items marked kishufiyaAsset are also remembered here, so storage skips Scratch's store for them.
+// Scratch independence is complete: every library file is asked of the platform only (ASSET_SOURCES below);
+// the editor never contacts Scratch's asset servers.
 
 const ours = new Set();
 
 // Scratch independence (platform SPEC-scratch-independence): where a library file is asked for, in order.
-// 'ours' is the platform's /api/kishufiya/asset/, 'scratch' is Scratch's asset server. Once the whole
-// library is copied to the platform and verified, removing the fallback is this one line: ['ours'].
-export const ASSET_SOURCES = ['ours', 'scratch'];
+// 'ours' is the platform's /api/kishufiya/asset/. (The 'scratch' fallback was removed 2026-10-30, after the
+// whole library and every saved project were verified in the platform's store.)
+export const ASSET_SOURCES = ['ours'];
 
 // The platform's address for a file: absolute, since storage may fetch it from a worker.
 export const ourAssetUrl = md5ext => `${location.origin}/api/kishufiya/asset/${md5ext}`;
@@ -37,10 +36,5 @@ export const rememberOurAssets = items => {
     }
 };
 
-const SCRATCH_ICON = md5ext => `https://cdn.assets.scratch.mit.edu/internalapi/asset/${md5ext}/get/`;
-
-// A library item's picture: [first choice, fallback or null], in the order of ASSET_SOURCES.
-export const libraryIconUrls = md5ext => {
-    const urls = ASSET_SOURCES.map(source => (source === 'ours' ? ourAssetUrl(md5ext) : SCRATCH_ICON(md5ext)));
-    return [urls[0], urls[1] || null];
-};
+// A library item's picture: [url, null]. The second slot stays so the callers keep their shape.
+export const libraryIconUrls = md5ext => [ourAssetUrl(md5ext), null];

@@ -1,7 +1,7 @@
 import ScratchStorage from '@turbowarp/scratch-storage';
 
 import defaultProject from './default-project';
-import {ASSET_SOURCES, isOurAsset, ourAssetUrl} from './kishufiya-assets';
+import {isOurAsset, ourAssetUrl} from './kishufiya-assets';
 
 /**
  * Wrapper for ScratchStorage which adds default web sources.
@@ -19,26 +19,11 @@ class Storage extends ScratchStorage {
             this.getProjectCreateConfig.bind(this),
             this.getProjectUpdateConfig.bind(this)
         );
-        // Sources in the order of ASSET_SOURCES (kishufiya-assets.js): the platform's copy first, Scratch's server
-        // as the fallback. The platform's store keeps its place first so a file it has never asks Scratch at all.
-        for (const source of ASSET_SOURCES) {
-            if (source === 'ours') {
-                this.addWebStore(
-                    [this.AssetType.ImageVector, this.AssetType.ImageBitmap, this.AssetType.Sound],
-                    asset => ourAssetUrl(`${asset.assetId}.${asset.dataFormat}`)
-                );
-            } else if (source === 'scratch') {
-                this.addWebStore(
-                    [this.AssetType.ImageVector, this.AssetType.ImageBitmap, this.AssetType.Sound, this.AssetType.Font],
-                    this.getAssetGetConfig.bind(this),
-                    // We set both the create and update configs to the same method because
-                    // storage assumes it should update if there is an assetId, but the
-                    // asset store uses the assetId as part of the create URI.
-                    this.getAssetCreateConfig.bind(this),
-                    this.getAssetCreateConfig.bind(this)
-                );
-            }
-        }
+        // Scratch independence: library and project files come from the platform's store only (ASSET_SOURCES).
+        this.addWebStore(
+            [this.AssetType.ImageVector, this.AssetType.ImageBitmap, this.AssetType.Sound],
+            asset => ourAssetUrl(`${asset.assetId}.${asset.dataFormat}`)
+        );
     }
     setProjectHost (projectHost) {
         this.projectHost = projectHost;
