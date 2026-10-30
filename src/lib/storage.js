@@ -1,7 +1,7 @@
 import ScratchStorage from '@turbowarp/scratch-storage';
 
 import defaultProject from './default-project';
-import {isOurAsset, ourAssetUrl} from './kishufiya-assets';
+import {ourAssetUrl} from './kishufiya-assets';
 
 /**
  * Wrapper for ScratchStorage which adds default web sources.
@@ -13,59 +13,12 @@ class Storage extends ScratchStorage {
         this.cacheDefaultProject();
     }
     addOfficialScratchWebStores () {
-        this.addWebStore(
-            [this.AssetType.Project],
-            this.getProjectGetConfig.bind(this),
-            this.getProjectCreateConfig.bind(this),
-            this.getProjectUpdateConfig.bind(this)
-        );
-        // Scratch independence: library and project files come from the platform's store only (ASSET_SOURCES).
+        // Scratch independence: no project store and no Scratch asset host. A project comes to the
+        // editor from the platform (kishufiya.jsx) and library files from the platform's store only.
         this.addWebStore(
             [this.AssetType.ImageVector, this.AssetType.ImageBitmap, this.AssetType.Sound],
             asset => ourAssetUrl(`${asset.assetId}.${asset.dataFormat}`)
         );
-    }
-    setProjectHost (projectHost) {
-        this.projectHost = projectHost;
-    }
-    setProjectToken (projectToken) {
-        this.projectToken = projectToken;
-    }
-    getProjectGetConfig (projectAsset) {
-        const path = `${this.projectHost}/${projectAsset.assetId}`;
-        const qs = this.projectToken ? `?token=${this.projectToken}` : '';
-        return path + qs;
-    }
-    getProjectCreateConfig () {
-        return {
-            url: `${this.projectHost}/`,
-            withCredentials: true
-        };
-    }
-    getProjectUpdateConfig (projectAsset) {
-        return {
-            url: `${this.projectHost}/${projectAsset.assetId}`,
-            withCredentials: true
-        };
-    }
-    setAssetHost (assetHost) {
-        this.assetHost = assetHost;
-    }
-    getAssetGetConfig (asset) {
-        // false: skip to the next store (the platform's), for a file known to be only there
-        if (isOurAsset(`${asset.assetId}.${asset.dataFormat}`)) return false;
-        return `${this.assetHost}/internalapi/asset/${asset.assetId}.${asset.dataFormat}/get/`;
-    }
-    getAssetCreateConfig (asset) {
-        return {
-            // There is no such thing as updating assets, but storage assumes it
-            // should update if there is an assetId, and the asset store uses the
-            // assetId as part of the create URI. So, force the method to POST.
-            // Then when storage finds this config to use for the "update", still POSTs
-            method: 'post',
-            url: `${this.assetHost}/${asset.assetId}.${asset.dataFormat}`,
-            withCredentials: true
-        };
     }
     setTranslatorFunction (translator) {
         this.translator = translator;

@@ -90,7 +90,6 @@ class GUI extends React.Component {
         }
         const {
             /* eslint-disable no-unused-vars */
-            assetHost,
             cloudHost,
             error,
             isError,
@@ -100,7 +99,6 @@ class GUI extends React.Component {
             onStorageInit,
             onUpdateProjectId,
             onVmInit,
-            projectHost,
             projectId,
             /* eslint-enable no-unused-vars */
             children,
@@ -121,7 +119,6 @@ class GUI extends React.Component {
 }
 
 GUI.propTypes = {
-    assetHost: PropTypes.string,
     children: PropTypes.node,
     cloudHost: PropTypes.string,
     error: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
@@ -140,7 +137,6 @@ GUI.propTypes = {
     onStorageInit: PropTypes.func,
     onUpdateProjectId: PropTypes.func,
     onVmInit: PropTypes.func,
-    projectHost: PropTypes.string,
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     telemetryModalVisible: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired

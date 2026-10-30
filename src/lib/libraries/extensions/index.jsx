@@ -16,8 +16,6 @@ import faceSensingInsetIconURL from './faceSensing/face-sensing-small.svg';
 import text2speechIconURL from './text2speech/text2speech.png';
 import text2speechInsetIconURL from './text2speech/text2speech-small.svg';
 
-import translateIconURL from './translate/translate.png';
-import translateInsetIconURL from './translate/translate-small.png';
 
 import makeymakeyIconURL from './makeymakey/makeymakey.png';
 import makeymakeyInsetIconURL from './makeymakey/makeymakey-small.svg';
@@ -150,7 +148,6 @@ export default [
             />
         ),
         extensionId: 'text2speech',
-        collaborator: 'Amazon Web Services',
         iconURL: text2speechIconURL,
         insetIconURL: text2speechInsetIconURL,
         description: (
@@ -161,31 +158,7 @@ export default [
             />
         ),
         tags: ['scratch'],
-        featured: true,
-        internetConnectionRequired: true
-    },
-    {
-        name: (
-            <FormattedMessage
-                defaultMessage="Translate"
-                description="Name for the Translate extension"
-                id="gui.extension.translate.name"
-            />
-        ),
-        extensionId: 'translate',
-        collaborator: 'Google',
-        iconURL: translateIconURL,
-        insetIconURL: translateInsetIconURL,
-        description: (
-            <FormattedMessage
-                defaultMessage="Translate text into many languages."
-                description="Description for the Translate extension"
-                id="gui.extension.translate.description"
-            />
-        ),
-        tags: ['scratch'],
-        featured: true,
-        internetConnectionRequired: true
+        featured: true
     },
     {
         name: 'Makey Makey',
