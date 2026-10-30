@@ -3,6 +3,7 @@ import storage from '../lib/storage';
 import {MAXIMUM_CLOUD_VARIABLES} from '../lib/tw-cloud-limits';
 import Text2Speech from '../lib/kishufiya-text2speech';
 import TranslateStub from '../lib/kishufiya-translate-stub';
+import Speech2TextStub from '../lib/kishufiya-speech2text-stub';
 
 const SET_VM = 'scratch-gui/vm/SET_VM';
 const defaultVM = new VM();
@@ -10,10 +11,11 @@ defaultVM.setCompatibilityMode(true);
 defaultVM.runtime.cloudOptions.limit = MAXIMUM_CLOUD_VARIABLES;
 defaultVM.attachStorage(storage);
 // Scratch independence (platform SPEC-scratch-independence 5): text to speech speaks with the browser's
-// voices, and "translate" is a stub that makes no request (a project with its blocks must still open:
+// voices, and "translate" and "speech2text" are stubs that make no request (a project with its blocks must still open:
 // the VM throws "Unknown extension" for an id it cannot load).
 defaultVM.extensionManager.addBuiltinExtension('text2speech', Text2Speech);
 defaultVM.extensionManager.addBuiltinExtension('translate', TranslateStub);
+defaultVM.extensionManager.addBuiltinExtension('speech2text', Speech2TextStub);
 const initialState = defaultVM;
 
 const reducer = function (state, action) {
