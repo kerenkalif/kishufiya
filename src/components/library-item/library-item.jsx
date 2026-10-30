@@ -238,7 +238,6 @@ class LibraryItemComponent extends React.PureComponent {
                             loading="lazy"
                             src={this.props.iconURL}
                             onError={handleIconError}
-                        onError={handleIconError}
                             draggable={false}
                         />
                     </Box>

@@ -1,10 +1,10 @@
 // כישופייה: library items a lesson's game brought (the platform's W18) keep their files on the platform,
 // not on Scratch's asset server. The platform marks such an item `kishufiyaAsset: true` and serves its
-// files, to anyone signed in, at /api/kishufiya/asset/<md5>.<ext>.
+// files at /api/kishufiya/asset/<md5>.<ext> (a library file needs no sign-in).
 //
-// The files of every such item the library sent are remembered here, so storage asks the platform for them
-// straight away instead of first asking Scratch's server (a 404 there, asked twice: the worker, then fetch).
-// Any other file still goes to Scratch first, with the platform as the fallback.
+// Since the Scratch-independence work, every library file is asked of the platform first (ASSET_SOURCES
+// below), with Scratch's server as the fallback until the platform's copy is verified. The files of the
+// items marked kishufiyaAsset are also remembered here, so storage skips Scratch's store for them.
 
 const ours = new Set();
 
