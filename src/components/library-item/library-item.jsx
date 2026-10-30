@@ -231,7 +231,7 @@ class LibraryItemComponent extends React.PureComponent {
                             className={styles.libraryItemImage}
                             loading="lazy"
                             src={this.props.iconURL}
-                                draggable={false}
+                            draggable={false}
                         />
                     </Box>
                     {/* כישופייה: a temporary (seasonal) item's label, set on the platform */}
