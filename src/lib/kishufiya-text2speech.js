@@ -120,6 +120,32 @@ const pickVoice = (voices, tag) => {
     return exact || matching.find(v => v.localService) || matching[0];
 };
 
+/**
+ * The language code to keep on the stage after "set language to [locale]": the menu value, or a dropped
+ * value such as "en-US" or "iw" reduced to its base; anything else leaves the current language.
+ * @param {string} current the code kept now.
+ * @param {*} locale what the block was given.
+ * @returns {string} the code to keep.
+ */
+const languageAfterSet = (current, locale) => {
+    const code = String(locale).toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(LANGUAGES, code)) return code;
+    const base = baseOf(code === 'iw' ? 'he' : code);
+    return Object.prototype.hasOwnProperty.call(LANGUAGES, base) ? base : current;
+};
+
+/**
+ * The most a "speak" block may wait: 400 ms a word plus 3 s, longer for a slow voice.
+ * @param {string} words the text.
+ * @param {number} rate the voice's rate.
+ * @returns {number} milliseconds.
+ */
+const speakingCeilingMs = (words, rate) => {
+    const count = String(words).trim()
+        .split(/\s+/).length;
+    return Math.round(((count * 400) + 3000) / (rate > 0 ? Math.min(rate, 1) : 1));
+};
+
 class Scratch3Text2SpeechBlocks {
     constructor (runtime) {
         this.runtime = runtime;
@@ -256,14 +282,7 @@ class Scratch3Text2SpeechBlocks {
     setCurrentLanguage (locale) {
         const stage = this.runtime.getTargetForStage();
         if (!stage) return;
-        const code = String(locale).toLowerCase();
-        if (Object.prototype.hasOwnProperty.call(LANGUAGES, code)) {
-            stage.textToSpeechLanguage = code;
-            return;
-        }
-        // a dropped value such as "en-US" or "iw"
-        const base = baseOf(code === 'iw' ? 'he' : code);
-        if (Object.prototype.hasOwnProperty.call(LANGUAGES, base)) stage.textToSpeechLanguage = base;
+        stage.textToSpeechLanguage = languageAfterSet(stage.textToSpeechLanguage, locale);
     }
 
     _languageTag () {
@@ -323,13 +342,22 @@ class Scratch3Text2SpeechBlocks {
                 utterance.lang = voice.lang;
                 utterance.pitch = voiceInfo.pitch;
                 utterance.rate = voiceInfo.rate;
+                let timer = null;
+                // finish closes over the utterance and sits in this._pending until the speech ends:
+                // Chrome garbage-collects an utterance nothing refers to, and then onend never fires.
                 const finish = () => {
+                    clearTimeout(timer);
                     this._pending.delete(finish);
                     resolve();
                 };
                 this._pending.add(finish);
                 utterance.onend = finish;
                 utterance.onerror = finish;
+                // a ceiling in case the engine never reports the end
+                timer = setTimeout(() => {
+                    synth.cancel();
+                    finish();
+                }, speakingCeilingMs(words, voiceInfo.rate));
                 synth.speak(utterance);
             });
         });
@@ -337,4 +365,4 @@ class Scratch3Text2SpeechBlocks {
 }
 
 export default Scratch3Text2SpeechBlocks;
-export {LANGUAGES, VOICE_INFO, pickVoice, sameLanguage};
+export {LANGUAGES, VOICE_INFO, pickVoice, sameLanguage, languageAfterSet, speakingCeilingMs};
