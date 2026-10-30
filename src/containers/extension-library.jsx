@@ -37,7 +37,7 @@ const toLibraryItem = extension => {
  *
  * Why each one is hidden (Keren, 30.10.2026: "for now disconnect, we'll connect what's needed later"):
  *  - microbit, ev3, boost, wedo2: hardware that talks through Scratch Link, a service run by Scratch
- *    (device-manager.scratch.mit.edu). The platform has no interface to Scratch in any form. We may later
+ *    (its device-manager host). The platform has no interface to Scratch in any form. We may later
  *    connect them directly over Web Bluetooth, without Scratch Link, and then these come back.
  *  - faceSensing: loads its code from TurboWarp's extension site, an outside service.
  *  - custom_extension: loads extension code from a URL, a file or pasted source; only builtin extensions and

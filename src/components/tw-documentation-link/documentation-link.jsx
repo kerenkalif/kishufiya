@@ -1,4 +1,3 @@
-import React from 'react';
 import PropTypes from 'prop-types';
 
 // TurboWarp disconnect (platform SPEC-scratch-independence 7): the "Learn more" links pointed at

@@ -2,6 +2,7 @@
  * Guard (platform SPEC-scratch-independence 5): the editor must not talk to Scratch's servers.
  * Fails when a file under src/ names a scratch.mit.edu address and is not on the allowlist of
  * files that only carry credits, text or links the child may click (never fetched by the page).
+ * Also fails on turbowarp.org / turbowarp.xyz hosts outside the credits.
  * Run: npm run test:no-scratch
  */
 const fs = require('fs');
@@ -34,6 +35,15 @@ const ALLOW = [
 // eslint-disable-next-line max-len
 const FETCHED = /(api|projects|assets|uploads|cdn2?|cdn\.assets|cdn\.projects|clouddata|synthesis-service|translate-service|speech|device-manager)\.scratch\.mit\.edu/i;
 
+// TurboWarp disconnect (platform SPEC-scratch-independence 7): no turbowarp.org / turbowarp.xyz host anywhere in
+// src/ except the credits (a license obligation: the credit link to TurboWarp stays).
+const TW_PATTERN = /turbowarp\.(org|xyz)/i;
+const TW_ALLOW = [
+    'src/playground/credits/credits.jsx' // "based on TurboWarp" credit link
+];
+// Translations of the interface strings are text only (the upstream strings that name the gallery are never shown).
+const TW_SKIP = ['src/lib/tw-translations/'];
+
 const bad = [];
 const walk = dir => {
     for (const name of fs.readdirSync(dir)) {
@@ -47,6 +57,9 @@ const walk = dir => {
             // translations of the add-ons' interface strings are text only
             if (rel.includes('/addons-l10n')) continue;
             const text = fs.readFileSync(full, 'utf8');
+            if (TW_PATTERN.test(text) && !TW_ALLOW.includes(rel) && !TW_SKIP.some(s => rel.startsWith(s))) {
+                bad.push(`${rel}: a turbowarp.org host outside the credits`);
+            }
             if (!PATTERN.test(text)) continue;
             const allowed = ALLOW.some(a => (a.endsWith('/') ? rel.startsWith(a) : rel === a));
             if (!allowed) bad.push(`${rel}: scratch.mit.edu outside the allowlist`);

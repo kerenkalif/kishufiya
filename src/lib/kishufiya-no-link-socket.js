@@ -1,7 +1,7 @@
 /**
  * A Scratch Link socket that never connects (Scratch independence / TurboWarp disconnect, platform
  * SPEC-scratch-independence 7). The hardware extensions (micro:bit, EV3, BOOST, WeDo 2.0) stay in the code and
- * old projects that use them still open, but they must not call device-manager.scratch.mit.edu (or any address):
+ * old projects that use them still open, but they must not call the Scratch Link device manager (or any address):
  * "connect" simply reports a connection error, and no request is made.
  * Later, a direct Web Bluetooth socket can replace this factory; it has the same five-method shape as the VM's
  * ScratchLinkWebSocket.

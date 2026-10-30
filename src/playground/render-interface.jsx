@@ -127,8 +127,6 @@ const Footer = () => (
                     </a>
                 </div>
                 <div className={styles.footerSection}>
-                </div>
-                <div className={styles.footerSection}>
                     <a href="https://scratch.mit.edu/users/GarboMuffin/#comments">
                         <FormattedMessage
                             defaultMessage="Feedback & Bugs"
