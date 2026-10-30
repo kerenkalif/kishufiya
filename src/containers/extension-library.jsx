@@ -36,7 +36,7 @@ const toLibraryItem = extension => {
  * and extension info is still read from lib/libraries/extensions/index.jsx).
  *
  * Why each one is hidden (Keren, 30.10.2026: "for now disconnect, we'll connect what's needed later"):
- *  - microbit, ev3, boost, wedo2: hardware that talks through Scratch Link, a service run by Scratch
+ *  - microbit, ev3, boost, wedo2, gdxfor (Vernier): hardware that talks through Scratch Link, a service run by Scratch
  *    (its device-manager host). The platform has no interface to Scratch in any form. We may later
  *    connect them directly over Web Bluetooth, without Scratch Link, and then these come back.
  *  - faceSensing: loads its code from TurboWarp's extension site, an outside service.
@@ -48,6 +48,7 @@ const HIDDEN_FROM_MENU = new Set([
     'ev3',
     'boost',
     'wedo2',
+    'gdxfor',
     'faceSensing',
     'custom_extension'
 ]);
