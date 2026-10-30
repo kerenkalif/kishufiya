@@ -11,10 +11,11 @@ export const fetchProjectMeta = async projectId => {
     // When people reopen tabs, sometimes the browser is *very* aggressive about caching even when the
     // trampoline says not to, so we're going to try putting a cache buster in here.
     const cacheBuster = `?rudebuster=${Math.random()}`;
-    const urls = [
-        `https://trampoline.turbowarp.org/api/projects/${projectId}${cacheBuster}`,
-        `https://trampoline.turbowarp.xyz/api/projects/${projectId}${cacheBuster}`
-    ];
+    // No outside service (platform SPEC-scratch-independence 7): there is nothing to ask, so it always fails.
+    const urls = [];
+    if (!urls.length) {
+        throw new Error(`Project metadata is not available (${projectId}${cacheBuster})`);
+    }
     let firstError;
     for (const url of urls) {
         try {
@@ -81,7 +82,7 @@ const TWProjectMetaFetcherHOC = function (WrappedComponent) {
                             this.props.onSetProjectTitle(title);
                         }
                         const authorName = data.author.username;
-                        const authorThumbnail = `https://trampoline.turbowarp.org/avatars/${data.author.id}`;
+                        const authorThumbnail = '';
                         this.props.onSetAuthor(authorName, authorThumbnail);
                         const instructions = data.instructions || '';
                         const credits = data.description || '';

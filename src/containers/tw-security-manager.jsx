@@ -5,6 +5,7 @@ import log from '../lib/log';
 import bindAll from 'lodash.bindall';
 import SecurityManagerModal from '../components/tw-security-manager-modal/security-manager-modal.jsx';
 import SecurityModals from '../lib/tw-security-manager-constants';
+import isOurOrigin from '../lib/kishufiya-extension-origin';
 import {getPersistedUnsandboxed, setPersistedUnsandboxed} from '../lib/tw-persisted-unsandboxed.js';
 
 /* eslint-disable require-atomic-updates */
@@ -23,15 +24,7 @@ const manuallyTrustExtension = url => {
  * @param {string} url URL as a string.
  * @returns {boolean} True if the extension can is trusted
  */
-const isTrustedExtension = url => (
-    // Always trust our official extension repostiory.
-    url.startsWith('https://extensions.turbowarp.org/') ||
-
-    // For development.
-    url.startsWith('http://localhost:8000/') ||
-
-    extensionsTrustedByUser.has(url)
-);
+const isTrustedExtension = url => isOurOrigin(url) || extensionsTrustedByUser.has(url);
 
 /**
  * Set of fetch resource hosts that were manually trusted by the user.
@@ -62,11 +55,6 @@ const isUntrustedPath = parsed => (
 const isAlwaysTrustedForFetching = parsed => (
     // If we would trust loading an extension from here, we can trust loading resources too.
     isTrustedExtension(parsed.href) ||
-
-    // Any TurboWarp service such as trampoline
-    parsed.origin === 'https://turbowarp.org' ||
-    parsed.origin.endsWith('.turbowarp.org') ||
-    parsed.origin.endsWith('.turbowarp.xyz') ||
 
     // GitHub API
     // GitHub Pages allows redirects, so not included here.
@@ -259,6 +247,11 @@ class TWSecurityManagerComponent extends React.Component {
         if (isTrustedExtension(url)) {
             log.info(`Loading extension ${url} automatically`);
             return true;
+        }
+        if (!isOurOrigin(url)) {
+            // No prompt: a child is never asked to approve code from another address.
+            log.warn(`Refusing to load extension from ${url}: only builtin extensions and files from this site load`);
+            return false;
         }
         const {showModal} = await this.acquireModalLock();
         if (url.startsWith('data:')) {

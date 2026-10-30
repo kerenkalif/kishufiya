@@ -4,8 +4,10 @@ import PropTypes from 'prop-types';
 import log from './log';
 import {getIsShowingProject} from '../reducers/project-state';
 
-const PACKAGER_URL = 'https://packager.turbowarp.org';
-const PACKAGER_ORIGIN = PACKAGER_URL;
+// The TurboWarp Packager is an outside service; the project is no longer sent to it (platform
+// SPEC-scratch-independence 7). With no URL the "open packager" click does nothing.
+const PACKAGER_URL = '';
+const PACKAGER_ORIGIN = null;
 
 const PackagerIntegrationHOC = function (WrappedComponent) {
     class PackagerIntegrationComponent extends React.Component {
@@ -21,12 +23,12 @@ const PackagerIntegrationHOC = function (WrappedComponent) {
             window.removeEventListener('message', this.handleMessage);
         }
         handleClickPackager () {
-            if (this.props.canOpenPackager) {
+            if (this.props.canOpenPackager && PACKAGER_URL) {
                 window.open(`${PACKAGER_URL}/?import_from=${location.origin}`);
             }
         }
         handleMessage (e) {
-            if (e.origin !== PACKAGER_ORIGIN) {
+            if (!PACKAGER_ORIGIN || e.origin !== PACKAGER_ORIGIN) {
                 return;
             }
 

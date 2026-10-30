@@ -4,6 +4,7 @@ import {MAXIMUM_CLOUD_VARIABLES} from '../lib/tw-cloud-limits';
 import Text2Speech from '../lib/kishufiya-text2speech';
 import TranslateStub from '../lib/kishufiya-translate-stub';
 import Speech2TextStub from '../lib/kishufiya-speech2text-stub';
+import noLinkSocketFactory from '../lib/kishufiya-no-link-socket';
 
 const SET_VM = 'scratch-gui/vm/SET_VM';
 const defaultVM = new VM();
@@ -16,6 +17,8 @@ defaultVM.attachStorage(storage);
 defaultVM.extensionManager.addBuiltinExtension('text2speech', Text2Speech);
 defaultVM.extensionManager.addBuiltinExtension('translate', TranslateStub);
 defaultVM.extensionManager.addBuiltinExtension('speech2text', Speech2TextStub);
+// Hardware extensions are hidden from the menu; if an old project still has one, "connect" must not reach Scratch Link.
+defaultVM.runtime.configureScratchLinkSocketFactory(noLinkSocketFactory);
 const initialState = defaultVM;
 
 const reducer = function (state, action) {

@@ -7,8 +7,6 @@ import {ProjectUnavailableLegalReasons, ProjectUnsharedError} from '../../lib/tw
 
 import styles from './project-load-error.css';
 
-const UNSHARED_DOCS = 'https://docs.turbowarp.org/unshared-projects';
-
 const isSafeURL = url => {
     try {
         const parsed = new URL(url);
@@ -70,15 +68,6 @@ const UnsharedMessage = () => (
                 description="Appears on unshared projects"
                 id="tw.unshared.bug"
             />
-        </p>
-        <p>
-            <Link href={UNSHARED_DOCS}>
-                <FormattedMessage
-                    defaultMessage="Learn more about unshared projects"
-                    description="Link to documentation about unshared projects"
-                    id="tw.unshared3.learnMore"
-                />
-            </Link>
         </p>
         <button
             className={styles.button}

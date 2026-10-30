@@ -17,6 +17,7 @@ import {
     setPlayer,
     setFullScreen
 } from '../reducers/mode';
+import isOurOrigin from './kishufiya-extension-origin';
 import {generateRandomUsername} from './tw-username';
 import {setSearchParams} from './tw-navigation-utils';
 import {defaultStageSize} from '../reducers/custom-stage-size';
@@ -362,7 +363,12 @@ const TWStateManager = function (WrappedComponent) {
             }
 
             for (const extension of urlParams.getAll('extension')) {
-                this.props.vm.extensionManager.loadExtensionURL(extension);
+                // Only builtin extensions and files from our own origin (SPEC-scratch-independence 7).
+                if (this.props.vm.extensionManager.isBuiltinExtension(extension) || isOurOrigin(extension)) {
+                    this.props.vm.extensionManager.loadExtensionURL(extension);
+                } else {
+                    log.warn(`Not loading extension from ${extension}: only files from this site load`);
+                }
             }
 
             const routerCallbacks = {

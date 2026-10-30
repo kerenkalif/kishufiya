@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import bindAll from 'lodash.bindall';
 import {connect} from 'react-redux';
+import isOurOrigin from '../lib/kishufiya-extension-origin';
 import log from '../lib/log';
 import CustomExtensionModalComponent from '../components/tw-custom-extension-modal/custom-extension-modal.jsx';
 import {closeCustomExtensionModal} from '../reducers/modals';
@@ -135,6 +136,9 @@ class CustomExtensionModal extends React.Component {
             }
 
             for (const url of urls) {
+                if (!isOurOrigin(url)) {
+                    throw new Error('Only extensions from this site can be loaded');
+                }
                 await this.props.vm.extensionManager.loadExtensionURL(url);
             }
         } catch (err) {

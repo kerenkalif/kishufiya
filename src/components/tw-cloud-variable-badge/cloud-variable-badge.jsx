@@ -6,12 +6,8 @@ import CloudServerButton from './cloud-server-button.jsx';
 import styles from './cloud-variable-badge.css';
 import {APP_NAME} from '../../lib/brand';
 
-const hosts = [
-    {
-        name: 'US East',
-        cloudHost: 'wss://clouddata.turbowarp.org'
-    }
-];
+// No cloud server of an outside service (platform SPEC-scratch-independence 7): the platform keeps the values.
+const hosts = [];
 
 const CloudVariableBadge = props => {
     const selectedHost = hosts.find(i => i.cloudHost === props.cloudHost);
@@ -79,7 +75,7 @@ const CloudVariableBadge = props => {
                 <FormattedMessage
                     defaultMessage="Using a custom cloud variable server: {server}"
                     // eslint-disable-next-line max-len
-                    description="Appears when using a non-TurboWarp provided cloud variable server. {server} is replaced with the server's URL, eg. wss://clouddata.turbowarp.org"
+                    description="Appears when using a non-TurboWarp provided cloud variable server. {server} is replaced with the server's URL, eg. wss://example.com"
                     id="tw.customCloudServer"
                     values={{
                         server: props.cloudHost
@@ -105,18 +101,6 @@ const CloudVariableBadge = props => {
                     }}
                 />
             )}
-    
-            <a
-                target="_blank"
-                rel="noreferrer"
-                href="https://docs.turbowarp.org/cloud-variables"
-            >
-                <FormattedMessage
-                    defaultMessage="Learn more about cloud variables."
-                    description="Link for more information about cloud variables"
-                    id="tw.moreCloud"
-                />
-            </a>
         </div>
     );
 };

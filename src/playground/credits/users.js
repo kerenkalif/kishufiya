@@ -10,7 +10,8 @@ const shuffle = list => {
 
 const fromHardcoded = ({userID = '0', username}) => {
     const result = {
-        image: `https://trampoline.turbowarp.org/avatars/${userID}`,
+        // No avatar request to an outside service: the credit shows the name and link only.
+        image: '',
         text: username
     };
     if (username && userID !== '0') {

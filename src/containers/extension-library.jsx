@@ -5,11 +5,7 @@ import VM from 'scratch-vm';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 import log from '../lib/log';
 
-import extensionLibraryContent, {
-    galleryError,
-    galleryLoading,
-    galleryMore
-} from '../lib/libraries/extensions/index.jsx';
+import extensionLibraryContent from '../lib/libraries/extensions/index.jsx';
 import extensionTags from '../lib/libraries/tw-extension-tags';
 
 import LibraryComponent from '../components/library/library.jsx';
@@ -33,55 +29,28 @@ const toLibraryItem = extension => {
     return extension;
 };
 
-const translateGalleryItem = (extension, locale) => ({
-    ...extension,
-    name: extension.nameTranslations[locale] || extension.name,
-    description: extension.descriptionTranslations[locale] || extension.description
-});
-
-let cachedGallery = null;
-
-const fetchLibrary = async () => {
-    const res = await fetch('https://extensions.turbowarp.org/generated-metadata/extensions-v0.json');
-    if (!res.ok) {
-        throw new Error(`HTTP status ${res.status}`);
-    }
-    const data = await res.json();
-    return data.extensions.map(extension => ({
-        name: extension.name,
-        nameTranslations: extension.nameTranslations || {},
-        description: extension.description,
-        descriptionTranslations: extension.descriptionTranslations || {},
-        extensionId: extension.id,
-        extensionURL: `https://extensions.turbowarp.org/${extension.slug}.js`,
-        iconURL: `https://extensions.turbowarp.org/${extension.image || 'images/unknown.svg'}`,
-        tags: ['tw'],
-        credits: [
-            ...(extension.original || []),
-            ...(extension.by || [])
-        ].map(credit => {
-            if (credit.link) {
-                return (
-                    <a
-                        href={credit.link}
-                        target="_blank"
-                        rel="noreferrer"
-                        key={credit.name}
-                    >
-                        {credit.name}
-                    </a>
-                );
-            }
-            return credit.name;
-        }),
-        docsURI: extension.docs ? `https://extensions.turbowarp.org/${extension.slug}` : null,
-        samples: extension.samples ? extension.samples.map(sample => ({
-            href: `${process.env.ROOT}editor?project_url=https://extensions.turbowarp.org/samples/${encodeURIComponent(sample)}.sb3`,
-            text: sample
-        })) : null,
-        featured: true
-    }));
-};
+/**
+ * Extensions that are NOT offered in the "Choose an Extension" menu (one list, one place).
+ * Hiding only removes the menu entry. The code, the blocks and the loading of old projects stay as they are:
+ * a project that already uses one of these opens and runs normally (the VM loads builtin extensions by id,
+ * and extension info is still read from lib/libraries/extensions/index.jsx).
+ *
+ * Why each one is hidden (Keren, 30.10.2026: "for now disconnect, we'll connect what's needed later"):
+ *  - microbit, ev3, boost, wedo2: hardware that talks through Scratch Link, a service run by Scratch
+ *    (device-manager.scratch.mit.edu). The platform has no interface to Scratch in any form. We may later
+ *    connect them directly over Web Bluetooth, without Scratch Link, and then these come back.
+ *  - faceSensing: loads its code from TurboWarp's extension site, an outside service.
+ *  - custom_extension: loads extension code from a URL, a file or pasted source; only builtin extensions and
+ *    files served from our own origin are allowed (see tw-security-manager.jsx).
+ */
+const HIDDEN_FROM_MENU = new Set([
+    'microbit',
+    'ev3',
+    'boost',
+    'wedo2',
+    'faceSensing',
+    'custom_extension'
+]);
 
 class ExtensionLibrary extends React.PureComponent {
     constructor (props) {
@@ -89,36 +58,6 @@ class ExtensionLibrary extends React.PureComponent {
         bindAll(this, [
             'handleItemSelect'
         ]);
-        this.state = {
-            gallery: cachedGallery,
-            galleryError: null,
-            galleryTimedOut: false
-        };
-    }
-    componentDidMount () {
-        if (!this.state.gallery) {
-            const timeout = setTimeout(() => {
-                this.setState({
-                    galleryTimedOut: true
-                });
-            }, 750);
-
-            fetchLibrary()
-                .then(gallery => {
-                    cachedGallery = gallery;
-                    this.setState({
-                        gallery
-                    });
-                    clearTimeout(timeout);
-                })
-                .catch(error => {
-                    log.error(error);
-                    this.setState({
-                        galleryError: error
-                    });
-                    clearTimeout(timeout);
-                });
-        }
     }
     handleItemSelect (item) {
         if (item.href) {
@@ -156,25 +95,9 @@ class ExtensionLibrary extends React.PureComponent {
         }
     }
     render () {
-        let library = null;
-        if (this.state.gallery || this.state.galleryError || this.state.galleryTimedOut) {
-            library = extensionLibraryContent.map(toLibraryItem);
-            library.push('---');
-            if (this.state.gallery) {
-                library.push(toLibraryItem(galleryMore));
-                const locale = this.props.intl.locale;
-                library.push(
-                    ...this.state.gallery
-                        .filter(i => i.extensionId !== 'faceSensing')
-                        .map(i => translateGalleryItem(i, locale))
-                        .map(toLibraryItem)
-                );
-            } else if (this.state.galleryError) {
-                library.push(toLibraryItem(galleryError));
-            } else {
-                library.push(toLibraryItem(galleryLoading));
-            }
-        }
+        const library = extensionLibraryContent
+            .filter(extension => !HIDDEN_FROM_MENU.has(extension.extensionId))
+            .map(toLibraryItem);
 
         return (
             <LibraryComponent

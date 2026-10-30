@@ -194,7 +194,7 @@ class Blocks extends React.Component {
             }
         });
         toolboxWorkspace.registerButtonCallback('OPEN_RETURN_DOCS', () => {
-            window.open('https://docs.turbowarp.org/return', '_blank');
+            // The docs page was on the TurboWarp documentation site (an outside service); no page of ours fits, so no-op.
         });
 
         // Store the xml of the toolbox that is actually rendered.

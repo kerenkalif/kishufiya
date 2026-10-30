@@ -298,15 +298,17 @@ StudioView.prototype.onselect = function (id, el) { };
 StudioView.prototype.onpageload = function () { };
 StudioView.prototype.onend = function () { };
 
-StudioView.STUDIO_API = 'https://trampoline.turbowarp.org/api/studios/$id/projects?offset=$offset';
+// TurboWarp disconnect (platform SPEC-scratch-independence 7): no studio server, thumbnails or project pages
+// of outside services. The studio view belongs to the TurboWarp home page, which this site does not ship.
+StudioView.STUDIO_API = '';
 
 // The URL to download thumbnails from.
 // $id is replaced with the project's ID.
-StudioView.THUMBNAIL_SRC = 'https://trampoline.turbowarp.org/thumbnails/$id?width=144&height=108';
+StudioView.THUMBNAIL_SRC = '';
 
 // The URL for project pages.
 // $id is replaced with the project ID.
-StudioView.PROJECT_PAGE = 'https://turbowarp.org/$id';
+StudioView.PROJECT_PAGE = '';
 
 // The URL for studio pages.
 // $id is replaced with the studio ID.
