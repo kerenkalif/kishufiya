@@ -37,6 +37,8 @@ const FETCHED = /(api|projects|assets|uploads|cdn2?|cdn\.assets|cdn\.projects|cl
 
 // TurboWarp disconnect (platform SPEC-scratch-independence 7): no turbowarp.org / turbowarp.xyz host anywhere in
 // src/ except the credits (a license obligation: the credit link to TurboWarp stays).
+// A child's browser asks no other host for a font either (static/fonts/heebo holds our copy of Heebo).
+const FONT_HOSTS = /fonts\.(googleapis|gstatic)\.com/i;
 const TW_PATTERN = /turbowarp\.(org|xyz)/i;
 const TW_ALLOW = [
     'src/playground/credits/credits.jsx' // "based on TurboWarp" credit link
@@ -60,6 +62,7 @@ const walk = dir => {
             if (TW_PATTERN.test(text) && !TW_ALLOW.includes(rel) && !TW_SKIP.some(s => rel.startsWith(s))) {
                 bad.push(`${rel}: a turbowarp.org host outside the credits`);
             }
+            if (FONT_HOSTS.test(text)) bad.push(`${rel}: a font host of another site`);
             if (!PATTERN.test(text)) continue;
             const allowed = ALLOW.some(a => (a.endsWith('/') ? rel.startsWith(a) : rel === a));
             if (!allowed) bad.push(`${rel}: scratch.mit.edu outside the allowlist`);
