@@ -23,6 +23,7 @@
     "test:integration": "jest --maxWorkers=4 test[\\\\/]integration",
     "test:lint": "eslint . --ext .js,.jsx",
     "test:no-scratch": "node scripts/no-scratch-hosts.js",
+    "test:bundle-versions": "node scripts/check-bundle-versions.js",
     "test:unit": "jest test[\\\\/]unit[\\\\/]addons",
     "test:guide": "jest test[\\\\/]unit[\\\\/]kishufiya-guide",
     "test:tts": "jest test[\\\\/]unit[\\\\/]kishufiya-tts",
@@ -161,6 +162,7 @@
     }
   },
   "overrides": {
+    "dompurify": ">=3.4.17",
     "webpack@4.47.0": {
       "terser-webpack-plugin": "^4.2.3"
     }
