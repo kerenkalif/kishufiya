@@ -30,6 +30,15 @@
 //                                              missing 'stage-hidden' / 'hidden' / 'offstage' / 'covered'
 //                                              (with `by`, the sprite on it) when it cannot be clicked
 //                                              (detect.js). An editor before 2026-10-28 rings the whole stage
+//   {ui: 'stage', stagePoint: {x?, y?, sprite?}}
+//                                              a point on the stage itself, in Scratch's coordinates (via
+//                                              'stage-point'): a small round mark there, following the stage's
+//                                              size and place. A coordinate left out is that sprite's own at
+//                                              that moment (sprite: its name on the stage) - "set y to 0"
+//                                              points at the sprite's x, y 0 (platform decision 28, stage 2);
+//                                              missing 'stage-hidden' / 'offstage' / 'sprite' (a coordinate
+//                                              left out and no such sprite). An editor before 2026-10-31 rings
+//                                              the whole stage
 //   {..., pressKey: true}                      any target, for a key to press: missing 'typing' while the
 //                                              focus is in a box of the editor (the key would go there),
 //                                              'stage-hidden' while the stage is hidden
@@ -80,7 +89,8 @@ const UI = {
     'sprite-name': '[class*="sprite-info_sprite-info_"] input[type="text"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
-import {coveredBy, libraryMissing, samplePoints, spriteOnStage, typing} from './detect.js';
+import {coveredBy, libraryMissing, samplePoints, spriteOnStage, stagePointOf, stagePointOnScreen, typing}
+    from './detect.js';
 
 // The tab a list lives in: while another tab is open the tab is pointed at first, like a closed category.
 export const TAB_OF_LIST = {'costume-list': 'costumes-tab', 'sound-list': 'sounds-tab'};
@@ -372,6 +382,18 @@ export const resolve = (target, vm) => {
             return {missing: 'covered', by: other ? other.getName() : null};
         }
         return {rect: on.rect, via: 'stage-sprite'};
+    }
+    if (target.ui === 'stage' && target.stagePoint) {
+        // a point on the stage: measured every look, so it follows the stage's size and the sprite's place now
+        const canvas = rectOf(vm && vm.renderer && vm.renderer.canvas);
+        if (!canvas) return {missing: 'stage-hidden'};
+        const name = target.stagePoint.sprite;
+        const sprite = name ? vm.runtime.getSpriteTargetByName(name) : null;
+        const point = stagePointOf(target.stagePoint, sprite ? {x: sprite.x, y: sprite.y} : null);
+        if (point.missing) return point;
+        const stage = {width: vm.runtime.stageWidth || 480, height: vm.runtime.stageHeight || 360};
+        const on = stagePointOnScreen({x: point.x, y: point.y, stage, canvas});
+        return on.rect ? {rect: on.rect, via: 'stage-point'} : on;
     }
     if (target.ui === 'stage' && !rectOf(uiElement('stage'))) return {missing: 'stage-hidden'};
     if (TAB_OF_LIST[target.ui]) {

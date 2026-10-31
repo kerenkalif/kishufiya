@@ -64,6 +64,36 @@ export const spriteOnStage = ({visible, ghost, bounds, stage, canvas}) => {
     };
 };
 
+// A point on the stage (Scratch's coordinates, y up) on the screen: a small round mark around it on the stage's canvas
+// (its client rect), for a lesson's "why" that points at where a sprite will arrive (platform decision 28 stage 2,
+// 2026-10-31). → {rect} - POINT_MARK px wide, following the stage's size and place - or {missing: 'stage-hidden'} (no
+// canvas on the screen; first, as for a sprite) / 'offstage' (outside the stage, or no point at all).
+export const POINT_MARK = 28;
+export const stagePointOnScreen = ({x, y, stage, canvas, size = POINT_MARK}) => {
+    if (!canvas || !(canvas.width > 0)) return {missing: 'stage-hidden'};
+    if (!stage || !Number.isFinite(x) || !Number.isFinite(y)) return {missing: 'offstage'};
+    const halfW = stage.width / 2;
+    const halfH = stage.height / 2;
+    if (x < -halfW || x > halfW || y < -halfH || y > halfH) return {missing: 'offstage'};
+    const cx = canvas.left + ((x + halfW) * (canvas.width / stage.width));
+    const cy = canvas.top + ((halfH - y) * (canvas.height / stage.height));
+    return {rect: {left: cx - (size / 2), right: cx + (size / 2), top: cy - (size / 2), bottom: cy + (size / 2)}};
+};
+
+// The point itself: a coordinate the lesson left out is the sprite's own at that moment (its x for "set y to 0": where
+// the sprite will arrive), so it needs the sprite - {missing: 'sprite'} without one. `sprite`: {x, y} or null.
+export const stagePointOf = (point, sprite) => {
+    const given = {x: point && point.x, y: point && point.y};
+    const own = coordinate => {
+        if (Number.isFinite(given[coordinate])) return given[coordinate];
+        return sprite ? sprite[coordinate] : null;
+    };
+    const x = own('x');
+    const y = own('y');
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return {missing: 'sprite'};
+    return {x, y};
+};
+
 // A library item that is not to be ringed: why. The library closed → 'library' (the lesson points at its button);
 // open, and the item not in it - no search box to find it with, or its whole name typed there and still nothing →
 // 'not-in-library' (the lesson says so; pointing at the button behind the open library looped, K11 review).

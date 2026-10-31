@@ -61,6 +61,21 @@
     animation: louder 0.7s ease-in-out infinite alternate;
 }
 
+/* a point on the stage (platform decision 28, stage 2): a small round mark, a white halo outside and inside the red so it
+   shows on a dark stage (space) as on a light one; its pulse round too */
+.ring.point {
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px #ffffff, inset 0 0 0 3px #ffffff;
+}
+
+.ring.point::after {
+    border-radius: 50%;
+}
+
+.ring.point.louder {
+    box-shadow: 0 0 0 3px #ffffff, 0 0 0 7px rgba(229, 57, 53, 0.35), 0 0 18px 8px rgba(229, 57, 53, 0.55), inset 0 0 0 3px #ffffff;
+}
+
 /* (the arrow grows slowly instead, in guide.js: sizeArrow) */
 @keyframes louder {
     from { scale: 1; }

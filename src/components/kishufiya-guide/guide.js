@@ -485,6 +485,8 @@ const drawGuide = () => {
         return;
     }
     place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
+    // a point on the stage: a round mark with a white halo, seen on a dark stage too (targets.js stagePoint)
+    ring.classList.toggle(styles.point, found.via === 'stage-point');
     const now = performance.now();
     const key = `${state.guide.id}|${found.via}`;
     if (key !== louderKey) {
