@@ -64,6 +64,17 @@ export const spriteOnStage = ({visible, ghost, bounds, stage, canvas}) => {
     };
 };
 
+// Where the first script of an empty sprite goes (platform editor-fixes-2, 2026-10-31: the very first hat had no dashed
+// outline, every later one did): the code area's top corner on the side the workspace starts from - its right in a
+// right-to-left editor, where a dropped hat's starting corner lands - FIRST_SCRIPT_PX in from both edges, in screen
+// pixels, so the outline is in view and clear of the area's edge whatever the zoom. → {x, y}: the script's starting
+// corner (a drop point as findFreeSpot gives one), or null without a code area.
+export const FIRST_SCRIPT_PX = 40;
+export const firstScriptSpot = ({area, rtl, margin = FIRST_SCRIPT_PX}) => {
+    if (!area || !(area.width > 0) || !(area.height > 0)) return null;
+    return {x: rtl ? area.right - margin : area.left + margin, y: area.top + margin};
+};
+
 // A point on the stage (Scratch's coordinates, y up) on the screen: a small round mark around it on the stage's canvas
 // (its client rect), for a lesson's "why" that points at where a sprite will arrive (platform decision 28 stage 2,
 // 2026-10-31). → {rect} - POINT_MARK px wide, following the stage's size and place - or {missing: 'stage-hidden'} (no

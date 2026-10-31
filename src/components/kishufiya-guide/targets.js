@@ -89,8 +89,8 @@ const UI = {
     'sprite-name': '[class*="sprite-info_sprite-info_"] input[type="text"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
-import {coveredBy, libraryMissing, samplePoints, spriteOnStage, stagePointOf, stagePointOnScreen, typing}
-    from './detect.js';
+import {coveredBy, firstScriptSpot, libraryMissing, samplePoints, spriteOnStage, stagePointOf, stagePointOnScreen,
+    typing} from './detect.js';
 
 // The tab a list lives in: while another tab is open the tab is pointed at first, like a closed category.
 export const TAB_OF_LIST = {'costume-list': 'costumes-tab', 'sound-list': 'sounds-tab'};
@@ -276,13 +276,18 @@ const dropPoint = (ws, to, moved) => {
 };
 
 // A free spot for a new script, in screen pixels: under the lowest script of the open sprite, lined up with
-// the scripts' starting edge; null with no code, or when that spot is out of the code area's view.
+// the scripts' starting edge; with no code at all, the code area's top corner on the side the scripts start
+// from (detect.js firstScriptSpot, `anchor` null: nothing to scroll to) - the very first hat of an empty sprite
+// had no outline, every later one did (2026-10-31); null when the spot is out of the code area's view.
 // With `anchor`, the lowest script: the guide scrolls to it when the spot is out of sight (donuts 11.9,
 // 2026-10-26: the outline was under the code area's bottom, and nothing scrolled). {anchor, out: true}: that
 // script is not drawn at all (out of view), so there is no spot to measure yet.
 const findFreeSpot = ws => {
     const tops = ws.getTopBlocks(false);
-    if (!tops.length) return null;
+    if (!tops.length) {
+        const spot = firstScriptSpot({area: codeArea(), rtl: Boolean(ws.RTL)});
+        return spot ? {...spot, anchor: null} : null;
+    }
     // the lowest by the workspace's own coordinates: a script out of view is not drawn, and has no rect
     const bottomOf = b => b.getRelativeToSurfaceXY().y + b.getHeightWidth().height;
     const lowest = tops.reduce((a, b) => (bottomOf(b) > bottomOf(a) ? b : a));
