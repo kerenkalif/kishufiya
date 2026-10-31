@@ -8,7 +8,7 @@ const path = require('path');
 
 const MIN = [3, 4, 17];
 const dir = process.argv[2] || path.join(__dirname, '..', 'build', 'js');
-const VERSION = /DOMPurify\.version\s*=\s*\?["'](\d+)\.(\d+)\.(\d+)/g;
+const VERSION = /DOMPurify\.version\s*=\s*["'](\d+)\.(\d+)\.(\d+)/g;
 
 const older = v => {
     for (let i = 0; i < MIN.length; i++) {
