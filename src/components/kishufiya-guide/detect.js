@@ -138,6 +138,22 @@ export const missingStep = ({reason, by, since, reported, now, after}) => {
     return {since: from, reported: tell ? why : reported, tell};
 };
 
+// What the guide draws at a target it found (guide.js drawGuide): 'ring' - the red ring, the arrow and the bubble,
+// "do this here" (an action); 'soft' - a soft mark in ניצוצי's colour and nothing else: the thing a window of the lesson
+// talks about, not a press (msg.highlight with msg.locate; platform decision 32, 2026-10-31: the flag over the stage had
+// a red ring and a red arrow while the why window said what it is, "זה מבלבל"); 'none' - nothing at all, only told where
+// it is (msg.locate alone: the bubble beside a palette block, K24). The way to a target (its category, its sprite's
+// tile) is always ringed.
+export const guideMarking = ({locate, highlight, onTheWay}) => {
+    if (onTheWay || !locate) return 'ring';
+    return highlight ? 'soft' : 'none';
+};
+
+// Does a press on the target tell the lesson (guide-clicked)? Only on an action's target: a located one - the thing a
+// why window talks about, the block its bubble is beside - is not there to be pressed, and a press on the flag during
+// the window passed the step (platform decision 32 fix, 2026-10-31).
+export const tellsClick = guide => Boolean(guide) && !guide.locate;
+
 // Is `via` (where resolve reached the target) only on the way to it, not the target itself? The tile of the sprite
 // it belongs to, its category (a palette block in a closed one), the code tab, a library's search box. A guide that
 // locates without marking (msg.locate, platform K24 2026-10-29: a new block's "why" is said beside it, with no ring

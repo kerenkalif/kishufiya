@@ -76,6 +76,25 @@
     box-shadow: 0 0 0 3px #ffffff, 0 0 0 7px rgba(229, 57, 53, 0.35), 0 0 18px 8px rgba(229, 57, 53, 0.55), inset 0 0 0 3px #ffffff;
 }
 
+/* the thing a window of the lesson talks about (platform decision 32, 2026-10-31; guide.js marking 'soft'): a soft mark in
+   ניצוצי's purple (the platform's --ked-nitz #6a1b9a) - an outline with a glow, no pulse, no arrow, nothing that asks for a
+   press. A white halo inside and out, so it is seen on the stage's dark backdrop (space) as on a light one. */
+.ring.soft {
+    border: 3px solid #6a1b9a;
+    border-radius: 10px;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 16px 6px rgba(149, 86, 205, 0.65), inset 0 0 0 2px rgba(255, 255, 255, 0.9);
+    animation: none;
+}
+
+.ring.soft::after {
+    display: none;
+}
+
+.ring.soft.point {
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px #ffffff, 0 0 16px 6px rgba(149, 86, 205, 0.8), inset 0 0 0 3px #ffffff;
+}
+
 /* (the arrow grows slowly instead, in guide.js: sizeArrow) */
 @keyframes louder {
     from { scale: 1; }

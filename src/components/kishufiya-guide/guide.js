@@ -15,6 +15,14 @@
 //                                      its sprite's tile) is ringed. For the page's bubble beside a new block
 //                                      (platform K24, 2026-10-29). Not `quiet`: that one scrolls nothing,
 //                                      marks no way either, and keeps most missing to itself (guide levels 2-3)
+//                                      highlight (with locate): a soft mark at the target itself - an outline
+//                                      and a glow in ניצוצי's purple, no arrow, no pulse, nothing that asks for
+//                                      a press; a point on the stage stays round. The thing a window of the
+//                                      lesson talks about (the flag, the stage, a sprite, a point; platform
+//                                      decision 32, 2026-10-31): the red ring and arrow mean "do this here" and
+//                                      are kept for actions. An editor from before 2026-10-31 knows `locate`
+//                                      and draws nothing at it (no red); one from before 2026-10-29 rings it.
+//                                      A located target never says guide-clicked (detect.js tellsClick)
 //   guide-clear  {}
 //   key-press    {key, code, keyCode, down}
 //                                      a key the child pressed while the focus was in the lesson, not here:
@@ -70,8 +78,8 @@
 //                                                   picture's or its sound's md5, or null - once it is in
 //                                                   (platform auto-root, 2026-10-28: a pick is an event)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
-import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, keyReadNow, missingStep, onTheWay, quietReports,
-    ranUnder, scriptRan, typing}
+import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay,
+    quietReports, ranUnder, scriptRan, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -397,6 +405,7 @@ const hideGuide = () => {
     louder(false);
     sizeArrow(0);
     place(ring, null);
+    ring.classList.remove(styles.soft);
     pointer.style.display = 'none';
     bubble.style.display = 'none';
     placeGhost(null, null);
@@ -477,10 +486,21 @@ const drawGuide = () => {
     reported = null;
     const r = found.rect;
     shown = {rect: r, via: found.via, input: Boolean(found.input)};
-    if (state.guide.locate && !onTheWay(state.guide.target, found.via)) {
-        // located, not marked: where it is, and nothing drawn at it
+    const marking = guideMarking({
+        locate: state.guide.locate,
+        highlight: state.guide.highlight,
+        onTheWay: onTheWay(state.guide.target, found.via)
+    });
+    if (marking !== 'ring') {
+        // located, not marked: where it is, and nothing drawn at it - or, for the thing a window talks about, the soft
+        // mark alone (decision 32): no arrow, no bubble, no pulse
         hideGuide();
         shown = {rect: r, via: found.via, input: Boolean(found.input)};
+        if (marking === 'soft') {
+            place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
+            ring.classList.add(styles.soft);
+            ring.classList.toggle(styles.point, found.via === 'stage-point');
+        }
         tellAt(r, found.via, null, found);
         return;
     }
@@ -576,7 +596,9 @@ const onPointer = e => {
     // a click on the target itself: a button, a sprite's tile, a library item (not a box to type in, a
     // category or a search box - those lead on to the target, they do not end the step)
     // pointerdown only: it covers mouse, touch and pen, and a tap is one of it (touchstart came as a second)
-    if (shown && !state.frozen && e.type === 'pointerdown' && !shown.input &&
+    // ...and never on a located target (the thing a why window talks about): a press on the flag during the window
+    // passed the step (decision 32 fix)
+    if (shown && !state.frozen && e.type === 'pointerdown' && !shown.input && tellsClick(state.guide) &&
         ['ui', 'sprite', 'library'].includes(shown.via)) {
         const point = e.touches ? e.touches[0] : e;
         const {rect} = shown;
@@ -736,7 +758,8 @@ export const handleGuide = msg => {
             textSprite: msg.textSprite,
             grow: msg.grow,
             quiet: Boolean(msg.quiet),
-            locate: Boolean(msg.locate)
+            locate: Boolean(msg.locate),
+            highlight: Boolean(msg.highlight)
         };
         missingSince = 0;
         reported = null;
