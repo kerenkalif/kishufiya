@@ -42,6 +42,10 @@
 //   block-added / block-removed {opcode, sprite}   the child's own change to the open sprite's code
 //   code-changed {sprite}                           any change to it (a block moved too), at most every 150ms
 //   category-opened {id}                            the palette's category now in view
+//   block-drag {on}                                 a block is being dragged (a palette block or one of the code): on
+//                                                   when the drag starts, off when it ends wherever it is let go (a
+//                                                   drop, or an abandoned one) - the page keeps its bubble off a block
+//                                                   that is being dragged (platform decision 38, 2026-11-01)
 //   picked {opcode, blockId, sprite, inside: [opcode], top}
 //   (guide-missing, guide-at and guide-clicked carry the guide's `id`, as it was sent with 'guide', so the
 //   page tells them apart from what was said about the guide before)
@@ -684,6 +688,27 @@ const watchCategory = () => {
     return true;
 };
 
+// A block dragged: told when the drag starts (scratch-blocks fires only its end) and when it ends. The dragger's two
+// methods, wrapped once for every drag - a palette block's and a code block's alike.
+const watchDrags = () => {
+    const SB = window.ScratchBlocks;
+    const proto = SB && SB.BlockDragger && SB.BlockDragger.prototype;
+    if (!proto || proto.kishufiyaGuide) return;
+    const {startBlockDrag, endBlockDrag} = proto;
+    proto.startBlockDrag = function (...args) {
+        startBlockDrag.apply(this, args);
+        send({type: 'block-drag', on: true});
+    };
+    proto.endBlockDrag = function (...args) {
+        try {
+            endBlockDrag.apply(this, args);
+        } finally {
+            send({type: 'block-drag', on: false}); // a drop that failed is still over
+        }
+    };
+    proto.kishufiyaGuide = true;
+};
+
 // Is there a block of this kind in a sprite's code (anywhere, not only the open sprite's)? From the
 // VM's blocks: a block's parent holds it in an input (it is inside the parent) unless the block is
 // the parent's next one (it follows the parent).
@@ -911,6 +936,7 @@ export const attachGuide = (theVm, sender) => {
     vm.on('PROJECT_CHANGED', onChange);
     vm.on('workspaceUpdate', () => setTimeout(() => {
         watchCategory();
+        watchDrags();
         diffCode(); // a sprite opened: its blocks as they are now are the baseline
         // which one: a lesson step "עוברים לרקע" is done once it is open (platform 2026-10-26)
         const target = vm.editingTarget;
