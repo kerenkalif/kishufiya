@@ -23,6 +23,11 @@
 //                                      are kept for actions. An editor from before 2026-10-31 knows `locate`
 //                                      and draws nothing at it (no red); one from before 2026-10-29 rings it.
 //                                      A located target never says guide-clicked (detect.js tellsClick)
+//                                      clearOf: a block of the code (a target {blockId | block, in: 'code', sprite?})
+//                                      whose whole script the page's window keeps off while it points at THIS target:
+//                                      for a target that is no block (the stage), where 'guide-at' would say no `clear`
+//                                      of its own (platform decision 44, 2026-11-01). Said as `clear` in 'guide-at';
+//                                      none when that block is not in the open sprite's code. Older editors ignore it
 //   guide-clear  {}
 //   key-press    {key, code, keyCode, down}
 //                                      a key the child pressed while the focus was in the lesson, not here:
@@ -263,6 +268,13 @@ const uiRect = selector => {
     return el ? el.getBoundingClientRect() : null;
 };
 
+// The block of the code the page's window keeps clear of while it points at a target that is no block
+// (guide `clearOf`, decision 44).
+const keepClearOf = () => {
+    const named = state.guide && state.guide.clearOf;
+    return named ? resolve(named, vm).block || null : null;
+};
+
 // Where the page is told the target is: sent only when it changes.
 let lastAt = '';
 const tellAt = (rect, via, arrow, extra) => {
@@ -279,7 +291,10 @@ const tellAt = (rect, via, arrow, extra) => {
     // a block of the code, or one of its values: its whole script, for the page's bubble to keep clear of -
     // it covered the step's other value in the same script (donuts 8.11, 2026-10-26)
     const ofCode = state.guide && state.guide.target.in !== 'palette' && via !== 'category';
-    const root = ofCode && more.block && !more.drop && more.block.getRootBlock && more.block.getRootBlock();
+    // ...or, for a target that is no block of the code, the script of the block the guide names to keep
+    // clear of (decision 44)
+    const own = ofCode && more.block && !more.drop ? more.block : keepClearOf();
+    const root = own && own.getRootBlock && own.getRootBlock();
     const box = root && root.getSvgRoot ? root.getSvgRoot().getBoundingClientRect() : null;
     const clear = box && box.width > 0 ? {
         left: Math.round(box.left),
@@ -786,7 +801,8 @@ export const handleGuide = msg => {
             grow: msg.grow,
             quiet: Boolean(msg.quiet),
             locate: Boolean(msg.locate),
-            highlight: Boolean(msg.highlight)
+            highlight: Boolean(msg.highlight),
+            clearOf: msg.clearOf || null
         };
         missingSince = 0;
         reported = null;
