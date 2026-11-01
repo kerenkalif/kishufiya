@@ -925,12 +925,12 @@ const watchRuns = () => {
                 lastPress: pressed.by.get(from.id), press: pressed.count});
             if (!held.tell) return threads;
             lookedFor = {id: from.id, press: held.lastPress};
-            pressed.looking.add(from.id);
         }
         const before = gameState(runtime.targets);
+        if (lookedFor) pressed.looking.add(lookedFor.id);
         const started = Date.now();
         let blocks = false;
-        const look = () => {
+        const lookOnce = () => {
             const done = threads.every(th => !runtime.isActiveThread(th));
             const late = Date.now() - started >= RUN_LOOK_MS;
             blocks = blocks || threads.some(th => ranUnder({
@@ -951,6 +951,15 @@ const watchRuns = () => {
             }
             send(scriptRan({hat, fields, threads, before, after: gameState(runtime.targets), done, blocks, sender}));
         };
+        // a look that throws must not leave this button's press "being looked at" for the rest of the session
+        function look () {
+            try {
+                lookOnce();
+            } catch (e) {
+                if (lookedFor) pressed.looking.delete(lookedFor.id);
+                throw e;
+            }
+        }
         setTimeout(look, 30);
         return threads;
     };
