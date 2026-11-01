@@ -68,7 +68,7 @@
 //                                                   under the hat ran; changed/done for the record only (K17).
 //                                                   A broadcast received (2026-11-01) is told only as a press: while the
 //                                                   pointer (mouse or finger) is down on the sprite whose script sent it
-//                                                   (once for each hold); `from`: that sprite. Any other broadcast: nothing
+//                                                   (once for each press-down); `from`: that sprite. Any other broadcast: nothing
 //   key-read {key}                                  "מקש נלחץ?" of that key turned true in a running script (K17)
 //   (editor-ready carries runs: true - this build says script-ran)
 //   key {key}                                       a key pressed (KeyboardEvent.key) - not in a box being typed
@@ -895,13 +895,16 @@ const watchRuns = () => {
     const runtime = vm.runtime;
     if (!runtime || runtime.kishufiyaRuns) return;
     runtime.kishufiyaRuns = true;
-    // the pointer's press-downs so far, and for each sprite the press it was last told for (detect.js pressingBroadcast)
-    const pressed = runtime.kishufiyaPressed = {count: 0, by: new Map()};
+    // the pointer's press-downs so far, for each sprite the press it was last told for (a receiver ran a block), and the senders
+    // whose broadcast is being looked at now (detect.js pressingBroadcast)
+    const pressed = runtime.kishufiyaPressed = {count: 0, by: new Map(), looking: new Set()};
     const mouseIo = runtime.ioDevices && runtime.ioDevices.mouse;
     if (mouseIo && mouseIo.postData) {
         const postData = mouseIo.postData.bind(mouseIo);
         mouseIo.postData = data => {
-            if (data && data.isDown && !mouseIo.getIsDown()) pressed.count++;
+            // every press-down post counts (a moves post carries no isDown): a cancelled touch leaves the VM down, and the
+            // next press-down must still be a new press (stage.jsx listens to touchend, not touchcancel)
+            if (data && data.isDown === true) pressed.count++;
             return postData(data);
         };
     }
@@ -912,14 +915,17 @@ const watchRuns = () => {
         // a broadcast counts only as a press of the sprite whose script sent it, pointer down on it (detect.js
         // pressingBroadcast): any other is not watched at all - a game that broadcasts every frame costs nothing
         const sender = hat === 'event_whenbroadcastreceived' ? runtime.sequencer && runtime.sequencer.activeThread : null;
+        let lookedFor = null;
         if (hat === 'event_whenbroadcastreceived') {
             const mouse = runtime.ioDevices && runtime.ioDevices.mouse;
-            const target = sender && sender.target;
-            if (!mouse || !target) return threads;
-            const held = pressingBroadcast({down: mouse.getIsDown(), touching: mouse.getIsDown() && target.isTouchingObject('_mouse_'),
-                lastPress: runtime.kishufiyaPressed.by.get(target.id), press: runtime.kishufiyaPressed.count});
-            if (held.tell) runtime.kishufiyaPressed.by.set(target.id, held.lastPress);
-            else return threads;
+            const from = sender && sender.target;
+            if (!mouse || !from || pressed.looking.has(from.id)) return threads;
+            const down = mouse.getIsDown();
+            const held = pressingBroadcast({down, touching: down && from.isTouchingObject('_mouse_'),
+                lastPress: pressed.by.get(from.id), press: pressed.count});
+            if (!held.tell) return threads;
+            lookedFor = {id: from.id, press: held.lastPress};
+            pressed.looking.add(from.id);
         }
         const before = gameState(runtime.targets);
         const started = Date.now();
@@ -937,6 +943,11 @@ const watchRuns = () => {
             if (!blocks && !done && Date.now() - started < RUN_LOOK_MS) {
                 setTimeout(look, 30);
                 return;
+            }
+            if (lookedFor) {
+                pressed.looking.delete(lookedFor.id);
+                // the press is used up only when a receiver ran a block: another receiver in the same press may still
+                if (blocks) pressed.by.set(lookedFor.id, lookedFor.press);
             }
             send(scriptRan({hat, fields, threads, before, after: gameState(runtime.targets), done, blocks, sender}));
         };
