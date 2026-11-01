@@ -190,7 +190,9 @@ export const coveredBy = (picks, own) => {
 // The lesson counts a press (the flag, a key, a sprite clicked) only when the child's script under that hat started
 // and did something: donuts 3.2 counted an up arrow the game never got, and 2.1 passed with nothing run.
 // 'event_whenbroadcastreceived' too (platform 2026-11-01): a button built as flag -> forever -> if mouse down and touching ->
-// broadcast has no click hat, so its press is the broadcast it sends - told with who sent it (scriptRan `from`).
+// broadcast has no click hat, so its press is the broadcast it sends - told with who sent it (scriptRan `from`), and only
+// while the pointer (a mouse or a finger) is down on the sender (pressingBroadcast): a broadcast at the flag, or outside
+// the button's `if`, is not a press.
 export const TOLD_HATS = ['event_whenflagclicked', 'event_whenkeypressed', 'event_whenthisspriteclicked', 'event_whenbroadcastreceived'];
 
 // What a run can change, as one string: each sprite's place, direction, size, look, shown or not, its variables,
@@ -221,7 +223,17 @@ export const keyReadNow = (last, key, pressed) => {
 // The message for threads a hat started: the sprites whose scripts they are (a clone's as its sprite's name), the
 // key its hat waits for, whether a block under it ran (`blocks` - what the lesson counts), and for the record
 // whether the game changed and they ended.
-// `sender`: the thread that started them, for a broadcast (the sequencer's active thread) - its sprite's name goes in `from`.
+// `sender`: the thread that started them, for a broadcast that is a press (pressingBroadcast) - its sprite's name goes in `from`.
+// A broadcast is a press of its sender's sprite only while the pointer is down on that sprite - the button's own
+// condition (mouse down and touching the pointer). Told once for each hold: a held button broadcasts on every frame
+// (~33 ms), so a gap of more than BROADCAST_HOLD_GAP_MS since the last such broadcast is a new press. `lastAt`: when the
+// last one was, for this sender. -> {tell, lastAt}.
+export const BROADCAST_HOLD_GAP_MS = 150;
+export const pressingBroadcast = ({down, touching, lastAt, now}) => {
+    const pressing = Boolean(down && touching);
+    return {tell: pressing && (lastAt === undefined || now - lastAt > BROADCAST_HOLD_GAP_MS), lastAt: pressing ? now : lastAt};
+};
+
 export const scriptRan = ({hat, fields, threads, before, after, done, blocks, sender}) => {
     const message = {
         type: 'script-ran',

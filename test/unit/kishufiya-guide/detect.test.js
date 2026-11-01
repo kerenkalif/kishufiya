@@ -150,6 +150,26 @@ describe('script-ran (platform K17)', () => {
     });
 });
 
+describe('a broadcast is a press only under the pointer (platform 2026-11-01)', () => {
+    const {pressingBroadcast, BROADCAST_HOLD_GAP_MS} = require('../../../src/components/kishufiya-guide/detect.js');
+    test('a broadcast at the flag, or with the pointer elsewhere, tells nothing', () => {
+        expect(pressingBroadcast({down: false, touching: false, lastAt: undefined, now: 1000})).toEqual({tell: false, lastAt: undefined});
+        expect(pressingBroadcast({down: true, touching: false, lastAt: undefined, now: 1000}).tell).toBe(false);
+        expect(pressingBroadcast({down: false, touching: true, lastAt: undefined, now: 1000}).tell).toBe(false);
+    });
+    test('one hold is told once, a new hold after a gap is told again', () => {
+        let at;
+        const told = [];
+        for (const now of [1000, 1033, 1066, 1099, 3000, 3033]) {
+            const r = pressingBroadcast({down: true, touching: true, lastAt: at, now});
+            at = r.lastAt;
+            told.push(r.tell);
+        }
+        expect(told).toEqual([true, false, false, false, true, false]);
+        expect(BROADCAST_HOLD_GAP_MS).toBeGreaterThan(33);
+    });
+});
+
 describe('what the lesson counts as a press (platform K17 review)', () => {
     const {gameKey: keyOf, keyReadNow, ranUnder} = require('../../../src/components/kishufiya-guide/detect.js');
     test('a letter by its place on a Hebrew layout; a digit; an arrow as it is', () => {

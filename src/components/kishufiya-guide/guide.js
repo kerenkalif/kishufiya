@@ -66,7 +66,9 @@
 //                                                   scripts a hat started (the flag, a key - `key` its Scratch
 //                                                   name -, a sprite clicked): their sprites, whether a block
 //                                                   under the hat ran; changed/done for the record only (K17).
-//                                                   A broadcast received (2026-11-01) says `from`: the sprites that sent it
+//                                                   A broadcast received (2026-11-01) is told only as a press: while the
+//                                                   pointer (mouse or finger) is down on the sprite whose script sent it
+//                                                   (once for each hold); `from`: that sprite. Any other broadcast: nothing
 //   key-read {key}                                  "מקש נלחץ?" of that key turned true in a running script (K17)
 //   (editor-ready carries runs: true - this build says script-ran)
 //   key {key}                                       a key pressed (KeyboardEvent.key) - not in a box being typed
@@ -88,7 +90,7 @@
 //                                                   picture's or its sound's md5, or null - once it is in
 //                                                   (platform auto-root, 2026-10-28: a pick is an event)
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
-import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay,
+import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, scriptRan, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
@@ -893,18 +895,22 @@ const watchRuns = () => {
     const runtime = vm.runtime;
     if (!runtime || runtime.kishufiyaRuns) return;
     runtime.kishufiyaRuns = true;
-    runtime.kishufiyaBroadcastLooks = new Set();
+    runtime.kishufiyaPressAt = new Map(); // by sprite: when its last broadcast under a pointer press was (detect.js pressingBroadcast)
     const startHats = runtime.startHats.bind(runtime);
     runtime.startHats = (hat, fields, target) => {
         const threads = startHats(hat, fields, target);
         if (!threads || !threads.length || !TOLD_HATS.includes(hat)) return threads;
-        // a button held down broadcasts on every frame: one look at a time for each sender and message
-        const sender = runtime.sequencer && runtime.sequencer.activeThread;
-        const once = hat === 'event_whenbroadcastreceived'
-            ? `${sender && sender.target && sender.target.id}|${fields && fields.BROADCAST_OPTION}` : null;
-        if (once) {
-            if (runtime.kishufiyaBroadcastLooks.has(once)) return threads;
-            runtime.kishufiyaBroadcastLooks.add(once);
+        // a broadcast counts only as a press of the sprite whose script sent it, pointer down on it (detect.js
+        // pressingBroadcast): any other is not watched at all - a game that broadcasts every frame costs nothing
+        const sender = hat === 'event_whenbroadcastreceived' ? runtime.sequencer && runtime.sequencer.activeThread : null;
+        if (hat === 'event_whenbroadcastreceived') {
+            const mouse = runtime.ioDevices && runtime.ioDevices.mouse;
+            const target = sender && sender.target;
+            if (!mouse || !target) return threads;
+            const held = pressingBroadcast({down: mouse.getIsDown(), touching: mouse.getIsDown() && target.isTouchingObject('_mouse_'),
+                lastAt: runtime.kishufiyaPressAt.get(target.id), now: Date.now()});
+            if (held.lastAt !== undefined) runtime.kishufiyaPressAt.set(target.id, held.lastAt);
+            if (!held.tell) return threads;
         }
         const before = gameState(runtime.targets);
         const started = Date.now();
@@ -923,7 +929,6 @@ const watchRuns = () => {
                 setTimeout(look, 30);
                 return;
             }
-            if (once) runtime.kishufiyaBroadcastLooks.delete(once);
             send(scriptRan({hat, fields, threads, before, after: gameState(runtime.targets), done, blocks, sender}));
         };
         setTimeout(look, 30);
