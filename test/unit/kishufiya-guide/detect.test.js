@@ -137,6 +137,17 @@ describe('script-ran (platform K17)', () => {
             .toEqual({type: 'script-ran', hat: 'event_whenflagclicked', sprites: ['חללית'], blocks: false, changed: false,
                 done: false});
     });
+    test('a broadcast received says which sprites sent it (platform 2026-11-01)', () => {
+        const button = {isOriginal: true, sprite: {name: 'למעלה'}};
+        const threads = [{target: ship}];
+        const told = scriptRan({hat: 'event_whenbroadcastreceived', fields: {BROADCAST_OPTION: 'למעלה'}, threads,
+            before: 'a', after: 'a', done: false, blocks: true, sender: {target: button}});
+        expect(told.from).toEqual(['למעלה']);
+        expect(told.sprites).toEqual(['חללית']);
+        expect(scriptRan({hat: 'event_whenbroadcastreceived', threads, before: 'a', after: 'a', blocks: true}).from).toEqual([]);
+        expect(scriptRan({hat: 'event_whenflagclicked', threads, before: 'a', after: 'a', sender: {target: button}}))
+            .not.toHaveProperty('from');
+    });
 });
 
 describe('what the lesson counts as a press (platform K17 review)', () => {

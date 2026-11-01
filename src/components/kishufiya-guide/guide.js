@@ -62,10 +62,11 @@
 //                                                   shown, and itself (raw: 'right arrow' for "חץ ימינה");
 //                                                   a dragged block's drop point {x, y} - sent on change
 //   ui {name: 'run' | 'flag' | 'stop'}              a run / the green flag itself / the stop sign
-//   script-ran {hat, key?, sprites, blocks, changed, done}
+//   script-ran {hat, key?, sprites, from?, blocks, changed, done}
 //                                                   scripts a hat started (the flag, a key - `key` its Scratch
 //                                                   name -, a sprite clicked): their sprites, whether a block
-//                                                   under the hat ran; changed/done for the record only (K17)
+//                                                   under the hat ran; changed/done for the record only (K17).
+//                                                   A broadcast received (2026-11-01) says `from`: the sprites that sent it
 //   key-read {key}                                  "מקש נלחץ?" of that key turned true in a running script (K17)
 //   (editor-ready carries runs: true - this build says script-ran)
 //   key {key}                                       a key pressed (KeyboardEvent.key) - not in a box being typed
@@ -892,10 +893,19 @@ const watchRuns = () => {
     const runtime = vm.runtime;
     if (!runtime || runtime.kishufiyaRuns) return;
     runtime.kishufiyaRuns = true;
+    runtime.kishufiyaBroadcastLooks = new Set();
     const startHats = runtime.startHats.bind(runtime);
     runtime.startHats = (hat, fields, target) => {
         const threads = startHats(hat, fields, target);
         if (!threads || !threads.length || !TOLD_HATS.includes(hat)) return threads;
+        // a button held down broadcasts on every frame: one look at a time for each sender and message
+        const sender = runtime.sequencer && runtime.sequencer.activeThread;
+        const once = hat === 'event_whenbroadcastreceived'
+            ? `${sender && sender.target && sender.target.id}|${fields && fields.BROADCAST_OPTION}` : null;
+        if (once) {
+            if (runtime.kishufiyaBroadcastLooks.has(once)) return threads;
+            runtime.kishufiyaBroadcastLooks.add(once);
+        }
         const before = gameState(runtime.targets);
         const started = Date.now();
         let blocks = false;
@@ -913,7 +923,8 @@ const watchRuns = () => {
                 setTimeout(look, 30);
                 return;
             }
-            send(scriptRan({hat, fields, threads, before, after: gameState(runtime.targets), done, blocks}));
+            if (once) runtime.kishufiyaBroadcastLooks.delete(once);
+            send(scriptRan({hat, fields, threads, before, after: gameState(runtime.targets), done, blocks, sender}));
         };
         setTimeout(look, 30);
         return threads;

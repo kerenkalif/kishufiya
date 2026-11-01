@@ -189,7 +189,9 @@ export const coveredBy = (picks, own) => {
 // ---- A script that really ran, and whether it changed the game (platform K17, 2026-10-28) ----
 // The lesson counts a press (the flag, a key, a sprite clicked) only when the child's script under that hat started
 // and did something: donuts 3.2 counted an up arrow the game never got, and 2.1 passed with nothing run.
-export const TOLD_HATS = ['event_whenflagclicked', 'event_whenkeypressed', 'event_whenthisspriteclicked'];
+// 'event_whenbroadcastreceived' too (platform 2026-11-01): a button built as flag -> forever -> if mouse down and touching ->
+// broadcast has no click hat, so its press is the broadcast it sends - told with who sent it (scriptRan `from`).
+export const TOLD_HATS = ['event_whenflagclicked', 'event_whenkeypressed', 'event_whenthisspriteclicked', 'event_whenbroadcastreceived'];
 
 // What a run can change, as one string: each sprite's place, direction, size, look, shown or not, its variables,
 // how many clones it has; the stage's backdrop and variables. `targets`: the runtime's targets.
@@ -219,7 +221,8 @@ export const keyReadNow = (last, key, pressed) => {
 // The message for threads a hat started: the sprites whose scripts they are (a clone's as its sprite's name), the
 // key its hat waits for, whether a block under it ran (`blocks` - what the lesson counts), and for the record
 // whether the game changed and they ended.
-export const scriptRan = ({hat, fields, threads, before, after, done, blocks}) => {
+// `sender`: the thread that started them, for a broadcast (the sequencer's active thread) - its sprite's name goes in `from`.
+export const scriptRan = ({hat, fields, threads, before, after, done, blocks, sender}) => {
     const message = {
         type: 'script-ran',
         hat,
@@ -230,5 +233,8 @@ export const scriptRan = ({hat, fields, threads, before, after, done, blocks}) =
         done: Boolean(done)
     };
     if (fields && typeof fields.KEY_OPTION === 'string') message.key = fields.KEY_OPTION;
+    if (hat === 'event_whenbroadcastreceived') {
+        message.from = sender && sender.target && sender.target.sprite ? [sender.target.sprite.name] : [];
+    }
     return message;
 };
