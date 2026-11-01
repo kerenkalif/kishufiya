@@ -895,7 +895,16 @@ const watchRuns = () => {
     const runtime = vm.runtime;
     if (!runtime || runtime.kishufiyaRuns) return;
     runtime.kishufiyaRuns = true;
-    runtime.kishufiyaPressAt = new Map(); // by sprite: when its last broadcast under a pointer press was (detect.js pressingBroadcast)
+    // the pointer's press-downs so far, and for each sprite the press it was last told for (detect.js pressingBroadcast)
+    const pressed = runtime.kishufiyaPressed = {count: 0, by: new Map()};
+    const mouseIo = runtime.ioDevices && runtime.ioDevices.mouse;
+    if (mouseIo && mouseIo.postData) {
+        const postData = mouseIo.postData.bind(mouseIo);
+        mouseIo.postData = data => {
+            if (data && data.isDown && !mouseIo.getIsDown()) pressed.count++;
+            return postData(data);
+        };
+    }
     const startHats = runtime.startHats.bind(runtime);
     runtime.startHats = (hat, fields, target) => {
         const threads = startHats(hat, fields, target);
@@ -908,9 +917,9 @@ const watchRuns = () => {
             const target = sender && sender.target;
             if (!mouse || !target) return threads;
             const held = pressingBroadcast({down: mouse.getIsDown(), touching: mouse.getIsDown() && target.isTouchingObject('_mouse_'),
-                lastAt: runtime.kishufiyaPressAt.get(target.id), now: Date.now()});
-            if (held.lastAt !== undefined) runtime.kishufiyaPressAt.set(target.id, held.lastAt);
-            if (!held.tell) return threads;
+                lastPress: runtime.kishufiyaPressed.by.get(target.id), press: runtime.kishufiyaPressed.count});
+            if (held.tell) runtime.kishufiyaPressed.by.set(target.id, held.lastPress);
+            else return threads;
         }
         const before = gameState(runtime.targets);
         const started = Date.now();

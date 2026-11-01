@@ -225,13 +225,12 @@ export const keyReadNow = (last, key, pressed) => {
 // whether the game changed and they ended.
 // `sender`: the thread that started them, for a broadcast that is a press (pressingBroadcast) - its sprite's name goes in `from`.
 // A broadcast is a press of its sender's sprite only while the pointer is down on that sprite - the button's own
-// condition (mouse down and touching the pointer). Told once for each hold: a held button broadcasts on every frame
-// (~33 ms), so a gap of more than BROADCAST_HOLD_GAP_MS since the last such broadcast is a new press. `lastAt`: when the
-// last one was, for this sender. -> {tell, lastAt}.
-export const BROADCAST_HOLD_GAP_MS = 150;
-export const pressingBroadcast = ({down, touching, lastAt, now}) => {
-    const pressing = Boolean(down && touching);
-    return {tell: pressing && (lastAt === undefined || now - lastAt > BROADCAST_HOLD_GAP_MS), lastAt: pressing ? now : lastAt};
+// condition (mouse down and touching the pointer). Told once for each press of the pointer: a held button broadcasts on
+// every frame, so `press` (the number of the pointer's press-downs so far, counted by guide.js) is what tells a new press
+// from the same hold, whatever the frame rate. `lastPress`: the press this sender was last told for. -> {tell, lastPress}.
+export const pressingBroadcast = ({down, touching, lastPress, press}) => {
+    const tell = Boolean(down && touching) && lastPress !== press;
+    return {tell, lastPress: tell ? press : lastPress};
 };
 
 export const scriptRan = ({hat, fields, threads, before, after, done, blocks, sender}) => {

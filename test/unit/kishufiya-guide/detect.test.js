@@ -151,22 +151,21 @@ describe('script-ran (platform K17)', () => {
 });
 
 describe('a broadcast is a press only under the pointer (platform 2026-11-01)', () => {
-    const {pressingBroadcast, BROADCAST_HOLD_GAP_MS} = require('../../../src/components/kishufiya-guide/detect.js');
+    const {pressingBroadcast} = require('../../../src/components/kishufiya-guide/detect.js');
     test('a broadcast at the flag, or with the pointer elsewhere, tells nothing', () => {
-        expect(pressingBroadcast({down: false, touching: false, lastAt: undefined, now: 1000})).toEqual({tell: false, lastAt: undefined});
-        expect(pressingBroadcast({down: true, touching: false, lastAt: undefined, now: 1000}).tell).toBe(false);
-        expect(pressingBroadcast({down: false, touching: true, lastAt: undefined, now: 1000}).tell).toBe(false);
+        expect(pressingBroadcast({down: false, touching: false, lastPress: undefined, press: 0}).tell).toBe(false);
+        expect(pressingBroadcast({down: true, touching: false, lastPress: undefined, press: 1}).tell).toBe(false);
+        expect(pressingBroadcast({down: false, touching: true, lastPress: undefined, press: 1}).tell).toBe(false);
     });
-    test('one hold is told once, a new hold after a gap is told again', () => {
-        let at;
+    test('one press is told once however long it is held, the next press is told again', () => {
+        let last;
         const told = [];
-        for (const now of [1000, 1033, 1066, 1099, 3000, 3033]) {
-            const r = pressingBroadcast({down: true, touching: true, lastAt: at, now});
-            at = r.lastAt;
+        for (const press of [1, 1, 1, 1, 2, 2]) {
+            const r = pressingBroadcast({down: true, touching: true, lastPress: last, press});
+            last = r.lastPress;
             told.push(r.tell);
         }
         expect(told).toEqual([true, false, false, false, true, false]);
-        expect(BROADCAST_HOLD_GAP_MS).toBeGreaterThan(33);
     });
 });
 
