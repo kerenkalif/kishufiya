@@ -717,6 +717,7 @@ class Blocks extends React.Component {
                         showCloudOption={this.state.prompt.showCloudOption}
                         showVariableOptions={this.state.prompt.showVariableOptions}
                         title={this.state.prompt.title}
+                        varType={this.state.prompt.varType}
                         vm={vm}
                         onCancel={this.handlePromptClose}
                         onOk={this.handlePromptCallback}

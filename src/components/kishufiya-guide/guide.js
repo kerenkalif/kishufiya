@@ -33,6 +33,14 @@
 //                                      While a guide's target is in a library ({library} or {libraryTag}) the editor picks
 //                                      one item per click: marking several at once (Ctrl+click, a long press) is off,
 //                                      so a one-sprite step behaves as ever (multi-pick, 2026-11-02)
+//   names        {name, kind: 'variable' | 'list' | 'message', ci, wrong} | {clear: true}
+//                                      the name the guide asks for in the name window (platform decision 52, 2026-11-02):
+//                                      while it is set, OK in a window of that kind with any other name (spaces at the
+//                                      start or end do not count; `ci`: any case) creates nothing - the window stays open,
+//                                      what was typed stays, and `wrong` (the page's words) shows beside the box. Told apart
+//                                      from `guide` on purpose: it holds at every guide level, whether or not a ring is drawn.
+//                                      Other windows (a rename) and no 'names' at all: the window is as it was. A page
+//                                      from before this never sends it; an editor from before ignores it
 //   guide-clear  {}
 //   key-press    {key, code, keyCode, down}
 //                                      a key the child pressed while the focus was in the lesson, not here:
@@ -107,6 +115,7 @@ import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, ke
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
+import {setNameAsk} from './name-ask.js';
 
 let vm = null;
 let send = () => {};
@@ -837,6 +846,9 @@ export const handleGuide = msg => {
         scrolledTo = null;
         lastAt = ''; // a new guide is told where its target is even when it is where the last one was
         tellWindow(true); // ...and whether a window is open: the page may have been loaded since
+        break;
+    case 'names':
+        setNameAsk(msg);
         break;
     case 'guide-clear':
         state.guide = null;

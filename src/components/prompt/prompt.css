@@ -24,6 +24,19 @@
     opacity: 0.5;
 }
 
+/* כישופייה (decision 52): said beside the box when the name is not the one asked for */
+.name-error {
+    margin: -1rem 0 1rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 5px;
+    background: #fff0f0;
+    border: 1px solid #d9534f;
+    color: #8a1f1b;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
 .variable-name-text-input {
     margin-bottom: 1.5rem;
     width: 100%;

@@ -55,7 +55,17 @@ const PromptComponent = props => (
                     onChange={props.onChange}
                     onFocus={props.onFocus}
                     onKeyPress={props.onKeyPress}
+                    ref={props.inputRef}
                 />
+                {/* כישופייה (decision 52): the name typed is not the one the guide asks for; nothing was made */}
+                {props.nameError ? (
+                    <div
+                        className={styles.nameError}
+                        role="alert"
+                    >
+                        {props.nameError}
+                    </div>
+                ) : null}
             </Box>
             {props.showVariableOptions ?
                 <div>
@@ -160,6 +170,8 @@ PromptComponent.propTypes = {
     cloudSelected: PropTypes.bool.isRequired,
     defaultValue: PropTypes.string,
     globalSelected: PropTypes.bool.isRequired,
+    inputRef: PropTypes.func,
+    nameError: PropTypes.string,
     isStage: PropTypes.bool.isRequired,
     showListMessage: PropTypes.bool.isRequired,
     label: PropTypes.string.isRequired,
