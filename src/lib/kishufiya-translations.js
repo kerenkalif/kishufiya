@@ -9,7 +9,8 @@ import guiWords from './kishufiya-gui-words.json';
 // Hebrew one is added here; any other language falls back to the English defaultMessage at the place of use.
 const addedMessages = {
     he: {
-        'kishufiya.menuBar.tidyBlocks': 'ארגן בלוקים'
+        'kishufiya.menuBar.tidyBlocks': 'ארגן בלוקים',
+        'kishufiya.library.multiHint': 'לחיצה ארוכה נוספת על דמות מסומנת מוסיפה את כולן'
     }
 };
 

@@ -6,12 +6,18 @@ import {injectIntl, intlShape} from 'react-intl';
 import LibraryItemComponent from '../components/library-item/library-item.jsx';
 import {libraryIconUrls} from '../lib/kishufiya-assets';
 
+const LONG_PRESS_MS = 500;
+
 class LibraryItem extends React.PureComponent {
     constructor (props) {
         super(props);
         bindAll(this, [
             'handleBlur',
             'handleClick',
+            'handleContextMenu',
+            'handlePointerDown',
+            'handlePointerMove',
+            'handlePointerEnd',
             'handleFavorite',
             'handleFocus',
             'handleKeyPress',
@@ -30,6 +36,36 @@ class LibraryItem extends React.PureComponent {
     }
     componentWillUnmount () {
         clearInterval(this.intervalId);
+        clearTimeout(this.pressTimer);
+    }
+    // כישופייה multi-pick: a long press with a finger or pen marks the tile (library.jsx); the click that follows
+    // the press is swallowed. Per tile, no shared timer. A scroll or a move of more than 10px cancels it.
+    handlePointerDown (e) {
+        this.pressed = false;
+        clearTimeout(this.pressTimer);
+        this.pressTimer = null;
+        if (!this.props.onLongPress || e.pointerType === 'mouse' || this.props.disabled || this.props.href) return;
+        if (e.target.closest('a, button')) return;
+        this.pressFrom = {x: e.clientX, y: e.clientY};
+        this.pressTimer = setTimeout(() => {
+            this.pressTimer = null;
+            this.pressed = true;
+            this.props.onLongPress(this.props.id);
+        }, LONG_PRESS_MS);
+    }
+    handlePointerMove (e) {
+        if (!this.pressTimer || !this.pressFrom) return;
+        if (Math.abs(e.clientX - this.pressFrom.x) > 10 || Math.abs(e.clientY - this.pressFrom.y) > 10) {
+            this.handlePointerEnd();
+        }
+    }
+    handlePointerEnd () {
+        clearTimeout(this.pressTimer);
+        this.pressTimer = null;
+    }
+    handleContextMenu (e) {
+        // the long press of a finger would open the browser's menu over the tile
+        if (this.pressTimer || this.pressed) e.preventDefault();
     }
     handleBlur (id) {
         this.handleMouseLeave(id);
@@ -43,11 +79,17 @@ class LibraryItem extends React.PureComponent {
         // כישופייה: no "incompatible with Scratch" confirm - children never upload there, and the editor
         // names no Scratch (rights, 2026-10-24).
 
+        if (this.pressed) {
+            // the click that ends a long press is not a pick
+            this.pressed = false;
+            e.preventDefault();
+            return;
+        }
         if (!this.props.disabled) {
             if (this.props.href) {
                 window.open(this.props.href);
             } else {
-                this.props.onSelect(this.props.id);
+                this.props.onSelect(this.props.id, {ctrl: Boolean(e.ctrlKey || e.metaKey)});
             }
         }
         e.preventDefault();
@@ -151,6 +193,12 @@ class LibraryItem extends React.PureComponent {
                 showPlayButton={this.props.showPlayButton}
                 onBlur={this.handleBlur}
                 onClick={this.handleClick}
+                marked={this.props.marked}
+                onContextMenu={this.handleContextMenu}
+                onPointerDown={this.handlePointerDown}
+                onPointerMove={this.handlePointerMove}
+                onPointerUp={this.handlePointerEnd}
+                onPointerCancel={this.handlePointerEnd}
                 onFocus={this.handleFocus}
                 onKeyPress={this.handleKeyPress}
                 onMouseEnter={this.handleMouseEnter}
@@ -204,6 +252,8 @@ LibraryItem.propTypes = {
     })),
     favorite: PropTypes.bool,
     onFavorite: PropTypes.func,
+    marked: PropTypes.bool,
+    onLongPress: PropTypes.func,
     onMouseEnter: PropTypes.func.isRequired,
     onMouseLeave: PropTypes.func.isRequired,
     onSelect: PropTypes.func.isRequired,

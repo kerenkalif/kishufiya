@@ -80,3 +80,19 @@
     align-items: center;
     justify-content: center;
 }
+
+/* kishufiya multi-pick: a small line over the bottom of the window, only while items are marked by touch */
+.multi-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    max-width: 90%;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #009999;
+    color: #fff;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 5;
+}

@@ -13,6 +13,7 @@ import Spinner from '../spinner/spinner.jsx';
 import Separator from '../tw-extension-separator/separator.jsx';
 import RemovedTrademarks from '../tw-removed-trademarks/removed-trademarks.jsx';
 import {APP_NAME} from '../../lib/brand.js';
+import {START as MARKS_START, multiPick, itemsFor} from '../../lib/kishufiya-multipick.js';
 
 import styles from './library.css';
 
@@ -26,6 +27,11 @@ const messages = defineMessages({
         id: 'gui.library.allTag',
         defaultMessage: 'All',
         description: 'Label for library tag to revert to all items after filtering by tag.'
+    },
+    multiHint: {
+        id: 'kishufiya.library.multiHint',
+        defaultMessage: 'Long press a marked item again to add them all',
+        description: 'Kishufiya: shown only while several items are marked by touch'
     }
 });
 
@@ -45,6 +51,10 @@ class LibraryComponent extends React.Component {
             'handleMouseLeave',
             'handlePlayingEnd',
             'handleSelect',
+            'handleLongPress',
+            'handleKeyDown',
+            'handleKeyUp',
+            'handleWindowBlur',
             'handleFavorite',
             'handleTagClick',
             'setFilteredDataRef'
@@ -58,7 +68,8 @@ class LibraryComponent extends React.Component {
             tagChosen: false,
             canDisplay: false,
             favorites,
-            initialFavorites: favorites
+            initialFavorites: favorites,
+            multi: MARKS_START // kishufiya multi-pick (kishufiya-multipick.js)
         };
     }
     componentDidMount () {
@@ -70,6 +81,51 @@ class LibraryComponent extends React.Component {
             });
         });
         if (this.props.setStopHandler) this.props.setStopHandler(this.handlePlayingEnd);
+        if (this.props.onItemsSelected) {
+            document.addEventListener('keyup', this.handleKeyUp, true);
+            document.addEventListener('keydown', this.handleKeyDown, true);
+            window.addEventListener('blur', this.handleWindowBlur);
+        }
+    }
+    componentWillUnmount () {
+        document.removeEventListener('keyup', this.handleKeyUp, true);
+        document.removeEventListener('keydown', this.handleKeyDown, true);
+        window.removeEventListener('blur', this.handleWindowBlur);
+    }
+    // ---- kishufiya multi-pick. The one condition that turns it off: a lesson's one-sprite step waiting for a library
+    // pick (guide.js sets the body's data-kishufiya-library-step while its target is in a library). To allow marking
+    // there too, change this function. Follow-up: lessons that guide several sprites at once.
+    multiAllowed () {
+        return Boolean(this.props.onItemsSelected) && !document.body.hasAttribute('data-kishufiya-library-step');
+    }
+    keyOf (item) {
+        return item[this.props.persistableKey];
+    }
+    applyMulti (event) {
+        const {state, add} = multiPick(this.state.multi, event);
+        this.setState({multi: state});
+        if (add) {
+            const items = itemsFor(add, this.props.data, item => this.keyOf(item));
+            this.handleClose();
+            if (items.length) this.props.onItemsSelected(items);
+        }
+    }
+    handleKeyDown (e) {
+        if (e.key === 'Escape' && this.state.multi.marks.length) this.applyMulti({type: 'cancel'});
+    }
+    handleKeyUp (e) {
+        if ((e.key === 'Control' || e.key === 'Meta') && this.state.multi.mode === 'ctrl') {
+            this.applyMulti({type: 'ctrl-up'});
+        }
+    }
+    handleWindowBlur () {
+        // Ctrl may be let go outside the window and we would never hear: marks are dropped, nothing is added
+        if (this.state.multi.marks.length) this.applyMulti({type: 'cancel'});
+    }
+    handleLongPress (id) {
+        const item = this.getFilteredData()[id];
+        if (!this.multiAllowed() || !item || item === '---') return;
+        this.applyMulti({type: 'long', key: this.keyOf(item)});
     }
     componentDidUpdate (prevProps, prevState) {
         // כישופייה: open on the lesson's characters, once they arrive, unless the child already chose.
@@ -91,7 +147,14 @@ class LibraryComponent extends React.Component {
             }
         }
     }
-    handleSelect (id) {
+    handleSelect (id, mods) {
+        const item = this.getFilteredData()[id];
+        if (this.multiAllowed() && item && item !== '---' && (
+            (mods && mods.ctrl) || this.state.multi.mode !== null
+        )) {
+            this.applyMulti({type: 'click', key: this.keyOf(item), ctrl: Boolean(mods && mods.ctrl)});
+            return;
+        }
         this.handleClose();
         this.props.onItemSelected(this.getFilteredData()[id]);
     }
@@ -344,6 +407,8 @@ class LibraryComponent extends React.Component {
                                 iconRawURL={dataItem.rawURL}
                                 icons={dataItem.costumes}
                                 id={index}
+                                marked={this.state.multi.marks.includes(dataItem[this.props.persistableKey])}
+                                onLongPress={this.props.onItemsSelected ? this.handleLongPress : null}
                                 favorite={this.state.favorites.includes(dataItem[this.props.persistableKey])}
                                 onFavorite={this.handleFavorite}
                                 insetIconURL={dataItem.insetIconURL}
@@ -383,6 +448,14 @@ class LibraryComponent extends React.Component {
                         </div>
                     )}
                 </div>
+                {this.state.multi.mode === 'touch' && (
+                    <div
+                        className={styles.multiHint}
+                        dir="rtl"
+                    >
+                        {this.props.intl.formatMessage(messages.multiHint)}
+                    </div>
+                )}
             </Modal>
         );
     }
@@ -414,6 +487,7 @@ LibraryComponent.propTypes = {
     onItemMouseEnter: PropTypes.func,
     onItemMouseLeave: PropTypes.func,
     onItemSelected: PropTypes.func,
+    onItemsSelected: PropTypes.func,
     onRequestClose: PropTypes.func,
     setStopHandler: PropTypes.func,
     showPlayButton: PropTypes.bool,
