@@ -30,6 +30,9 @@
 //                                      none when that block is not in the open sprite's code. Older editors ignore it
 //                                      A target {libraryTag: label} rings a category button of the open library
 //                                      (platform decision 46); pressing it is never guide-clicked
+//                                      While a guide's target is in a library ({library} or {libraryTag}) the editor picks
+//                                      one item per click: marking several at once (Ctrl+click, a long press) is off,
+//                                      so a one-sprite step behaves as ever (multi-pick, 2026-11-02)
 //   guide-clear  {}
 //   key-press    {key, code, keyCode, down}
 //                                      a key the child pressed while the focus was in the lesson, not here:
@@ -93,7 +96,11 @@
 //                                                   (the brush, nothing drawn yet) | 'upload' (a file, the camera,
 //                                                   a copy dragged from another sprite); asset: its first
 //                                                   picture's or its sound's md5, or null - once it is in
-//                                                   (platform auto-root, 2026-10-28: a pick is an event)
+//                                                   (platform auto-root, 2026-10-28: a pick is an event). Several marked
+//                                                   in a library at once (multi-pick, 2026-11-02; off while a guide waits
+//                                                   at a library) arrive as one library-pick each, in marking order, each
+//                                                   told as its sprite starts to load - the next only after the one before
+//                                                   is in
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
 import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, scriptRan, tellsClick, typing}
@@ -611,6 +618,13 @@ const onKey = e => {
     send({type: 'key', key: e.key, code: e.code});
 };
 
+// The value is when the lesson last spoke: a lesson that closed without a guide-clear leaves it, and library.jsx
+// (multiAllowed) takes one older than a minute as gone.
+const setLibraryStep = on => {
+    if (on) document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
+    else document.body.removeAttribute('data-kishufiya-library-step');
+};
+
 const PRESS = new Set(['pointerdown', 'mousedown', 'touchstart']);
 let lastPick = 0;
 const onPointer = e => {
@@ -798,6 +812,9 @@ const stopGame = () => {
 // → true when msg was the guide's
 export const handleGuide = msg => {
     if (!msg || !layer) return false;
+    if (document.body.hasAttribute('data-kishufiya-library-step')) {
+        document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
+    }
     switch (msg.type) {
     case 'guide':
         if (!state.guide || state.guide.id !== msg.id) closeFieldEditors();
@@ -813,6 +830,8 @@ export const handleGuide = msg => {
             highlight: Boolean(msg.highlight),
             clearOf: msg.clearOf || null
         };
+        // a guide whose target is in a library waits for one pick: the library marks no several then (library.jsx multiAllowed)
+        setLibraryStep(Boolean(msg.target && (msg.target.library || msg.target.libraryTag)));
         missingSince = 0;
         reported = null;
         scrolledTo = null;
@@ -821,6 +840,7 @@ export const handleGuide = msg => {
         break;
     case 'guide-clear':
         state.guide = null;
+        setLibraryStep(false);
         break;
     case 'freeze':
         if (msg.on) {

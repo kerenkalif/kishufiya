@@ -22,7 +22,8 @@ class SpriteLibrary extends React.PureComponent {
     constructor (props) {
         super(props);
         bindAll(this, [
-            'handleItemSelect'
+            'handleItemSelect',
+            'handleItemsSelect'
         ]);
         this.state = {
             data: getSpriteLibrary()
@@ -42,6 +43,20 @@ class SpriteLibrary extends React.PureComponent {
             this.props.onActivateBlocksTab();
         });
     }
+    // kishufiya multi-pick: several marked sprites, added one after the other in marking order (each waits for the
+    // one before, so the list is never half-loaded and the last added is the one selected). One that fails to
+    // load is skipped. Each goes through vm.addSprite, so the lesson hears one library-pick per sprite (picks.js).
+    async handleItemsSelect (items) {
+        for (const item of items) {
+            randomizeSpritePosition(item);
+            try {
+                await this.props.vm.addSprite(JSON.stringify(item));
+            } catch (e) {
+                // skip it and go on with the rest
+            }
+        }
+        this.props.onActivateBlocksTab();
+    }
     render () {
         return (
             <LibraryComponent
@@ -51,6 +66,7 @@ class SpriteLibrary extends React.PureComponent {
                 initialTag={getLibraryInitialTag('sprite')}
                 title={this.props.intl.formatMessage(messages.libraryTitle)}
                 onItemSelected={this.handleItemSelect}
+                onItemsSelected={this.handleItemsSelect}
                 onRequestClose={this.props.onRequestClose}
             />
         );

@@ -208,9 +208,17 @@ class LibraryItemComponent extends React.PureComponent {
             <Box
                 className={classNames(
                     styles.libraryItem, {
-                        [styles.hidden]: this.props.hidden
+                        [styles.hidden]: this.props.hidden,
+                        [styles.marked]: this.props.marked,
+                        [styles.markable]: this.props.markable
                     }
                 )}
+                aria-pressed={this.props.markable ? String(Boolean(this.props.marked)) : null}
+                onContextMenu={this.props.onContextMenu}
+                onPointerCancel={this.props.onPointerCancel}
+                onPointerDown={this.props.onPointerDown}
+                onPointerMove={this.props.onPointerMove}
+                onPointerUp={this.props.onPointerUp}
                 role="button"
                 tabIndex="0"
                 onBlur={this.props.onBlur}
@@ -220,6 +228,11 @@ class LibraryItemComponent extends React.PureComponent {
                 onMouseEnter={this.props.showPlayButton ? null : this.props.onMouseEnter}
                 onMouseLeave={this.props.showPlayButton ? null : this.props.onMouseLeave}
             >
+                {/* כישופייה multi-pick: a marked tile (library.jsx) shows a check mark, no count */}
+                {this.props.marked ? <span
+                    className={styles.markCheck}
+                    aria-hidden="true"
+                >{'✓'}</span> : null}
                 {/* Layers of wrapping is to prevent layout thrashing on animation */}
                 <Box className={styles.libraryItemImageContainerWrapper}>
                     <Box
@@ -292,6 +305,13 @@ LibraryItemComponent.propTypes = {
         text: PropTypes.string
     })),
     favorite: PropTypes.bool,
+    marked: PropTypes.bool,
+    markable: PropTypes.bool,
+    onContextMenu: PropTypes.func,
+    onPointerCancel: PropTypes.func,
+    onPointerDown: PropTypes.func,
+    onPointerMove: PropTypes.func,
+    onPointerUp: PropTypes.func,
     onFavorite: PropTypes.func,
     onBlur: PropTypes.func.isRequired,
     onClick: PropTypes.func.isRequired,

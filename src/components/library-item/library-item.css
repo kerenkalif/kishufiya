@@ -32,6 +32,39 @@
     border-color: $looks-secondary;
 }
 
+/* כישופייה multi-pick: a marked tile in the brand's highlight (the teal #009999 of the platform), with a check mark */
+/* only tiles that can be marked (a long press): other libraries are not changed */
+.markable {
+    touch-action: pan-y;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.marked,
+.marked:hover {
+    border-color: #009999;
+    background: #e0f5f5;
+    box-shadow: 0 0 0 2px #009999;
+}
+
+.mark-check {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #009999;
+    color: #fff;
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 26px;
+    text-align: center;
+    pointer-events: none;
+}
+
 .hidden {
     display: none;
 }
