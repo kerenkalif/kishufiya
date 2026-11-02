@@ -5,7 +5,12 @@
 // is left where it was after blocks go is not stranded), and a scrollbar with nothing to scroll is hidden.
 // Installed once on the scratch-blocks namespace, the way the guide wraps its prototypes: node_modules is untouched.
 
-export const SCROLL_PAD = 24; // px of room past the outermost block on every side
+import {TOP_MARGIN} from './kishufiya-tidy-layout.js';
+
+export const SCROLL_PAD = 24; // px of room past the outermost block on every side...
+// ...except the top: tidy puts the first script TOP_MARGIN below the top of the view, so a bigger top pad would make the
+// area taller than the view (8px at 24 vs 16) and a vertical bar would show with only a few scripts, found when run
+export const SCROLL_PAD_TOP = TOP_MARGIN;
 
 // Anything within this many px of the view does not count as overflow (sub-pixel rounding of the metrics)
 export const OVERFLOW_SLACK = 1;
@@ -41,7 +46,7 @@ export const installScrollPolicy = SB => {
             {
                 left: SCROLL_PAD + (ws.RTL ? 0 : flyoutWidth),
                 right: SCROLL_PAD + (ws.RTL ? flyoutWidth : 0),
-                top: SCROLL_PAD,
+                top: SCROLL_PAD_TOP,
                 bottom: SCROLL_PAD
             }
         );
