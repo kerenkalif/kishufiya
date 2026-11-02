@@ -209,10 +209,11 @@ class LibraryItemComponent extends React.PureComponent {
                 className={classNames(
                     styles.libraryItem, {
                         [styles.hidden]: this.props.hidden,
-                        [styles.marked]: this.props.marked
+                        [styles.marked]: this.props.marked,
+                        [styles.markable]: this.props.markable
                     }
                 )}
-                aria-pressed={this.props.marked ? 'true' : null}
+                aria-pressed={this.props.markable ? String(Boolean(this.props.marked)) : null}
                 onContextMenu={this.props.onContextMenu}
                 onPointerCancel={this.props.onPointerCancel}
                 onPointerDown={this.props.onPointerDown}
@@ -305,6 +306,7 @@ LibraryItemComponent.propTypes = {
     })),
     favorite: PropTypes.bool,
     marked: PropTypes.bool,
+    markable: PropTypes.bool,
     onContextMenu: PropTypes.func,
     onPointerCancel: PropTypes.func,
     onPointerDown: PropTypes.func,

@@ -46,7 +46,8 @@ export const multiPick = (state, event) => {
     }
 };
 
-// The items for the keys, in marking order; a key no longer in the data is skipped.
+// The items for the keys, in marking order; a key no longer in the data is skipped; a key asked twice is added once.
 export const itemsFor = (keys, data, keyOf) => keys
+    .filter((key, at) => keys.indexOf(key) === at)
     .map(key => data.find(item => item && item !== '---' && keyOf(item) === key))
     .filter(Boolean);

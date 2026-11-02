@@ -618,8 +618,10 @@ const onKey = e => {
     send({type: 'key', key: e.key, code: e.code});
 };
 
+// The value is when the lesson last spoke: a lesson that closed without a guide-clear leaves it, and library.jsx
+// (multiAllowed) takes one older than a minute as gone.
 const setLibraryStep = on => {
-    if (on) document.body.setAttribute('data-kishufiya-library-step', '');
+    if (on) document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
     else document.body.removeAttribute('data-kishufiya-library-step');
 };
 
@@ -810,6 +812,9 @@ const stopGame = () => {
 // → true when msg was the guide's
 export const handleGuide = msg => {
     if (!msg || !layer) return false;
+    if (document.body.hasAttribute('data-kishufiya-library-step')) {
+        document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
+    }
     switch (msg.type) {
     case 'guide':
         if (!state.guide || state.guide.id !== msg.id) closeFieldEditors();

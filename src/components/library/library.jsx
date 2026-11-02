@@ -30,8 +30,13 @@ const messages = defineMessages({
     },
     multiHint: {
         id: 'kishufiya.library.multiHint',
-        defaultMessage: 'Long press a marked item again to add them all',
+        defaultMessage: '{count} marked. Long press a marked item again to add them all',
         description: 'Kishufiya: shown only while several items are marked by touch'
+    },
+    multiHintCtrl: {
+        id: 'kishufiya.library.multiHintCtrl',
+        defaultMessage: '{count} marked. Let go of Ctrl to add them all',
+        description: 'Kishufiya: shown only while several items are marked with Ctrl'
     }
 });
 
@@ -116,7 +121,11 @@ class LibraryComponent extends React.Component {
     // pick (guide.js sets the body's data-kishufiya-library-step while its target is in a library). To allow marking
     // there too, change this function. Follow-up: lessons that guide several sprites at once.
     multiAllowed () {
-        return Boolean(this.props.onItemsSelected) && !document.body.hasAttribute('data-kishufiya-library-step');
+        if (!this.props.onItemsSelected) return false;
+        const since = document.body.getAttribute('data-kishufiya-library-step');
+        if (since === null) return true;
+        // set by guide.js each time the lesson speaks; a minute of silence means the lesson is gone
+        return Date.now() - Number(since) > 60000;
     }
     keyOf (item) {
         return item[this.props.persistableKey];
@@ -144,8 +153,9 @@ class LibraryComponent extends React.Component {
     }
     handleLongPress (id) {
         const item = this.getFilteredData()[id];
-        if (!this.multiAllowed() || !item || item === '---') return;
+        if (!this.multiAllowed() || !item || item === '---') return false;
         this.applyMulti({type: 'long', key: this.keyOf(item)});
+        return true;
     }
     handleSelect (id, mods) {
         const item = this.getFilteredData()[id];
@@ -448,12 +458,12 @@ class LibraryComponent extends React.Component {
                         </div>
                     )}
                 </div>
-                {this.state.multi.mode === 'touch' && (
-                    <div
-                        className={styles.multiHint}
-                        dir="rtl"
-                    >
-                        {this.props.intl.formatMessage(messages.multiHint)}
+                {this.state.multi.mode !== null && (
+                    <div className={styles.multiHint}>
+                        {this.props.intl.formatMessage(
+                            this.state.multi.mode === 'touch' ? messages.multiHint : messages.multiHintCtrl,
+                            {count: this.state.multi.marks.length}
+                        )}
                     </div>
                 )}
             </Modal>

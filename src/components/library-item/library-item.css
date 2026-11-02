@@ -33,9 +33,12 @@
 }
 
 /* כישופייה multi-pick: a marked tile in the brand's highlight (the teal #009999 of the platform), with a check mark */
-.library-item {
+/* only tiles that can be marked (a long press): other libraries are not changed */
+.markable {
     touch-action: pan-y;
     -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .marked,

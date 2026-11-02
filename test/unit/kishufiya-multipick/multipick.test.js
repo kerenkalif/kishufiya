@@ -44,6 +44,18 @@ test('ctrl-up does not finish touch marks', () => {
     expect(r.adds).toEqual([]);
     expect(r.state.marks).toEqual(['a']);
 });
+test('long press on a marked tile in ctrl mode does not finish it, and marks stay ctrl marks', () => {
+    const r = run([{type: 'click', key: 'a', ctrl: true}, {type: 'long', key: 'a'}]);
+    expect(r.adds).toEqual([]);
+    expect(r.state).toEqual({marks: ['a'], mode: 'ctrl'});
+    expect(run([{type: 'ctrl-up'}], r.state).adds).toEqual([['a']]);
+});
+test('itemsFor with the same key twice (a favourite and its copy) gives it once per key asked, first found', () => {
+    const fav = {name: 'x', key: 'favorite-x'};
+    const plain = {name: 'x'};
+    expect(itemsFor(['x'], [fav, '---', plain], i => i.name)).toEqual([fav]);
+    expect(itemsFor(['x', 'x'], [fav, plain], i => i.name)).toEqual([fav]);
+});
 test('itemsFor keeps marking order and skips missing', () => {
     const data = [{name: 'x'}, '---', {name: 'y'}];
     expect(itemsFor(['y', 'q', 'x'], data, i => i.name)).toEqual([data[2], data[0]]);

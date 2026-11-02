@@ -49,12 +49,13 @@ class LibraryItem extends React.PureComponent {
         this.pressFrom = {x: e.clientX, y: e.clientY};
         this.pressTimer = setTimeout(() => {
             this.pressTimer = null;
-            this.pressed = true;
-            this.props.onLongPress(this.props.id);
+            // onLongPress answers whether it took the press (marking allowed): only then is the click that follows
+            // swallowed; a slow tap where marking is off is a plain pick
+            this.pressed = this.props.onLongPress(this.props.id) === true;
         }, LONG_PRESS_MS);
     }
     handlePointerMove (e) {
-        if (!this.pressTimer || !this.pressFrom) return;
+        if (!this.pressTimer) return;
         if (Math.abs(e.clientX - this.pressFrom.x) > 10 || Math.abs(e.clientY - this.pressFrom.y) > 10) {
             this.handlePointerEnd();
         }
@@ -64,6 +65,13 @@ class LibraryItem extends React.PureComponent {
         this.pressTimer = null;
     }
     handleContextMenu (e) {
+        // Mac: Ctrl+click is a context menu event, not a click - it marks (library.jsx decides whether marking is on)
+        if (this.props.onLongPress && e.ctrlKey && e.button === 0 && e.pointerType !== 'touch' &&
+            !this.props.disabled && !this.props.href) {
+            e.preventDefault();
+            this.props.onSelect(this.props.id, {ctrl: true});
+            return;
+        }
         // the long press of a finger would open the browser's menu over the tile
         if (this.pressTimer || this.pressed) e.preventDefault();
     }
@@ -194,6 +202,7 @@ class LibraryItem extends React.PureComponent {
                 onBlur={this.handleBlur}
                 onClick={this.handleClick}
                 marked={this.props.marked}
+                markable={Boolean(this.props.onLongPress)}
                 onContextMenu={this.handleContextMenu}
                 onPointerDown={this.handlePointerDown}
                 onPointerMove={this.handlePointerMove}

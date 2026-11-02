@@ -10,7 +10,8 @@ import guiWords from './kishufiya-gui-words.json';
 const addedMessages = {
     he: {
         'kishufiya.menuBar.tidyBlocks': 'ארגן בלוקים',
-        'kishufiya.library.multiHint': 'לחיצה ארוכה נוספת על דמות מסומנת מוסיפה את כולן'
+        'kishufiya.library.multiHint': 'סומנו {count}. לחיצה ארוכה נוספת על דמות מסומנת מוסיפה את כולן',
+        'kishufiya.library.multiHintCtrl': 'סומנו {count}. עזבו את Ctrl כדי להוסיף את כולן'
     }
 };
 
