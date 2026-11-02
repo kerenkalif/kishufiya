@@ -31,8 +31,9 @@ export const COLUMNS_GROW_TOWARD = 'left';
 // block on the code side was 187px wide, its left edge 70px past the palette's (the block 131px inside it). The most
 // the page can draw is .guide-bubble's max-width 280px + 14px gap (window-place.ts GAP), plus the editor's arrow room
 // (34px x its growth up to 2, + 6) when the arrow is on that side: for the widest palette blocks (80px inside the
-// palette) that reaches 286px past it. Platform decision 50.
-export const RIGHT_MARGIN = 290;
+// palette) that reaches 286px past it. Keren chose 200 (2026-11-02, after the numbers: 167px for a typical block at
+// 1366, 286px at most): a very wide block's bubble may cover part of the first column until the drag. Platform decision 50.
+export const RIGHT_MARGIN = 200;
 
 // A typical script column (a hat block with a few blocks under it, at the default zoom). When the area is so narrow
 // that RIGHT_MARGIN would leave less room than this, the margin shrinks to leave it: the bubble then covers part of the
