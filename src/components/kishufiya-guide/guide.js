@@ -33,7 +33,7 @@
 //                                      While a guide's target is in a library ({library} or {libraryTag}) the editor picks
 //                                      one item per click: marking several at once (Ctrl+click, a long press) is off,
 //                                      so a one-sprite step behaves as ever (multi-pick, 2026-11-02)
-//                                      unless the target says `multi: true` (platform decision 54: a step with several sprites to add
+//                                      unless the target says `multi: true` (platform decision 55: a step with several sprites to add
 //                                      together): marking is on then, and each sprite arrives as its own library-pick
 //   names        {name, kind: 'variable' | 'list' | 'message', ci, wrong} | {clear: true}
 //                                      the name the guide asks for in the name window (platform decision 52, 2026-11-02):
@@ -842,7 +842,7 @@ export const handleGuide = msg => {
             clearOf: msg.clearOf || null
         };
         // a guide whose target is in a library waits for one pick: the library marks no several then (library.jsx multiAllowed) -
-        // unless the step says `multi` (platform decision 54: a set of sprites added together); an older page never says it
+        // unless the step says `multi` (platform decision 55: a set of sprites added together); an older page never says it
         setLibraryStep(Boolean(msg.target && (msg.target.library || msg.target.libraryTag) && !msg.target.multi));
         missingSince = 0;
         reported = null;
