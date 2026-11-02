@@ -7,6 +7,9 @@ const tidyBlocks = () => {
     const workspace = SB && SB.getMainWorkspace ? SB.getMainWorkspace() : null;
     if (!workspace || (workspace.isDragging && workspace.isDragging())) return;
     workspace.cleanUp();
+    // the view follows, so the child sees the result however far away the scripts were scrolled
+    const first = workspace.getTopBlocks(true)[0];
+    if (first) workspace.centerOnBlock(first.id);
 };
 
 export default tidyBlocks;
