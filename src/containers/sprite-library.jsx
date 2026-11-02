@@ -8,6 +8,7 @@ import {getSpriteLibrary, getLibraryTags, getLibraryInitialTag} from '../lib/lib
 import randomizeSpritePosition from '../lib/randomize-sprite-position';
 import spriteTags from '../lib/libraries/sprite-tags';
 
+import {tellMultiAdd} from '../components/kishufiya-guide/guide.js';
 import LibraryComponent from '../components/library/library.jsx';
 
 const messages = defineMessages({
@@ -47,15 +48,20 @@ class SpriteLibrary extends React.PureComponent {
     // one before, so the list is never half-loaded and the last added is the one selected). One that fails to
     // load is skipped. Each goes through vm.addSprite, so the lesson hears one library-pick per sprite (picks.js).
     async handleItemsSelect (items) {
-        for (const item of items) {
-            randomizeSpritePosition(item);
-            try {
-                await this.props.vm.addSprite(JSON.stringify(item));
-            } catch (e) {
-                // skip it and go on with the rest
+        tellMultiAdd(true); // the lesson keeps its guide quiet until every one is in (platform decision 55)
+        try {
+            for (const item of items) {
+                randomizeSpritePosition(item);
+                try {
+                    await this.props.vm.addSprite(JSON.stringify(item));
+                } catch (e) {
+                    // skip it and go on with the rest
+                }
             }
+            this.props.onActivateBlocksTab();
+        } finally {
+            tellMultiAdd(false); // also when something threw
         }
-        this.props.onActivateBlocksTab();
     }
     render () {
         return (

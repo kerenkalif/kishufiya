@@ -62,6 +62,9 @@
 //   block-added / block-removed {opcode, sprite}   the child's own change to the open sprite's code
 //   code-changed {sprite}                           any change to it (a block moved too), at most every 150ms
 //   category-opened {id}                            the palette's category now in view
+//   multi-add {on}                                  several marked sprites are being added one after the other (the
+//                                                   library's multi-pick): on at the start, off at the end, also when
+//                                                   one failed; the lesson keeps its guide quiet meanwhile (platform decision 55)
 //   block-drag {on}                                 a block is being dragged (a palette block or one of the code): on
 //                                                   when the drag starts, off when it ends wherever it is let go (a
 //                                                   drop, or an abandoned one) - the page keeps its bubble off a block
@@ -121,6 +124,9 @@ import {setNameAsk} from './name-ask.js';
 
 let vm = null;
 let send = () => {};
+
+// The library's multi-pick tells the lesson when it starts to add its marked sprites and when it is done (see multi-add above).
+export const tellMultiAdd = on => send({type: 'multi-add', on});
 
 const state = {
     guide: null, // {target, text}
