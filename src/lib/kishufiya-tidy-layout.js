@@ -1,4 +1,4 @@
-// כישופייה: where "Tidy up blocks" puts the scripts (Keren's decisions, 2026-11-02; platform SPEC-lesson-flow, decision 47).
+// כישופייה: where "Tidy up blocks" puts the scripts (Keren, 2026-11-02; platform SPEC-lesson-flow, decision 49).
 // Pure: sizes in, places out, so the rules are tested without a workspace (test/unit/kishufiya-tidy).
 //
 // The rules, in the order the layout applies them:
@@ -17,9 +17,12 @@ export const TOP_MARGIN = 16;
 export const SCRIPT_GAP = 16;
 export const COLUMN_GAP = 24;
 
-// Measured on the running lesson page, 2026-11-02 (the platform's `.guide-bubble`, max-width 280px, placed by
-// window-place.ts beside the palette block it points at, on the code side): see the platform decision 47.
-export const RIGHT_MARGIN = 320;
+// Measured on the running ghost-train lesson page (2026-11-02, guide level 3, 1366x768): a bubble beside a palette
+// block on the code side was 187px wide, its left edge 70px past the palette's (the block 131px inside it). The most
+// the page can draw is .guide-bubble's max-width 280px + 14px gap (window-place.ts GAP), plus the editor's arrow room
+// (34px x its growth up to 2, + 6) when the arrow is on that side: for the widest palette blocks (80px inside the
+// palette) that reaches 286px past it. Platform decision 49.
+export const RIGHT_MARGIN = 290;
 
 // A typical script column (a hat block with a few blocks under it, at the default zoom). When the area is so narrow
 // that RIGHT_MARGIN would leave less room than this, the margin shrinks to leave it: the bubble then covers part of the

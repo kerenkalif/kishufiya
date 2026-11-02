@@ -1,4 +1,4 @@
-// "Tidy up blocks": where the scripts go (src/lib/kishufiya-tidy-layout.js, platform decision 47).
+// "Tidy up blocks": where the scripts go (src/lib/kishufiya-tidy-layout.js, platform decision 49).
 //   npx jest test/unit/kishufiya-tidy
 import {COLUMN_GAP, RIGHT_MARGIN, SCRIPT_GAP, TOP_MARGIN, TYPICAL_COLUMN_WIDTH, layoutScripts, rightMargin}
     from '../../../src/lib/kishufiya-tidy-layout.js';

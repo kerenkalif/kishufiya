@@ -1,31 +1,46 @@
 // כישופייה: the "Tidy up blocks" button of the menu bar (Keren, 2026-11-02), like "format code" in an editor.
-// Scripts move only when the child presses it - nothing tidies on its own. The arrangement is scratch-blocks'
-// own (what the right-click "Clean up Blocks" does: one column, every script and loose block, one undo step),
-// written out here rather than calling workspace.cleanUp(): the editor-devtools addon may wrap that method,
-// and its version can ask to delete loose blocks, which this button must never do.
+// Scripts move only when the child presses it - nothing tidies on its own. Where they go is
+// kishufiya-tidy-layout.js: columns from the top right corner of the code area as it is seen now, so the view
+// needs no scroll afterwards. One undo step; nothing is deleted. Written out here rather than calling
+// workspace.cleanUp(): the editor-devtools addon may wrap that method, and its version can ask to delete loose
+// blocks, which this button must never do.
+import {codeArea} from '../components/kishufiya-guide/targets.js';
+import {layoutScripts} from './kishufiya-tidy-layout.js';
 
 const tidyBlocks = () => {
     const SB = window.ScratchBlocks;
     const workspace = SB && SB.getMainWorkspace ? SB.getMainWorkspace() : null;
     if (!workspace || (workspace.isDragging && workspace.isDragging())) return;
     const tops = workspace.getTopBlocks(true);
-    if (tops.length === 0) return;
+    const area = codeArea();
+    const ctm = workspace.getCanvas().getScreenCTM();
+    if (tops.length === 0 || !area || !ctm) return;
+    const scale = workspace.scale;
+    const sizes = tops.map(block => {
+        const {width, height} = block.getHeightWidth();
+        return {width: width * scale, height: height * scale};
+    });
+    // the horizontal scrollbar may sit over the bottom of the area when the columns need it
+    const view = {width: area.width, height: area.height - SB.Scrollbar.scrollbarThickness};
+    const {positions} = layoutScripts(sizes, view);
+    // the area's top right corner in workspace units
+    const cornerX = (area.right - ctm.e) / ctm.a;
+    const cornerY = (area.top - ctm.f) / ctm.d;
     workspace.setResizesEnabled(false);
     SB.Events.setGroup(true);
     try {
-        let cursorY = 0;
-        for (const block of tops) {
+        tops.forEach((block, i) => {
+            const rightEdge = cornerX - (positions[i].right / scale);
+            // a block's place is its right edge in right-to-left, its left edge otherwise
+            const x = workspace.RTL ? rightEdge : rightEdge - (sizes[i].width / scale);
+            const y = cornerY + (positions[i].top / scale);
             const xy = block.getRelativeToSurfaceXY();
-            block.moveBy(-xy.x, cursorY - xy.y);
-            block.snapToGrid();
-            cursorY = block.getRelativeToSurfaceXY().y + block.getHeightWidth().height + SB.BlockSvg.MIN_BLOCK_Y;
-        }
+            block.moveBy(x - xy.x, y - xy.y);
+        });
     } finally {
         SB.Events.setGroup(false);
         workspace.setResizesEnabled(true);
     }
-    // the view follows, so the child sees the result however far away the scripts were scrolled
-    workspace.centerOnBlock(tops[0].id);
 };
 
 export default tidyBlocks;
