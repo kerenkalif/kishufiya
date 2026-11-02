@@ -647,8 +647,9 @@ class Blocks extends React.Component {
                     const metrics = this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id];
                     if (metrics) {
                         const {x, y} = dragInfo.currentOffset;
-                        const {left, right} = this.workspace.scrollbar.hScroll.outerSvg_.getBoundingClientRect();
-                        const {top} = this.workspace.scrollbar.vScroll.outerSvg_.getBoundingClientRect();
+                        // the workspace's own rectangle: a scrollbar is hidden when there is nothing to scroll (kishufiya-scroll.js)
+                        // and a hidden one measures zero
+                        const {left, right, top} = this.workspace.svgBackground_.getBoundingClientRect();
                         topBlock.x = (
                             this.props.isRtl ? metrics.scrollX - x + right : -metrics.scrollX + x - left
                         ) / metrics.scale;

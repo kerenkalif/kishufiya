@@ -1,6 +1,6 @@
 // "Tidy up blocks": where the scripts go (src/lib/kishufiya-tidy-layout.js, platform decision 49).
 //   npx jest test/unit/kishufiya-tidy
-import {COLUMN_GAP, RIGHT_MARGIN, SCRIPT_GAP, TOP_MARGIN, TYPICAL_COLUMN_WIDTH, layoutScripts, rightMargin}
+import {BOTTOM_BAND, COLUMN_GAP, RIGHT_MARGIN, SCRIPT_GAP, TOP_MARGIN, TYPICAL_COLUMN_WIDTH, layoutScripts, rightMargin}
     from '../../../src/lib/kishufiya-tidy-layout.js';
 
 const view = {width: 1000, height: 600};
@@ -45,7 +45,7 @@ describe('rule 4: columns fill from right to left', () => {
         expect(positions[3].right).toBe(RIGHT_MARGIN + 240 + COLUMN_GAP);
     });
     test('a script exactly as tall as what is left still fits', () => {
-        const height = TOP_MARGIN + 100 + SCRIPT_GAP + 100;
+        const height = TOP_MARGIN + 100 + SCRIPT_GAP + 100 + BOTTOM_BAND;
         const {positions} = layoutScripts([script(50, 100), script(50, 100)], {width: 1000, height});
         expect(positions[1].right).toBe(RIGHT_MARGIN);
         expect(positions[1].top).toBe(TOP_MARGIN + 100 + SCRIPT_GAP);
@@ -82,5 +82,19 @@ describe('rule 6: more columns than the width', () => {
         // the tenth column's left edge is past the view's left edge (1000 wide): scrolling is the caller's metrics
         const last = positions[9];
         expect(last.right + 300).toBeGreaterThan(view.width);
+    });
+});
+
+describe('the free band at the bottom of a column', () => {
+    test('a script that would use the band opens a new column instead', () => {
+        const height = TOP_MARGIN + 100 + SCRIPT_GAP + 100 + BOTTOM_BAND - 1;
+        const {positions} = layoutScripts([script(50, 100), script(50, 100)], {width: 1000, height});
+        expect(positions[1].top).toBe(TOP_MARGIN);
+        expect(positions[1].right).toBe(RIGHT_MARGIN + 50 + COLUMN_GAP);
+    });
+    test('the last script of every column ends at least BOTTOM_BAND above the view bottom', () => {
+        const scripts = Array.from({length: 25}, (_, i) => script(100, 60 + (i * 37) % 120));
+        const {positions} = layoutScripts(scripts, view);
+        positions.forEach((p, i) => { if (scripts[i].height + TOP_MARGIN + BOTTOM_BAND <= view.height) expect(p.top + scripts[i].height + BOTTOM_BAND).toBeLessThanOrEqual(view.height); });
     });
 });

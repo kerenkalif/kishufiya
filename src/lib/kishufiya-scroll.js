@@ -1,11 +1,11 @@
-// כישופייה: the code area scrolls only when it has to (Keren's decision, 2026-11-02; platform decision 49).
+// כישופייה: the code area scrolls only when it has to (Keren's decision, 2026-11-02; platform decision 50).
 // scratch-blocks pads the scrollable area with half a screen on every side and at least a screen of content
 // (getContentDimensionsBounded_), so the area always exceeds the view and both scrollbars always show. Here the padding
 // is a small constant, the view itself is always part of the area (nothing can be dropped out of reach, and a view that
 // is left where it was after blocks go is not stranded), and a scrollbar with nothing to scroll is hidden.
 // Installed once on the scratch-blocks namespace, the way the guide wraps its prototypes: node_modules is untouched.
 
-import {TOP_MARGIN} from './kishufiya-tidy-layout.js';
+import {BOTTOM_BAND, COLUMNS_GROW_TOWARD, TOP_MARGIN, rightMargin} from './kishufiya-tidy-layout.js';
 
 export const SCROLL_PAD = 24; // px of room past the outermost block on every side...
 // ...except the top: tidy puts the first script TOP_MARGIN below the top of the view, so a bigger top pad would make the
@@ -28,15 +28,26 @@ const union = (content, view, pad) => {
     return {left, top, width: right - left, height: bottom - top};
 };
 
+// A pad is room for something to be dropped, never a reason for a bar: it never reaches farther past the content than the
+// view already does on that side (blocks at the view's top edge, or a single column close to the palette, need no bar).
+const limit = (pad, gap) => Math.min(pad, Math.max(0, gap));
+
 // Pure. content: {left, top, right, bottom} of the blocks in px from the workspace origin, null with no blocks;
 // view: {left, top, width, height} the visible rectangle in the same coordinates; pad: {left, right, top, bottom}
 // (the side the palette covers also pads by its width, so a block at that end can be scrolled out from under it);
 // farSide: 'left' or 'right', the side the columns continue to (it gets OVERFLOW_ROOM when the width overflows).
+// The height overflows too when the content comes within BOTTOM_BAND of the view's bottom: tidy leaves that band free
+// for the next block and its outline, so the bar and the room come exactly when it is used up.
 // Returns {left, top, width, height}: the padded blocks and the view, together.
-export const scrollArea = (content, view, pad, farSide = 'left') => {
-    const base = union(content, view, pad);
+export const scrollArea = (content, view, pad, farSide = COLUMNS_GROW_TOWARD) => {
     const room = {...pad};
-    if (overflows(base.height, view.height)) room.bottom += OVERFLOW_ROOM;
+    if (content) {
+        room.top = limit(pad.top, content.top - view.top);
+        room.bottom = limit(pad.bottom, view.top + view.height - content.bottom);
+    }
+    const base = union(content, view, room);
+    const bandEaten = Boolean(content) && content.bottom + BOTTOM_BAND > view.top + view.height;
+    if (overflows(base.height, view.height) || bandEaten) room.bottom = pad.bottom + OVERFLOW_ROOM;
     if (overflows(base.width, view.width)) room[farSide] += OVERFLOW_ROOM;
     return union(content, view, room);
 };
@@ -54,18 +65,17 @@ export const installScrollPolicy = SB => {
         const box = WorkspaceSvg.getContentDimensionsExact_(ws);
         const empty = box.width === 0 && box.height === 0;
         const flyoutWidth = ws.flyout_ && ws.flyout_.width_ ? ws.flyout_.width_ : 0;
-        const area = scrollArea(
+        return scrollArea(
             empty ? null : box,
             {left: -ws.scrollX, top: -ws.scrollY, width: svgSize.width, height: svgSize.height},
             {
                 left: SCROLL_PAD + (ws.RTL ? 0 : flyoutWidth),
-                right: SCROLL_PAD + (ws.RTL ? flyoutWidth : 0),
+                right: Math.min(SCROLL_PAD, rightMargin(svgSize.width)) + (ws.RTL ? flyoutWidth : 0),
                 top: SCROLL_PAD_TOP,
                 bottom: SCROLL_PAD
             },
-            ws.RTL ? 'left' : 'right'
+            COLUMNS_GROW_TOWARD
         );
-        return area;
     };
     WorkspaceSvg.getContentDimensionsBounded_.isKishufiya = true;
 
