@@ -15,16 +15,30 @@ export const SCROLL_PAD_TOP = TOP_MARGIN;
 // Anything within this many px of the view does not count as overflow (sub-pixel rounding of the metrics)
 export const OVERFLOW_SLACK = 1;
 
-// Pure. content: {left, top, right, bottom} of the blocks in px from the workspace origin, null with no blocks;
-// view: {left, top, width, height} the visible rectangle in the same coordinates; pad: {left, right, top, bottom}
-// (the side the palette covers also pads by its width, so a block at that end can be scrolled out from under it).
-// Returns {left, top, width, height}: the padded blocks and the view, together.
-export const scrollArea = (content, view, pad) => {
+// Extra room past the last block on the axis that overflows (Keren, 2026-11-02): a child scrolls down (or to the far
+// side) and finds space to drop a new script. With nothing overflowing there is no bar and no extra room; a drop that
+// overflows brings both.
+export const OVERFLOW_ROOM = 160;
+
+const union = (content, view, pad) => {
     const left = content ? Math.min(content.left - pad.left, view.left) : view.left;
     const top = content ? Math.min(content.top - pad.top, view.top) : view.top;
     const right = content ? Math.max(content.right + pad.right, view.left + view.width) : view.left + view.width;
     const bottom = content ? Math.max(content.bottom + pad.bottom, view.top + view.height) : view.top + view.height;
     return {left, top, width: right - left, height: bottom - top};
+};
+
+// Pure. content: {left, top, right, bottom} of the blocks in px from the workspace origin, null with no blocks;
+// view: {left, top, width, height} the visible rectangle in the same coordinates; pad: {left, right, top, bottom}
+// (the side the palette covers also pads by its width, so a block at that end can be scrolled out from under it);
+// farSide: 'left' or 'right', the side the columns continue to (it gets OVERFLOW_ROOM when the width overflows).
+// Returns {left, top, width, height}: the padded blocks and the view, together.
+export const scrollArea = (content, view, pad, farSide = 'left') => {
+    const base = union(content, view, pad);
+    const room = {...pad};
+    if (overflows(base.height, view.height)) room.bottom += OVERFLOW_ROOM;
+    if (overflows(base.width, view.width)) room[farSide] += OVERFLOW_ROOM;
+    return union(content, view, room);
 };
 
 // Whether a bar has anything to scroll: the area is longer than the view
@@ -48,7 +62,8 @@ export const installScrollPolicy = SB => {
                 right: SCROLL_PAD + (ws.RTL ? flyoutWidth : 0),
                 top: SCROLL_PAD_TOP,
                 bottom: SCROLL_PAD
-            }
+            },
+            ws.RTL ? 'left' : 'right'
         );
         return area;
     };
