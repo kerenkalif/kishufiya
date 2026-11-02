@@ -28,6 +28,8 @@
 //                                      for a target that is no block (the stage), where 'guide-at' would say no `clear`
 //                                      of its own (platform decision 44, 2026-11-01). Said as `clear` in 'guide-at';
 //                                      none when that block is not in the open sprite's code. Older editors ignore it
+//                                      A target {libraryTag: label} rings a category button of the open library
+//                                      (platform decision 46); pressing it is never guide-clicked
 //   guide-clear  {}
 //   key-press    {key, code, keyCode, down}
 //                                      a key the child pressed while the focus was in the lesson, not here:
@@ -80,9 +82,12 @@
 //   guide-clicked {via}                             the child clicked the guided target itself (a button, a
 //                                                   sprite's tile, a library item) - for the lesson, a step done
 //   found {id, sprites: [name]}                     the answer to 'find' ('Stage' is the stage)
-//   window {open, naming}                           a window of the editor is open over it (a library, a
+//   window {open, naming, tag}                      a window of the editor is open over it (a library, a
 //                                                   prompt); naming: the box to name a new message or variable
-//                                                   is in it - sent on change, and with every new guide
+//                                                   is in it; tag: the label of the category the open
+//                                                   library shows, null with none (platform decision 46,
+//                                                   2026-11-02; an older editor sends none) - sent on change,
+//                                                   and with every new guide
 //   library-pick {kind, source, name, asset}        a sprite, backdrop, costume or sound added: kind 'sprite' |
 //                                                   'backdrop' | 'costume' | 'sound'; source 'library' | 'paint'
 //                                                   (the brush, nothing drawn yet) | 'upload' (a file, the camera,
@@ -757,22 +762,23 @@ const find = ({opcode, inside}) => {
 let lastWindow = '';
 const tellWindow = again => {
     const now = editorWindow();
-    const key = `${now.open}|${now.naming}`;
+    const key = `${now.open}|${now.naming}|${now.tag}`;
     if (key === lastWindow && !again) return;
     lastWindow = key;
-    send({type: 'window', open: now.open, naming: now.naming});
+    send({type: 'window', open: now.open, naming: now.naming, tag: now.tag});
 };
 // Each window is a react-modal portal of its own on the body, filled a moment after it is added: the
 // body's children are watched for portals, and each portal's own content - never the editor's subtree,
 // which changes all the time.
 const watchWindows = () => {
     const inPortal = new MutationObserver(() => tellWindow());
+    const watching = {childList: true, subtree: true, attributes: true, attributeFilter: ['class']}; // a category chosen changes a class
     const watched = new WeakSet();
     const onBody = () => {
         for (const el of document.body.children) {
             if (el.classList.contains('ReactModalPortal') && !watched.has(el)) {
                 watched.add(el);
-                inPortal.observe(el, {childList: true, subtree: true});
+                inPortal.observe(el, watching);
             }
         }
         tellWindow();

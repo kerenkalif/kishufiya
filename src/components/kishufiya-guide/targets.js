@@ -26,6 +26,10 @@
 //                                              searched for them. Missing: 'library' while no library is
 //                                              open, 'not-in-library' when it is open and the item is not in
 //                                              it (detect.js libraryMissing)
+//   {libraryTag: label}                        a category button of the open library, by its label (via
+//                                              'library-tag'; platform decision 46, 2026-11-02). Missing:
+//                                              'library' while no library is open, 'library-tag' when it is
+//                                              open and has no such button. Pressing it is not the target's
 //   {ui: 'stage', stageSprite: name}           a sprite on the stage itself, to click (via 'stage-sprite');
 //                                              missing 'stage-hidden' / 'hidden' / 'offstage' / 'covered'
 //                                              (with `by`, the sprite on it) when it cannot be clicked
@@ -109,9 +113,30 @@ export const uiElement = name => {
 // variable.
 const WINDOW = '[class*="modal_modal-overlay"]';
 const NAME_BOX = '[class*="prompt_variable-name-text-input_"]';
+const TAG_BUTTON = '[class*="tag-button_tag-button_"]';
+const TAG_ACTIVE = '[class*="tag-button_active_"]';
+const labelOf = el => String(el.textContent).trim();
+// The category the open library is showing, by its button's label: null when no library with categories is open
+// (platform decision 46: the page rings the category first, and the item once the library is on the right one)
+const libraryTag = () => {
+    const overlay = document.querySelector(WINDOW);
+    const active = overlay && overlay.querySelector(TAG_BUTTON + TAG_ACTIVE);
+    return active ? labelOf(active) : null;
+};
+const libraryTagButton = label => {
+    const overlay = document.querySelector(WINDOW);
+    const wanted = String(label).trim()
+        .toLowerCase();
+    if (!overlay) return null;
+    for (const el of overlay.querySelectorAll(TAG_BUTTON)) {
+        if (labelOf(el).toLowerCase() === wanted) return el;
+    }
+    return null;
+};
 export const editorWindow = () => ({
     open: Boolean(document.querySelector(WINDOW)),
-    naming: Boolean(document.querySelector(NAME_BOX))
+    naming: Boolean(document.querySelector(NAME_BOX)),
+    tag: libraryTag()
 });
 
 const libraryItem = name => {
@@ -413,6 +438,11 @@ export const resolve = (target, vm) => {
         const value = el && el.tagName === 'INPUT' ? el.value : null;
         const input = Boolean(el && el.tagName === 'INPUT');
         return rect ? {rect, via: 'ui', value, raw: value, input} : {missing: 'ui'};
+    }
+    if (target.libraryTag) {
+        const rect = rectOf(libraryTagButton(target.libraryTag));
+        if (rect) return {rect, via: 'library-tag'};
+        return {missing: document.querySelector(WINDOW) ? 'library-tag' : 'library'};
     }
     if (target.library) {
         const item = libraryItem(target.library);
