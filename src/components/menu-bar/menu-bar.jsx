@@ -36,6 +36,8 @@ import TWNews from './tw-news.jsx';
 
 import {openTipsLibrary, openSettingsModal, openRestorePointModal} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
+import {BLOCKS_TAB_INDEX} from '../../reducers/editor-tab';
+import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -94,6 +96,7 @@ import aboutIcon from './icon--about.svg';
 import fileIcon from './icon--file.svg';
 import editIcon from './icon--edit.svg';
 import addonsIcon from './addons.svg';
+import tidyIcon from './tidy-blocks.svg';
 import errorIcon from './tw-error.svg';
 import advancedIcon from './tw-advanced.svg';
 
@@ -112,6 +115,14 @@ const ariaMessages = defineMessages({
         id: 'gui.menuBar.tutorialsLibrary',
         defaultMessage: 'Tutorials',
         description: 'accessibility text for the tutorials button'
+    }
+});
+
+const kishufiyaMessages = defineMessages({
+    tidyBlocks: {
+        id: 'kishufiya.menuBar.tidyBlocks',
+        defaultMessage: 'Tidy up blocks',
+        description: 'Menu bar button: lines up all the scripts of the open sprite in the code area, without overlaps'
     }
 });
 
@@ -216,6 +227,7 @@ class MenuBar extends React.Component {
         bindAll(this, [
             'handleClickSeeInside',
             'handleClickNew',
+            'handleClickTidyBlocks',
             'handleClickNewWindow',
             'handleClickRemix',
             'handleClickSave',
@@ -237,6 +249,10 @@ class MenuBar extends React.Component {
     }
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
+    }
+    // כישופייה: scripts move only when the child presses the button - nothing tidies on its own.
+    handleClickTidyBlocks () {
+        tidyBlocks();
     }
     handleClickNew () {
         // כישופייה: a new game of the child's own (kishufiya.jsx). Replacing the open project here
@@ -842,6 +858,24 @@ class MenuBar extends React.Component {
                             </MenuLabel>
                         )}
 
+                        {this.props.isCodeTab && !this.props.isPlayerOnly && (
+                            <div
+                                className={classNames(styles.menuBarItem, styles.hoverable)}
+                                onClick={this.handleClickTidyBlocks}
+                                role="button"
+                                title={this.props.intl.formatMessage(kishufiyaMessages.tidyBlocks)}
+                            >
+                                <img
+                                    src={tidyIcon}
+                                    draggable={false}
+                                    width={20}
+                                    height={20}
+                                />
+                                <span className={styles.collapsibleLabel}>
+                                    <FormattedMessage {...kishufiyaMessages.tidyBlocks} />
+                                </span>
+                            </div>
+                        )}
                         {this.props.onClickAddonSettings && (
                             <div
                                 className={classNames(styles.menuBarItem, styles.hoverable)}
@@ -1050,6 +1084,7 @@ MenuBar.propTypes = {
     fileMenuOpen: PropTypes.bool,
     handleSaveProject: PropTypes.func,
     intl: intlShape,
+    isCodeTab: PropTypes.bool,
     isPlayerOnly: PropTypes.bool,
     isRtl: PropTypes.bool,
     isShared: PropTypes.bool,
@@ -1137,6 +1172,7 @@ const mapStateToProps = (state, ownProps) => {
         editMenuOpen: editMenuOpen(state),
         errors: state.scratchGui.tw.compileErrors,
         errorsMenuOpen: errorsMenuOpen(state),
+        isCodeTab: state.scratchGui.editorTab.activeTabIndex === BLOCKS_TAB_INDEX,
         isPlayerOnly: state.scratchGui.mode.isPlayerOnly,
         isRtl: state.locales.isRtl,
         isUpdating: getIsUpdating(loadingState),

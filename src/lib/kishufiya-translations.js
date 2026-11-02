@@ -5,7 +5,18 @@
 // the names of library sounds, sprites and backdrops ("(10) לבנת עץ") are not touched: they are not messages here.
 import guiWords from './kishufiya-gui-words.json';
 
+// Messages of Kishufiya's own (ids start with "kishufiya."): scratch-l10n has no translation for them, so the
+// Hebrew one is added here; any other language falls back to the English defaultMessage at the place of use.
+const addedMessages = {
+    he: {
+        'kishufiya.menuBar.tidyBlocks': 'ארגן בלוקים'
+    }
+};
+
 const applyKishufiyaTranslations = editorMessages => {
+    for (const [locale, messages] of Object.entries(addedMessages)) {
+        if (editorMessages[locale]) Object.assign(editorMessages[locale], messages);
+    }
     for (const [locale, words] of Object.entries(guiWords)) {
         const table = editorMessages[locale];
         if (!table) continue;
