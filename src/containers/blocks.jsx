@@ -647,9 +647,14 @@ class Blocks extends React.Component {
                     const metrics = this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id];
                     if (metrics) {
                         const {x, y} = dragInfo.currentOffset;
-                        // the workspace's own rectangle: a scrollbar is hidden when there is nothing to scroll (kishufiya-scroll.js)
-                        // and a hidden one measures zero
-                        const {left, right, top} = this.workspace.svgBackground_.getBoundingClientRect();
+                        // the visible code area from the workspace, not from its scrollbars: a scrollbar is hidden when there is
+                        // nothing to scroll (kishufiya-scroll.js) and a hidden one measures zero. Same numbers as the bars'
+                        // (right 1057, top 93 of 94 at 1366 with the bars shown); the SVG itself also spans the flyout.
+                        const area = this.workspace.svgBackground_.getBoundingClientRect();
+                        const wsMetrics = this.workspace.getMetrics();
+                        const left = area.left + wsMetrics.absoluteLeft;
+                        const right = left + wsMetrics.viewWidth;
+                        const top = area.top + wsMetrics.absoluteTop;
                         topBlock.x = (
                             this.props.isRtl ? metrics.scrollX - x + right : -metrics.scrollX + x - left
                         ) / metrics.scale;
