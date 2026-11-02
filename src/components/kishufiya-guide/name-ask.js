@@ -20,6 +20,12 @@ export const promptKind = ({varType, showVariableOptions}) => {
     return varType === 'list' ? 'list' : 'variable';
 };
 
+// A right name closing its window: the ask is done with at once, so a second window is not held to it for the moment
+// before the page clears it (only a window of the asked kind). Also cleared by 'guide-clear' (guide.js).
+export const nameAccepted = kind => {
+    if (ask && kind && ask.kind === kind) ask = null;
+};
+
 // The words to show when `typed` is not what is asked in a window of this kind; null when the name is right or nothing is asked.
 export const nameProblem = (kind, typed) => {
     if (!ask || !kind || ask.kind !== kind) return null;

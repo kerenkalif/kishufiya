@@ -1,5 +1,5 @@
 // The name window holds the child to the name the guide asks for (platform decision 52).
-import {nameProblem, promptKind, setNameAsk} from '../../../src/components/kishufiya-guide/name-ask.js';
+import {nameAccepted, nameProblem, promptKind, setNameAsk} from '../../../src/components/kishufiya-guide/name-ask.js';
 
 describe('name-ask', () => {
     afterEach(() => setNameAsk({clear: true}));
@@ -43,5 +43,24 @@ describe('name-ask', () => {
         expect(promptKind({varType: '', showVariableOptions: true})).toBe('variable');
         expect(promptKind({varType: '', showVariableOptions: false})).toBeNull();
         expect(promptKind({varType: 'list', showVariableOptions: false})).toBeNull();
+    });
+
+    // the editor owns the comparison (the page sends `ci`): the cases the platform's name-rule.ts relies on
+    test('spaces at the edges are no mistake, one inside is; a variable is exact, a message not', () => {
+        setNameAsk({name: 'זמן', kind: 'variable', ci: false, wrong: 'x'});
+        expect(nameProblem('variable', ' זמן  ')).toBeNull();
+        expect(nameProblem('variable', 'ז מן')).toBe('x');
+        setNameAsk({name: 'Score', kind: 'variable', ci: false, wrong: 'x'});
+        expect(nameProblem('variable', 'score')).toBe('x');
+        setNameAsk({name: 'Score', kind: 'message', ci: true, wrong: 'x'});
+        expect(nameProblem('message', ' score ')).toBeNull();
+    });
+
+    test('a right name closing its window ends the ask of that kind only', () => {
+        setNameAsk({name: 'זמן', kind: 'variable', ci: false, wrong: 'x'});
+        nameAccepted('list');
+        expect(nameProblem('variable', 'אחר')).toBe('x');
+        nameAccepted('variable');
+        expect(nameProblem('variable', 'אחר')).toBeNull();
     });
 });

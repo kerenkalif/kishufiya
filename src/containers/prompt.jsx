@@ -4,7 +4,7 @@ import bindAll from 'lodash.bindall';
 import PromptComponent from '../components/prompt/prompt.jsx';
 import VM from 'scratch-vm';
 import {SCRATCH_MAX_CLOUD_VARIABLES} from '../lib/tw-cloud-limits.js';
-import {nameProblem, promptKind} from '../components/kishufiya-guide/name-ask.js';
+import {nameAccepted, nameProblem, promptKind} from '../components/kishufiya-guide/name-ask.js';
 
 class Prompt extends React.Component {
     constructor (props) {
@@ -46,8 +46,8 @@ class Prompt extends React.Component {
     handleOk () {
         // כישופייה (decision 52): the guide asks for a name and this is another one - nothing is made, the window stays
         const typed = this.input ? this.input.value : this.state.inputValue;
-        const problem = nameProblem(
-            promptKind({varType: this.props.varType, showVariableOptions: this.props.showVariableOptions}), typed);
+        const kind = promptKind({varType: this.props.varType, showVariableOptions: this.props.showVariableOptions});
+        const problem = nameProblem(kind, typed);
         if (problem) {
             this.setState({nameError: problem, inputValue: typed});
             if (this.input) {
@@ -60,6 +60,7 @@ class Prompt extends React.Component {
             }
             return;
         }
+        nameAccepted(kind);
         this.props.onOk(this.state.inputValue, {
             scope: this.state.globalSelected ? 'global' : 'local',
             isCloud: this.state.cloudSelected

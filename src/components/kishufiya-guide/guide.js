@@ -851,6 +851,7 @@ export const handleGuide = msg => {
         setNameAsk(msg);
         break;
     case 'guide-clear':
+        setNameAsk({clear: true});
         state.guide = null;
         setLibraryStep(false);
         break;
