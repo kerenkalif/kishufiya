@@ -228,7 +228,10 @@ class LibraryItemComponent extends React.PureComponent {
                 onMouseLeave={this.props.showPlayButton ? null : this.props.onMouseLeave}
             >
                 {/* כישופייה multi-pick: a marked tile (library.jsx) shows a check mark, no count */}
-                {this.props.marked ? <span className={styles.markCheck} aria-hidden="true">{'✓'}</span> : null}
+                {this.props.marked ? <span
+                    className={styles.markCheck}
+                    aria-hidden="true"
+                >{'✓'}</span> : null}
                 {/* Layers of wrapping is to prevent layout thrashing on animation */}
                 <Box className={styles.libraryItemImageContainerWrapper}>
                     <Box

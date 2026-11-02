@@ -1,12 +1,14 @@
 // כישופייה: picking several library items at once (multi-pick, Keren 2026-11-02). Pure logic only - no DOM, no timers:
 // library.jsx feeds it what happened and does what it answers. State: {marks: [key], mode: null | 'ctrl' | 'touch'};
 // marks are in the order they were marked, and that is the order they are added in.
-//   click {key, ctrl}   Ctrl (or Cmd) held: toggle the mark (mode 'ctrl'). In touch marking a tap toggles it too; marking
-//                       ends by itself when the last mark is taken off. Otherwise a plain click is one pick, as before.
-//                       A plain click while Ctrl marks are up (the Ctrl release was missed) finishes those marks and
-//                       ignores the click: nothing the child did not mean is added.
-//   long {key}          a long press with a finger: marks the tile and enters touch marking; on a tile already marked in
-//                       touch marking it FINISHES (adds all). The only touch way to finish - no button.
+//   click {key, ctrl}   Ctrl (or Cmd) held: toggle the mark (mode 'ctrl'). In touch marking a tap toggles it too;
+//                       marking ends by itself when the last mark is taken off. Otherwise a plain click is one
+//                       pick, as before.
+//                       A plain click while Ctrl marks are up (the Ctrl release was missed) finishes those marks
+//                       and ignores the click: nothing the child did not mean is added.
+//   long {key}          a long press with a finger: marks the tile and enters touch marking; on a tile
+//                       already marked in touch marking it FINISHES (adds all). The only touch way
+//                       to finish - no button.
 //   ctrl-up {}          Ctrl/Cmd released: finishes Ctrl marks; nothing marked, nothing happens.
 //   cancel {}           Escape, the window closed, the window lost focus: marks are dropped, nothing is added.
 // Answer: {state, add}, `add` the keys to add now (marking order) or null.

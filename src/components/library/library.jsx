@@ -87,6 +87,26 @@ class LibraryComponent extends React.Component {
             window.addEventListener('blur', this.handleWindowBlur);
         }
     }
+    componentDidUpdate (prevProps, prevState) {
+        // כישופייה: open on the lesson's characters, once they arrive, unless the child already chose.
+        if (this.props.initialTag && this.props.initialTag !== prevProps.initialTag && !this.state.tagChosen) {
+            // the tag arrives with the data, after mount; guarded, so it runs once
+            // eslint-disable-next-line react/no-did-update-set-state
+            this.setState({selectedTag: this.props.initialTag.toLowerCase()});
+        }
+        if (prevState.filterQuery !== this.state.filterQuery ||
+            prevState.selectedTag !== this.state.selectedTag) {
+            this.scrollToTop();
+        }
+
+        if (this.state.favorites !== prevState.favorites) {
+            try {
+                localStorage.setItem(this.getFavoriteStorageKey(), JSON.stringify(this.state.favorites));
+            } catch (error) {
+                // ignore
+            }
+        }
+    }
     componentWillUnmount () {
         document.removeEventListener('keyup', this.handleKeyUp, true);
         document.removeEventListener('keydown', this.handleKeyDown, true);
@@ -126,26 +146,6 @@ class LibraryComponent extends React.Component {
         const item = this.getFilteredData()[id];
         if (!this.multiAllowed() || !item || item === '---') return;
         this.applyMulti({type: 'long', key: this.keyOf(item)});
-    }
-    componentDidUpdate (prevProps, prevState) {
-        // כישופייה: open on the lesson's characters, once they arrive, unless the child already chose.
-        if (this.props.initialTag && this.props.initialTag !== prevProps.initialTag && !this.state.tagChosen) {
-            // the tag arrives with the data, after mount; guarded, so it runs once
-            // eslint-disable-next-line react/no-did-update-set-state
-            this.setState({selectedTag: this.props.initialTag.toLowerCase()});
-        }
-        if (prevState.filterQuery !== this.state.filterQuery ||
-            prevState.selectedTag !== this.state.selectedTag) {
-            this.scrollToTop();
-        }
-
-        if (this.state.favorites !== prevState.favorites) {
-            try {
-                localStorage.setItem(this.getFavoriteStorageKey(), JSON.stringify(this.state.favorites));
-            } catch (error) {
-                // ignore
-            }
-        }
     }
     handleSelect (id, mods) {
         const item = this.getFilteredData()[id];
