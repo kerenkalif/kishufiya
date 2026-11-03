@@ -15,6 +15,7 @@ class Prompt extends React.Component {
             'handleCancel',
             'handleChange',
             'handleKeyPress',
+            'handleFocus',
             'handleCloudVariableOptionChange',
             'setInput'
         ]);
