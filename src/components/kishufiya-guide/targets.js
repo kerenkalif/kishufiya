@@ -91,6 +91,7 @@ const UI = {
     'sprite-list': '[class*="sprite-selector_items-wrapper_"]',
     'menu-bar': '[class*="menu-bar_menu-bar_"]',
     'sprite-name': '[class*="sprite-info_sprite-info_"] input[type="text"]',
+    'variable-kept': '[class*="prompt_cloud-option_"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
 import {coveredBy, firstScriptSpot, libraryMissing, samplePoints, spriteOnStage, stagePointOf, stagePointOnScreen,

@@ -35,7 +35,9 @@
 //                                      so a one-sprite step behaves as ever (multi-pick, 2026-11-02)
 //                                      unless the target says `multi: true` (platform decision 55: a step with several sprites to add
 //                                      together): marking is on then, and each sprite arrives as its own library-pick
-//   names        {name, kind: 'variable' | 'list' | 'message', ci, wrong} | {clear: true}
+//   names        {name, kind: 'variable' | 'list' | 'message', ci, wrong, keptMissing?} | {clear: true}
+//                (keptMissing: the window also stays until its "לזכור לפעם הבאה 📌" box is ticked, platform decision 56;
+//                 the target ui 'variable-kept' rings that box)
 //                                      the name the guide asks for in the name window (platform decision 52, 2026-11-02):
 //                                      while it is set, OK in a window of that kind with any other name (spaces at the
 //                                      start or end do not count; `ci`: any case) creates nothing - the window stays open,

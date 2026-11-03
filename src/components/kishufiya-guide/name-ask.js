@@ -9,7 +9,9 @@ export const setNameAsk = msg => {
         name: msg.name,
         kind: msg.kind,
         ci: Boolean(msg.ci),
-        wrong: String(msg.wrong || '')
+        wrong: String(msg.wrong || ''),
+        // decision 56: a variable "לזכור לפעם הבאה 📌" is asked for - the window is held until its box is ticked too
+        keptMissing: String(msg.keptMissing || '')
     } : null;
 };
 
@@ -33,4 +35,10 @@ export const nameProblem = (kind, typed) => {
     const b = ask.name.trim();
     const same = ask.ci ? a.toLowerCase() === b.toLowerCase() : a === b;
     return same ? null : (ask.wrong || ask.name);
+};
+
+// The words to show when the right name is typed in a window that must make a kept variable and its box is not ticked; null otherwise.
+export const keptProblem = (kind, typed, ticked) => {
+    if (nameProblem(kind, typed) || !ask || !ask.keptMissing || ticked) return null;
+    return ask.keptMissing;
 };
