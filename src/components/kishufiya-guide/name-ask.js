@@ -10,7 +10,7 @@ export const setNameAsk = msg => {
         kind: msg.kind,
         ci: Boolean(msg.ci),
         wrong: String(msg.wrong || ''),
-        // decision 56: a variable "לזכור לפעם הבאה 📌" is asked for - the window is held until its box is ticked too
+        // decision 58: a variable "לזכור לפעם הבאה 📌" is asked for - the window is held until its box is ticked too
         keptMissing: String(msg.keptMissing || '')
     } : null;
 };
