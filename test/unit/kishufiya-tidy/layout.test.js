@@ -90,6 +90,28 @@ describe('rule 4 (width first): side by side when the width allows', () => {
     });
 });
 
+describe('a column is placed only if it is fully visible', () => {
+    test('1180px laptop case: a 362px code area (margin 101) holds one 146px column, not two', () => {
+        const scripts = Array.from({length: 4}, () => script(146, 150));
+        const v = {width: 362, height: 640, scale: 0.675};
+        expect(columnsAcross(scripts, v)).toBe(1);
+        const {positions} = layoutScripts(scripts, v);
+        // every script's left edge is inside the view, or the fill spills left on purpose (never side-by-side overflow)
+        expect(new Set(positions.map(p => p.right)).size).toBeLessThanOrEqual(2);
+    });
+    test('whatever the sizes, side by side only when the columns plus both margins fit the width', () => {
+        for (let w = 300; w <= 1400; w += 37) {
+            const scripts = [146, 190, 120, 210, 160].map(width => script(width, 90));
+            const v = {width: w, height: 800, scale: 0.675};
+            const across = columnsAcross(scripts, v);
+            if (across < 2) continue;
+            const {positions} = layoutScripts(scripts, v);
+            const farEdge = Math.max(...positions.map((p, i) => p.right + scripts[i].width));
+            expect(farEdge + SCRIPT_GAP).toBeLessThanOrEqual(w);
+        }
+    });
+});
+
 describe('the gap between stacked scripts', () => {
     test('is a dragged block (48) plus the snap radius (48) in workspace units, at the zoom in use', () => {
         expect(GAP_ROOM).toBe(96);

@@ -15,7 +15,9 @@ const tidyBlocks = () => {
     const area = codeArea();
     const ctm = workspace.getCanvas().getScreenCTM();
     if (tops.length === 0 || !area || !ctm) return;
-    const scale = workspace.scale;
+    // screen px per workspace unit: the zoom AND any CSS scaling of the editor (workspace.scale alone misses the
+    // latter, and the area's size is measured on screen), the same factor the corner below is converted with
+    const scale = ctm.a;
     const sizes = tops.map(block => {
         const {width, height} = block.getHeightWidth();
         return {width: width * scale, height: height * scale};
