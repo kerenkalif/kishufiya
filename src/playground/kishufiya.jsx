@@ -61,6 +61,7 @@ import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.
 import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
+import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
 
 // Always Hebrew, whatever the class PC's browser was set to last.
 try {
@@ -115,6 +116,20 @@ const fromLesson = msg => {
     else handleGuide(msg);
 };
 
+// The sprites' stage order as the last load or save had it: a click on "העבר לשכבה ה" changes it without the VM
+// calling that a change, so the game would not be saved (found on screen, 2026-11-03).
+let savedOrder = null;
+const currentOrder = () => stageOrder(vm.runtime.targets
+    .filter(t => t.isOriginal && !t.isStage)
+    .map(t => ({id: t.id, layer: t.getLayerOrder()})));
+
+// Marks the game changed for the platform, once until it is saved.
+const markChanged = () => {
+    if (dirty) return;
+    dirty = true;
+    post({kishufiya: 'changed'});
+};
+
 // Loading a game builds it block by block, and the VM calls each block a change: not the child's, so not
 // a reason to save (it cost one save per opened game, 2026-10-24).
 let loading = false;
@@ -134,6 +149,7 @@ const load = async (url, title, lesson, id) => {
             nameProject(title);
         }
         dirty = false;
+        savedOrder = currentOrder();
         // The editor's own "leave this page?" too: building the game called every block a change, and the
         // browser asked about unsaved changes over a saved game (Keren, 2026-10-24).
         markSaved();
@@ -161,6 +177,7 @@ const snapshot = () => new Promise(resolve => {
 const save = async (id, withThumbnail) => {
     // the project is read the moment it is asked for: a change from here on is the next save's, and says so
     dirty = false;
+    savedOrder = currentOrder();
     const blob = await vm.saveProjectSb3();
     const data = await blob.arrayBuffer();
     markSaved();
@@ -191,14 +208,14 @@ const onVmInit = _vm => {
     vm.on('PROJECT_CHANGED', () => {
         if (loading) return;
         sendProject();
-        if (dirty) return;
-        dirty = true;
-        post({kishufiya: 'changed'});
+        markChanged();
     });
     // Once the scripts that ran have ended: a click's changes (the layers, a position) are applied by then,
     // and a forever loop sends nothing while it runs. A game that did not change is dropped by sendProject.
     vm.runtime.on('PROJECT_RUN_STOP', () => {
-        if (!loading) sendProject();
+        if (loading) return;
+        sendProject();
+        if (layerOrderChanged(savedOrder, currentOrder())) markChanged();
     });
     vm.on('EXTENSION_ADDED', () => sendProject()); // the pen, for one, is not a change of the project for the VM
 };
