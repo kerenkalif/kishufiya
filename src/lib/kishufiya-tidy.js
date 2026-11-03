@@ -50,45 +50,53 @@ const tidyBlocks = (direction = 'wide') => {
 };
 
 // The labels of the two menu items; any language without one gets the English.
-const MENU_LABELS = {
+export const MENU_LABELS = {
     he: {wide: 'לסדר לרוחב', long: 'לסדר לאורך'},
     en: {wide: 'Tidy up sideways', long: 'Tidy up in one column'}
 };
 
-// Once, on the scratch-blocks namespace (like the scroll policy): the workspace menu's "Clean up Blocks" item becomes
-// the two, in this order, enabled when it was (more than one script). The item is found by the mark wsCleanupOption
-// now puts on it, so a changed label (the editor-devtools addon renames it) does not matter.
-export const installTidyMenu = SB => {
-    const ContextMenu = SB.ContextMenu;
-    if (ContextMenu.show.isKishufiya) return;
-    const setLabels = locale => Object.assign(SB.Msg, {
-        KISHUFIYA_TIDY_WIDE: (MENU_LABELS[locale] || MENU_LABELS.en).wide,
-        KISHUFIYA_TIDY_LONG: (MENU_LABELS[locale] || MENU_LABELS.en).long
+// Pure: the menu's options with the marked "Clean up Blocks" item (kishufiyaTidy, put on it by wsCleanupOption)
+// replaced by the two, wide first, each enabled as it was. Everything else stays as it is, in its place.
+export const tidyItems = (options, labels, run) => {
+    const items = [];
+    options.forEach(option => {
+        if (!option.kishufiyaTidy) return items.push(option);
+        items.push(
+            {text: labels.wide, enabled: option.enabled, callback: () => run('wide')},
+            {text: labels.long, enabled: option.enabled, callback: () => run('long')}
+        );
     });
-    setLabels('en');
-    const setLocale = SB.ScratchMsgs.setLocale;
-    SB.ScratchMsgs.setLocale = function (locale, ...rest) {
-        const result = setLocale.call(this, locale, ...rest);
-        setLabels(locale);
-        return result;
-    };
+    return items;
+};
+
+// Once, on the scratch-blocks namespace (like the scroll policy): the workspace menu's "Clean up Blocks" item becomes
+// the two. The item is found by the mark wsCleanupOption puts on it, so a changed label (the editor-devtools addon
+// renames it) does not matter. The two exist before ContextMenu.show is called, so an addon that wraps show (api.js)
+// and puts a separator on an item after them (it indexes its items against the menu's rows) sees the final list.
+export const installTidyMenu = SB => {
+    const {ContextMenu, WorkspaceSvg} = SB;
+    if (!ContextMenu.wsCleanupOption || !WorkspaceSvg.prototype.showContextMenu_) return;
+    if (WorkspaceSvg.prototype.showContextMenu_.isKishufiya) return;
+    const labels = () => MENU_LABELS[SB.ScratchMsgs.currentLocale_] || MENU_LABELS.en;
     const wsCleanupOption = ContextMenu.wsCleanupOption;
     ContextMenu.wsCleanupOption = function (...args) {
         return Object.assign(wsCleanupOption.apply(this, args), {kishufiyaTidy: true});
     };
-    const show = ContextMenu.show;
-    ContextMenu.show = function (e, options, rtl) {
-        const items = [];
-        options.forEach(option => {
-            if (!option.kishufiyaTidy) return items.push(option);
-            items.push(
-                {text: SB.Msg.KISHUFIYA_TIDY_WIDE, enabled: option.enabled, callback: () => tidyBlocks('wide')},
-                {text: SB.Msg.KISHUFIYA_TIDY_LONG, enabled: option.enabled, callback: () => tidyBlocks('long')}
-            );
-        });
-        return show.call(this, e, items, rtl);
+    // showContextMenu_ ends in one synchronous ContextMenu.show(e, options, rtl): that call, whichever wrapper is
+    // the outermost by then, gets the expanded list
+    const showContextMenu = WorkspaceSvg.prototype.showContextMenu_;
+    WorkspaceSvg.prototype.showContextMenu_ = function (...args) {
+        const show = ContextMenu.show;
+        ContextMenu.show = (e, options, rtl) => {
+            show.call(ContextMenu, e, tidyItems(options, labels(), tidyBlocks), rtl);
+        };
+        try {
+            return showContextMenu.apply(this, args);
+        } finally {
+            ContextMenu.show = show;
+        }
     };
-    ContextMenu.show.isKishufiya = true;
+    WorkspaceSvg.prototype.showContextMenu_.isKishufiya = true;
 };
 
 export default tidyBlocks;
