@@ -6,16 +6,30 @@
 //   2. the layout starts at the top right corner of the visible code area; the top margin is TOP_MARGIN
 //   3. the first column's right edge is RIGHT_MARGIN from the area's right edge, past the widest bubble the guide
 //      draws beside a palette block (measured, see below); a narrow area keeps a column's room (rightMargin)
-//   4. columns fill from right to left: a script goes under the one before it while it fits the visible height
-//      less BOTTOM_BAND,
-//      else a new column opens to the left of the column; a column is as wide as its widest script;
-//      SCRIPT_GAP between scripts, COLUMN_GAP between columns
-//   5. a script taller than the view stands alone in its column, from the top
-//   6. columns that do not fit the visible width continue to the left - never a second row of columns
+//   4. width first (Keren, 2026-11-03): as many columns as fit the visible width side by side, from right to left;
+//      the scripts go to them in order, a row at a time (the first script rightmost); one that has a script above it
+//      goes under it with scriptGap() between them. When fewer than two columns fit the width, or the stacks would
+//      eat BOTTOM_BAND, rules 5-7 apply
+//   5. (a single column fits) columns fill from right to left: a script goes under the one before it while it fits
+//      the visible height less BOTTOM_BAND, else a new column opens to the left; a column is as wide as its widest
+//      script; scriptGap() between scripts, COLUMN_GAP between columns
+//   6. a script taller than the view stands alone in its column, from the top
+//   7. columns that do not fit the visible width continue to the left - never a second row of columns
 // All numbers are screen pixels (the caller multiplies workspace sizes by the workspace scale and divides back).
 
 export const TOP_MARGIN = 16;
+// The least space between two scripts in a column (screen px). The real gap is scriptGap(), below.
 export const SCRIPT_GAP = 16;
+// What a child needs under a script to add a block at its end without touching the script below (Keren, 2026-11-03):
+// the dragged block (a stack block is 48 workspace units tall, scratch-blocks constants.js) plus the snap radius
+// (Blockly.SNAP_RADIUS = 48; CONNECTING_SNAP_RADIUS 68 applies only once it is already snapping to this script),
+// so the dragged block's connection is never closer to the lower script than to the upper one. Workspace units.
+export const STACK_BLOCK_HEIGHT = 48;
+export const SNAP_RADIUS = 48;
+export const GAP_ROOM = STACK_BLOCK_HEIGHT + SNAP_RADIUS; // 96 workspace units
+// The workspace zoom when the caller does not pass one (the editor's default, 0.675).
+export const DEFAULT_SCALE = 0.675;
+export const scriptGap = (scale = DEFAULT_SCALE) => Math.max(SCRIPT_GAP, Math.ceil(GAP_ROOM * scale));
 export const COLUMN_GAP = 24;
 
 // The free band every column keeps at its bottom, so a next block and the guide's drop outline under the last script
@@ -43,10 +57,49 @@ export const TYPICAL_COLUMN_WIDTH = 260;
 // The first column's right edge, as a distance from the right edge of an area `viewWidth` wide.
 export const rightMargin = viewWidth => Math.max(0, Math.min(RIGHT_MARGIN, viewWidth - TYPICAL_COLUMN_WIDTH));
 
-// scripts: [{width, height}]; view: {width, height} of the visible code area.
+// How many columns side by side fit `avail` px, given the scripts dealt to them in order (script i to column i % c).
+const columnWidths = (scripts, c) => {
+    const widths = new Array(c).fill(0);
+    scripts.forEach((script, i) => {
+        widths[i % c] = Math.max(widths[i % c], script.width);
+    });
+    return widths;
+};
+const sum = list => list.reduce((a, b) => a + b, 0);
+export const columnsAcross = (scripts, view) => {
+    const avail = view.width - rightMargin(view.width) - SCRIPT_GAP; // a margin is kept on the far side too
+    for (let c = scripts.length; c >= 2; c--) {
+        const widths = columnWidths(scripts, c);
+        if (sum(widths) + ((c - 1) * COLUMN_GAP) <= avail) return c;
+    }
+    return 1;
+};
+
+// scripts: [{width, height}]; view: {width, height, scale?} of the visible code area (scale: the workspace zoom).
 // Returns {positions: [{right, top}], columns}: for each script, the distance of its right edge from the area's right
 // edge and of its top from the area's top (so a script is right-aligned in its column); `columns` counts the columns.
 export const layoutScripts = (scripts, view) => {
+    const gap = scriptGap(view.scale);
+    const across = columnsAcross(scripts, view);
+    if (across >= 2) {
+        const widths = columnWidths(scripts, across);
+        const rights = [];
+        let right = rightMargin(view.width);
+        widths.forEach(w => {
+            rights.push(right);
+            right += w + COLUMN_GAP;
+        });
+        const bottoms = new Array(across).fill(null);
+        const positions = scripts.map((script, i) => {
+            const col = i % across;
+            const top = bottoms[col] === null ? TOP_MARGIN : bottoms[col] + gap;
+            bottoms[col] = top + script.height;
+            return {right: rights[col], top};
+        });
+        // the stacks must keep the free band at the bottom, else the old fill below spills to the left instead
+        const fits = positions.every((p, i) => p.top + scripts[i].height + BOTTOM_BAND <= view.height);
+        if (fits) return {positions, columns: Math.min(across, scripts.length)};
+    }
     const positions = [];
     let columns = 0;
     let right = rightMargin(view.width); // the open column's right edge
@@ -54,14 +107,14 @@ export const layoutScripts = (scripts, view) => {
     let bottom = 0; // ...and where its last script ends
     let count = 0; // ...how many scripts it holds
     for (const script of scripts) {
-        if (count > 0 && bottom + SCRIPT_GAP + script.height + BOTTOM_BAND > view.height) {
+        if (count > 0 && bottom + gap + script.height + BOTTOM_BAND > view.height) {
             // does not fit under the last one (a script taller than the view never does): the next column, to the left
             right += width + COLUMN_GAP;
             width = 0;
             count = 0;
         }
         if (count === 0) columns++;
-        const top = count === 0 ? TOP_MARGIN : bottom + SCRIPT_GAP;
+        const top = count === 0 ? TOP_MARGIN : bottom + gap;
         positions.push({right, top});
         width = Math.max(width, script.width);
         bottom = top + script.height;

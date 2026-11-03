@@ -21,7 +21,7 @@ const tidyBlocks = () => {
         return {width: width * scale, height: height * scale};
     });
     // the horizontal scrollbar may sit over the bottom of the area when the columns need it
-    const view = {width: area.width, height: area.height - SB.Scrollbar.scrollbarThickness};
+    const view = {width: area.width, height: area.height - SB.Scrollbar.scrollbarThickness, scale};
     const {positions} = layoutScripts(sizes, view);
     // the area's top right corner in workspace units
     const cornerX = (area.right - ctm.e) / ctm.a;
