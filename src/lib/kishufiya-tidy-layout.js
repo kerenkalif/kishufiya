@@ -57,7 +57,7 @@ export const TYPICAL_COLUMN_WIDTH = 260;
 // The first column's right edge, as a distance from the right edge of an area `viewWidth` wide.
 export const rightMargin = viewWidth => Math.max(0, Math.min(RIGHT_MARGIN, viewWidth - TYPICAL_COLUMN_WIDTH));
 
-// How many columns side by side fit `avail` px, given the scripts dealt to them in order (script i to column i % c).
+// Each of `c` columns is as wide as the widest script dealt to it (script i to column i % c).
 const columnWidths = (scripts, c) => {
     const widths = new Array(c).fill(0);
     scripts.forEach((script, i) => {
@@ -66,6 +66,7 @@ const columnWidths = (scripts, c) => {
     return widths;
 };
 const sum = list => list.reduce((a, b) => a + b, 0);
+// How many columns side by side fit the visible width, given the scripts dealt to them in order.
 export const columnsAcross = (scripts, view) => {
     const avail = view.width - rightMargin(view.width) - SCRIPT_GAP; // a margin is kept on the far side too
     for (let c = scripts.length; c >= 2; c--) {
