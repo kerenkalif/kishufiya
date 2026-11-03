@@ -1,5 +1,5 @@
 // The name window holds the child to the name the guide asks for (platform decision 52).
-import {nameAccepted, nameProblem, promptKind, setNameAsk} from '../../../src/components/kishufiya-guide/name-ask.js';
+import {keptProblem, nameAccepted, nameProblem, promptKind, setNameAsk} from '../../../src/components/kishufiya-guide/name-ask.js';
 
 describe('name-ask', () => {
     afterEach(() => setNameAsk({clear: true}));
@@ -62,5 +62,35 @@ describe('name-ask', () => {
         expect(nameProblem('variable', 'אחר')).toBe('x');
         nameAccepted('variable');
         expect(nameProblem('variable', 'אחר')).toBeNull();
+    });
+
+    // platform decision 58: a kept variable ("לזכור לפעם הבאה 📌") is asked for - the window waits for its box
+    describe('a kept variable', () => {
+        const ask = () => setNameAsk({name: 'שיא', kind: 'variable', ci: false, wrong: 'x', keptMissing: 'tick it'});
+
+        test('the right name with the box not ticked is held; ticked, or another name, is not this problem', () => {
+            ask();
+            expect(keptProblem('variable', 'שיא', false, true)).toBe('tick it');
+            expect(keptProblem('variable', 'שיא', true, true)).toBeNull();
+            expect(keptProblem('variable', 'אחר', false, true)).toBeNull(); // nameProblem says that one
+        });
+
+        test('a list window, a message window and a rename are never held for the box', () => {
+            ask();
+            expect(keptProblem('list', 'שיא', false, true)).toBeNull();
+            expect(keptProblem('message', 'שיא', false, true)).toBeNull();
+            expect(keptProblem(null, 'שיא', false, true)).toBeNull();
+        });
+
+        test('no box to tick (not shown, or disabled by the limit): the window closes', () => {
+            ask();
+            expect(keptProblem('variable', 'שיא', false, false)).toBeNull();
+            expect(keptProblem('variable', 'שיא', false, undefined)).toBeNull();
+        });
+
+        test('an ordinary variable asked for holds nothing about the box', () => {
+            setNameAsk({name: 'ניקוד', kind: 'variable', ci: false, wrong: 'x'});
+            expect(keptProblem('variable', 'ניקוד', false, true)).toBeNull();
+        });
     });
 });

@@ -48,7 +48,7 @@ class Prompt extends React.Component {
         // כישופייה (decision 52): the guide asks for a name and this is another one - nothing is made, the window stays
         const typed = this.input ? this.input.value : this.state.inputValue;
         const kind = promptKind({varType: this.props.varType, showVariableOptions: this.props.showVariableOptions});
-        const problem = nameProblem(kind, typed) || keptProblem(kind, typed, this.state.cloudSelected && this.state.canAddCloudVariable);
+        const problem = nameProblem(kind, typed) || keptProblem(kind, typed, this.state.cloudSelected, this.props.showCloudOption && this.state.canAddCloudVariable);
         if (problem) {
             this.setState({nameError: problem, inputValue: typed});
             if (this.input) {

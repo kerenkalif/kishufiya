@@ -38,7 +38,9 @@ export const nameProblem = (kind, typed) => {
 };
 
 // The words to show when the right name is typed in a window that must make a kept variable and its box is not ticked; null otherwise.
-export const keptProblem = (kind, typed, ticked) => {
-    if (nameProblem(kind, typed) || !ask || !ask.keptMissing || ticked) return null;
-    return ask.keptMissing;
+// Only a window of the asked kind is held (a list, a message, a rename is not), and only while the box is there to be ticked
+// (`available`: shown and not disabled - the game's limit of kept variables reached lets the window close).
+export const keptProblem = (kind, typed, ticked, available) => {
+    if (!ask || !kind || ask.kind !== kind || !ask.keptMissing || !available || ticked) return null;
+    return nameProblem(kind, typed) ? null : ask.keptMissing;
 };
