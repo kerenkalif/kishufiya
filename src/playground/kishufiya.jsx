@@ -90,7 +90,8 @@ let gameId = null; // the open game's id in "המשחקים שלי"
 let knownTitle = null; // the name as the platform has it: a change from it is the child's
 
 // The game as the lesson sees it, a moment after a change: dragging a block fires many changes, and a
-// change that leaves the game as it was (a click on a block) sends nothing. Measured 2026-10-24, on the
+// change that leaves the game as it was sends nothing. A click on a block is no change to the VM, yet it
+// can change the game ("העבר לשכבה ה" reorders the sprites): see PROJECT_RUN_STOP below. Measured 2026-10-24, on the
 // saved (compressed) form: the biggest lesson game was 27KB and the lesson's check of it took about 3ms -
 // the uncompressed form sent since 2026-10-25 is larger, not measured again.
 let projectTimer = null;
@@ -193,6 +194,11 @@ const onVmInit = _vm => {
         if (dirty) return;
         dirty = true;
         post({kishufiya: 'changed'});
+    });
+    // Once the scripts that ran have ended: a click's changes (the layers, a position) are applied by then,
+    // and a forever loop sends nothing while it runs. A game that did not change is dropped by sendProject.
+    vm.runtime.on('PROJECT_RUN_STOP', () => {
+        if (!loading) sendProject();
     });
     vm.on('EXTENSION_ADDED', () => sendProject()); // the pen, for one, is not a change of the project for the VM
 };
