@@ -1,7 +1,7 @@
 // "Tidy up blocks": where the scripts go (src/lib/kishufiya-tidy-layout.js, platform decision 49).
 //   npx jest test/unit/kishufiya-tidy
 import {BOTTOM_BAND, COLUMN_GAP, DEFAULT_SCALE, GAP_ROOM, RIGHT_MARGIN, SCRIPT_GAP, TOP_MARGIN, TYPICAL_COLUMN_WIDTH, columnsAcross,
-    layoutScripts, rightMargin, scriptGap}
+    layoutScripts, layoutScriptsLong, rightMargin, scriptGap}
     from '../../../src/lib/kishufiya-tidy-layout.js';
 
 const view = {width: 1000, height: 600};
@@ -158,5 +158,43 @@ describe('the free band at the bottom of a column', () => {
         const scripts = Array.from({length: 25}, (_, i) => script(100, 60 + (i * 37) % 120));
         const {positions} = layoutScripts(scripts, view);
         positions.forEach((p, i) => { if (scripts[i].height + TOP_MARGIN + BOTTOM_BAND <= view.height) expect(p.top + scripts[i].height + BOTTOM_BAND).toBeLessThanOrEqual(view.height); });
+    });
+});
+
+describe('rule 8: the long layout, one column', () => {
+    test('every script under the one before it, gap between, right edge at the right margin, from the top margin', () => {
+        const {positions, columns} = layoutScriptsLong([script(200, 100), script(120, 80), script(300, 50)], view);
+        expect(positions).toEqual([
+            {right: RIGHT_MARGIN, top: TOP_MARGIN},
+            {right: RIGHT_MARGIN, top: TOP_MARGIN + 100 + GAP},
+            {right: RIGHT_MARGIN, top: TOP_MARGIN + 100 + GAP + 80 + GAP}
+        ]);
+        expect(columns).toBe(1);
+    });
+    test('it never spills to the left: scripts taller than the view in total, or each, stay in the one column', () => {
+        const {positions, columns} = layoutScriptsLong([script(200, 500), script(200, 900), script(200, 700)], view);
+        expect(new Set(positions.map(p => p.right))).toEqual(new Set([RIGHT_MARGIN]));
+        expect(positions[2].top).toBe(TOP_MARGIN + 500 + GAP + 900 + GAP);
+        expect(columns).toBe(1);
+    });
+    test('a wide area does not put scripts side by side', () => {
+        const {positions} = layoutScriptsLong([script(100, 100), script(100, 100), script(100, 100)], {width: 3000, height: 600});
+        expect(new Set(positions.map(p => p.right)).size).toBe(1);
+    });
+    test('a narrow area still gets one column, with the shrunk margin', () => {
+        const {positions} = layoutScriptsLong([script(200, 100), script(200, 100)], {width: TYPICAL_COLUMN_WIDTH + 100, height: 600});
+        expect(positions.map(p => p.right)).toEqual([100, 100]);
+    });
+    test('the gap follows the zoom, as in the wide layout', () => {
+        const {positions} = layoutScriptsLong([script(200, 100), script(200, 100)], {...view, scale: 1});
+        expect(positions[1].top - positions[0].top).toBe(100 + scriptGap(1));
+    });
+    test('nothing to place; the same answer as the wide layout for one script', () => {
+        expect(layoutScriptsLong([], view)).toEqual({positions: [], columns: 0});
+        expect(layoutScriptsLong([script(200, 100)], view)).toEqual(layoutScripts([script(200, 100)], view));
+    });
+    test('the wide layout is unchanged: it still goes side by side where it fits', () => {
+        const {positions} = layoutScripts([script(100, 100), script(100, 100)], view);
+        expect(new Set(positions.map(p => p.right)).size).toBe(2);
     });
 });

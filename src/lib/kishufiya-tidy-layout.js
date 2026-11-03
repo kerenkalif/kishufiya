@@ -1,5 +1,7 @@
 // כישופייה: where "Tidy up blocks" puts the scripts (Keren, 2026-11-02; platform SPEC-lesson-flow, decision 50).
 // Pure: sizes in, places out, so the rules are tested without a workspace (test/unit/kishufiya-tidy).
+// Two layouts (Keren, 2026-11-03), the two items of the workspace right-click menu: layoutScripts, "wide" (rules 1-7,
+// and what the automatic tidy always uses), and layoutScriptsLong, "long" (rule 8).
 //
 // The rules, in the order the layout applies them:
 //   1. the scripts keep the order they are given (the caller sorts them by position, top blocks first)
@@ -15,6 +17,8 @@
 //      script; scriptGap() between scripts, COLUMN_GAP between columns
 //   6. a script taller than the view stands alone in its column, from the top
 //   7. columns that do not fit the visible width continue to the left - never a second row of columns
+//   8. (long) rules 1-3 hold; every script is in ONE column, under the one before it with scriptGap() between them,
+//      however tall the column gets: it never spills to the left, and the child scrolls down
 // All numbers are screen pixels (the caller multiplies workspace sizes by the workspace scale and divides back).
 
 export const TOP_MARGIN = 16;
@@ -122,4 +126,18 @@ export const layoutScripts = (scripts, view) => {
         count++;
     }
     return {positions, columns};
+};
+
+// The long layout: one column, as far down as the scripts take it (the child scrolls down). Same arguments as
+// layoutScripts; the area's width and scale only set the right margin and the gap, the height is not used.
+export const layoutScriptsLong = (scripts, view) => {
+    const gap = scriptGap(view.scale);
+    const right = rightMargin(view.width);
+    let top = TOP_MARGIN;
+    const positions = scripts.map(script => {
+        const place = {right, top};
+        top += script.height + gap;
+        return place;
+    });
+    return {positions, columns: Math.min(1, scripts.length)};
 };
