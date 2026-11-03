@@ -9,6 +9,7 @@
             "DELETE_BLOCK": {"was": "מחק לבנה", "is": "מחק בלוק"},
             "DELETE_X_BLOCKS": {"was": "מחק %1 לבנים ", "is": "מחק %1 בלוקים "},
             "DELETE_ALL_BLOCKS": {"was": "למחוק את כל הלבנים של %1?", "is": "למחוק את כל הבלוקים של %1?"},
+            "CLEAN_UP": {"was": "סדר לבנים", "is": "סדר בלוקים"},
             "NEW_PROCEDURE": {"was": "יצירת לבנה", "is": "יצירת בלוק"},
             "PROCEDURE_DEFAULT_NAME": {"was": "שם הלבנה", "is": "שם הבלוק"}
         }
