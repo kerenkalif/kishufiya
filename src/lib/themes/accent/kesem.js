@@ -1,9 +1,9 @@
 // "קסם הקוד" brand accent for הכישופייה: teal (#009999 / #007373) with the brand's yellow for highlights.
-// The menu bar's fill. White text on #009999 is 3.5:1 (WCAG AA needs 4.5:1); #007373 is 5.7:1. Keren has not decided
-// the colour yet, so the brand teal stays and this one line is the switch: MENU_BAR_BACKGROUND = MENU_BAR_TEAL_DARK.
+// The menu bar's fill. White text on #009999 is 3.5:1 (WCAG AA needs 4.5:1); #007373 is 5.7:1. Keren chose the dark teal
+// (4.11). This one line is the switch: MENU_BAR_TEAL brings back the brand teal.
 const MENU_BAR_TEAL = '#009999';
 const MENU_BAR_TEAL_DARK = '#007373';
-const MENU_BAR_BACKGROUND = MENU_BAR_TEAL;
+const MENU_BAR_BACKGROUND = MENU_BAR_TEAL_DARK;
 
 const guiColors = {
     'menu-bar-background': MENU_BAR_BACKGROUND,
