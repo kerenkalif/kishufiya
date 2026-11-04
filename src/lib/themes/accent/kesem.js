@@ -1,5 +1,16 @@
 // "קסם הקוד" brand accent for הכישופייה: teal (#009999 / #007373) with the brand's yellow for highlights.
+// The menu bar's fill. White text on #009999 is 3.5:1 (WCAG AA needs 4.5:1); #007373 is 5.7:1. Keren has not decided
+// the colour yet, so the brand teal stays and this one line is the switch: MENU_BAR_BACKGROUND = MENU_BAR_TEAL_DARK.
+const MENU_BAR_TEAL = '#009999';
+const MENU_BAR_TEAL_DARK = '#007373';
+const MENU_BAR_BACKGROUND = MENU_BAR_TEAL;
+
 const guiColors = {
+    'menu-bar-background': MENU_BAR_BACKGROUND,
+    // The project-name field sits on the bar: a dark fill keeps its white text above 4.5:1 on either teal.
+    'project-title-inactive': 'rgba(0, 0, 0, 0.3)',
+    'project-title-hover': 'rgba(0, 0, 0, 0.4)',
+
     'motion-primary': '#009999',
     'motion-primary-transparent': '#009999e6',
     'motion-tertiary': '#007373',

@@ -417,7 +417,7 @@ class MenuBar extends React.Component {
                 onOpen={this.props.onRequestOpenAbout}
                 onClose={this.props.onRequestCloseAbout}
             >
-                <img
+                <img alt=""
                     className={styles.aboutIcon}
                     src={aboutIcon}
                     draggable={false}
@@ -519,13 +519,13 @@ class MenuBar extends React.Component {
                                 onOpen={this.props.onClickErrors}
                                 onClose={this.props.onRequestCloseErrors}
                             >
-                                <img
+                                <img alt=""
                                     src={errorIcon}
                                     draggable={false}
                                     width={20}
                                     height={20}
                                 />
-                                <img
+                                <img alt=""
                                     src={dropdownCaret}
                                     draggable={false}
                                     width={8}
@@ -588,7 +588,7 @@ class MenuBar extends React.Component {
                                 onOpen={this.props.onClickFile}
                                 onClose={this.props.onRequestCloseFile}
                             >
-                                <img
+                                <img alt=""
                                     src={fileIcon}
                                     draggable={false}
                                     width={20}
@@ -601,7 +601,7 @@ class MenuBar extends React.Component {
                                         id="gui.menuBar.file"
                                     />
                                 </span>
-                                <img
+                                <img alt=""
                                     src={dropdownCaret}
                                     draggable={false}
                                     width={8}
@@ -695,7 +695,7 @@ class MenuBar extends React.Component {
                             onOpen={this.props.onClickEdit}
                             onClose={this.props.onRequestCloseEdit}
                         >
-                            <img
+                            <img alt=""
                                 src={editIcon}
                                 draggable={false}
                                 width={20}
@@ -708,7 +708,7 @@ class MenuBar extends React.Component {
                                     id="gui.menuBar.edit"
                                 />
                             </span>
-                            <img
+                            <img alt=""
                                 src={dropdownCaret}
                                 draggable={false}
                                 width={8}
@@ -865,7 +865,7 @@ class MenuBar extends React.Component {
                                 role="button"
                                 title={this.props.intl.formatMessage(kishufiyaMessages.tidyBlocks)}
                             >
-                                <img
+                                <img alt=""
                                     src={tidyIcon}
                                     draggable={false}
                                     width={20}
@@ -881,7 +881,7 @@ class MenuBar extends React.Component {
                                 className={classNames(styles.menuBarItem, styles.hoverable)}
                                 onClick={this.props.onClickAddonSettings}
                             >
-                                <img
+                                <img alt=""
                                     src={addonsIcon}
                                     draggable={false}
                                     width={20}
@@ -901,7 +901,7 @@ class MenuBar extends React.Component {
                                 className={classNames(styles.menuBarItem, styles.hoverable)}
                                 onClick={this.props.onClickSettingsModal}
                             >
-                                <img
+                                <img alt=""
                                     src={advancedIcon}
                                     draggable={false}
                                     width={20}

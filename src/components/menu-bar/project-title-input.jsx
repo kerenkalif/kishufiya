@@ -12,6 +12,11 @@ const BufferedInput = BufferedInputHOC(Input);
 import styles from './project-title-input.css';
 
 const messages = defineMessages({
+    projectTitleLabel: {
+        id: 'kishufiya.menuBar.projectTitleLabel',
+        description: 'Accessible name of the project title field',
+        defaultMessage: 'Project title'
+    },
     projectTitlePlaceholder: {
         id: 'gui.gui.projectTitlePlaceholder',
         description: 'Placeholder for project title when blank',
@@ -26,6 +31,7 @@ const ProjectTitleInput = ({
     projectTitle
 }) => (
     <BufferedInput
+        aria-label={intl.formatMessage(messages.projectTitleLabel)}
         className={classNames(styles.titleField, className)}
         maxLength="100"
         placeholder={intl.formatMessage(messages.projectTitlePlaceholder)}

@@ -10,6 +10,12 @@ import guiWords from './kishufiya-gui-words.json';
 const addedMessages = {
     he: {
         'kishufiya.menuBar.tidyBlocks': 'ארגן בלוקים',
+        'kishufiya.menuBar.projectTitleLabel': 'שם הפרויקט',
+        // Tooltips scratch-l10n has no Hebrew for (accessibility audit 8-4)
+        'gui.stageHeader.stageSizeLarge': 'עברו לבמה קטנה',
+        'gui.stageHeader.stageSizeSmall': 'עברו לבמה מלאה',
+        'gui.SpriteInfo.showSpriteAction': 'הצג דמות',
+        'gui.SpriteInfo.hideSpriteAction': 'הסתר דמות',
         'kishufiya.library.multiHint': 'סומנו {count}. לחיצה ארוכה נוספת על דמות מסומנת מוסיפה את כולן',
         'kishufiya.library.multiHintCtrl': 'סומנו {count}. עזבו את Ctrl כדי להוסיף את כולן'
     }
