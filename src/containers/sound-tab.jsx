@@ -28,8 +28,7 @@ import {connect} from 'react-redux';
 
 import {
     closeSoundLibrary,
-    openSoundLibrary,
-    openSoundRecorder
+    openSoundLibrary
 } from '../reducers/modals';
 
 import {
@@ -287,7 +286,6 @@ SoundTab.propTypes = {
     onActivateCostumesTab: PropTypes.func.isRequired,
     onCloseImporting: PropTypes.func.isRequired,
     onNewSoundFromLibraryClick: PropTypes.func.isRequired,
-    onNewSoundFromRecordingClick: PropTypes.func.isRequired,
     onRequestCloseSoundLibrary: PropTypes.func.isRequired,
     onShowImporting: PropTypes.func.isRequired,
     soundLibraryVisible: PropTypes.bool,
@@ -321,9 +319,6 @@ const mapDispatchToProps = dispatch => ({
     onNewSoundFromLibraryClick: e => {
         e.preventDefault();
         dispatch(openSoundLibrary());
-    },
-    onNewSoundFromRecordingClick: () => {
-        dispatch(openSoundRecorder());
     },
     onRequestCloseSoundLibrary: () => {
         dispatch(closeSoundLibrary());
