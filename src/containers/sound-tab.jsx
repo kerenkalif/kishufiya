@@ -8,7 +8,6 @@ import AssetPanel from '../components/asset-panel/asset-panel.jsx';
 import soundIcon from '../components/asset-panel/icon--sound.svg';
 import soundIconRtl from '../components/asset-panel/icon--sound-rtl.svg';
 import addSoundFromLibraryIcon from '../components/asset-panel/icon--add-sound-lib.svg';
-import addSoundFromRecordingIcon from '../components/asset-panel/icon--add-sound-record.svg';
 import fileUploadIcon from '../components/action-menu/icon--file-upload.svg';
 import surpriseIcon from '../components/action-menu/icon--surprise.svg';
 import searchIcon from '../components/action-menu/icon--search.svg';
@@ -180,8 +179,7 @@ class SoundTab extends React.Component {
             intl,
             isRtl,
             vm,
-            onNewSoundFromLibraryClick,
-            onNewSoundFromRecordingClick
+            onNewSoundFromLibraryClick
         } = this.props;
 
         if (!vm.editingTarget) {
@@ -242,10 +240,6 @@ class SoundTab extends React.Component {
                     title: intl.formatMessage(messages.surpriseSound),
                     img: surpriseIcon,
                     onClick: this.handleSurpriseSound
-                }, {
-                    title: intl.formatMessage(messages.recordSound),
-                    img: addSoundFromRecordingIcon,
-                    onClick: onNewSoundFromRecordingClick
                 }, {
                     title: intl.formatMessage(messages.addSound),
                     img: searchIcon,

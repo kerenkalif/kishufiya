@@ -50,6 +50,8 @@ const HIDDEN_FROM_MENU = new Set([
     'wedo2',
     'gdxfor',
     'faceSensing',
+    // Camera and microphone are off in Kishufiya by decision (platform 4.11): the video sensing extension would only fail.
+    'videoSensing',
     'custom_extension'
 ]);
 
