@@ -18,6 +18,8 @@
 //   {blockId}                                  one block of the open sprite's code, by id
 //   {category: id}                             a category of the palette (motion, looks, control, ...)
 //   {ui: name}                                 a part of the editor, see UI below
+//                                              the sprite info's fields (sprite-name, -x, -y, -size, -direction, -visible):
+//                                              missing 'pane-hidden' while the pane is folded away or not drawn (decision 65)
 //   {sprite: name}                             a sprite's tile in the sprite list; with a block, a category
 //                                              or a button, the sprite they belong to
 //   {library: name}                            an item of the open library (sprites, backdrops...) by
@@ -90,25 +92,29 @@ const UI = {
     'sound-list': '[class*="selector_list-area_"]',
     'sprite-list': '[class*="sprite-selector_items-wrapper_"]',
     'menu-bar': '[class*="menu-bar_menu-bar_"]',
-    'sprite-name': '[class*="sprite-info_sprite-info_"] input[type="text"]',
+    // the sprite info's fields by the editor's own marks (data-guide in sprite-info.jsx, direction-picker.jsx,
+    // toggle-buttons.jsx): no index, no label text (translated) - a field cannot be taken for its neighbour
+    'sprite-name': '[data-guide="sprite-name"]',
+    'sprite-x': '[data-guide="sprite-x"]',
+    'sprite-y': '[data-guide="sprite-y"]',
+    'sprite-size': '[data-guide="sprite-size"]',
+    // the direction box itself: it is in the DOM also while the dial popover is closed (the popover opens on its focus)
+    'sprite-direction': '[data-guide="sprite-direction"]',
+    // the show / hide pair of buttons (both, as the child sees them)
+    'sprite-visible': '[data-guide="sprite-visible"]',
     'variable-kept': '[class*="prompt_cloud-option_"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
-import {coveredBy, firstScriptSpot, libraryMissing, samplePoints, spriteOnStage, stagePointOf, stagePointOnScreen,
+import {coveredBy, fieldInPane, firstScriptSpot, libraryMissing, samplePoints, spriteOnStage, stagePointOf, stagePointOnScreen,
     typing} from './detect.js';
 
 // The tab a list lives in: while another tab is open the tab is pointed at first, like a closed category.
 export const TAB_OF_LIST = {'costume-list': 'costumes-tab', 'sound-list': 'sounds-tab'};
 
-// The sprite's numbers, in the order the sprite info shows them.
-const NUMBERS = {'sprite-x': 0, 'sprite-y': 1, 'sprite-size': 2, 'sprite-direction': 3};
-export const uiElement = name => {
-    if (name in NUMBERS) {
-        return document.querySelectorAll('[class*="sprite-info_sprite-info_"] input[type="number"]')[NUMBERS[name]] ||
-            null;
-    }
-    return UI[name] ? document.querySelector(UI[name]) : null;
-};
+// The sprite info pane's parts: when the pane is collapsed or not drawn, they are missing 'pane-hidden' (not 'ui').
+const PANE_FIELDS = new Set(['sprite-name', 'sprite-x', 'sprite-y', 'sprite-size', 'sprite-direction', 'sprite-visible']);
+export const isPaneField = name => PANE_FIELDS.has(name);
+export const uiElement = name => (UI[name] ? document.querySelector(UI[name]) : null);
 
 // A window of the editor over it (a library, a prompt), and in a prompt the box to name a new message or
 // variable.
@@ -435,9 +441,14 @@ export const resolve = (target, vm) => {
     if (target.ui) {
         const el = uiElement(target.ui);
         const rect = rectOf(el);
+        // a field of the sprite info pane in a pane that is folded away (its inputs keep a rect, clipped to nothing)
+        if (PANE_FIELDS.has(target.ui) && !fieldInPane(rectOf(uiElement('sprite-info')), rect)) {
+            return {missing: 'pane-hidden'};
+        }
         // a box to type in (the sprite's name, size...): its value, as for a block's field
         const value = el && el.tagName === 'INPUT' ? el.value : null;
         const input = Boolean(el && el.tagName === 'INPUT');
+        if (!rect && target.ui === 'sprite-info') return {missing: 'pane-hidden'};
         return rect ? {rect, via: 'ui', value, raw: value, input} : {missing: 'ui'};
     }
     if (target.libraryTag) {

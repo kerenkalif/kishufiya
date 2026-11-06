@@ -5,8 +5,9 @@ import classNames from 'classnames';
 import TWRenderRecoloredImage from '../../lib/tw-recolor/render.jsx';
 import styles from './toggle-buttons.css';
 
-const ToggleButtons = ({buttons, className, disabled}) => (
+const ToggleButtons = ({buttons, className, disabled, guide}) => (
     <div
+        data-guide={guide}
         className={classNames(
             className,
             styles.row,
@@ -45,7 +46,8 @@ ToggleButtons.propTypes = {
         isSelected: PropTypes.bool
     })),
     className: PropTypes.string,
-    disabled: PropTypes.bool
+    disabled: PropTypes.bool,
+    guide: PropTypes.string
 };
 
 ToggleButtons.defaultProps = {

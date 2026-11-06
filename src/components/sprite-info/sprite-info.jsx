@@ -97,6 +97,7 @@ class SpriteInfo extends React.Component {
                 placeholder={this.props.intl.formatMessage(messages.spritePlaceholder)}
                 tabIndex="0"
                 type="text"
+                data-guide="sprite-name"
                 value={this.props.disabled ? '' : this.props.name}
                 onSubmit={this.props.onChangeName}
             />
@@ -121,6 +122,7 @@ class SpriteInfo extends React.Component {
                         small
                         disabled={this.props.disabled}
                         placeholder="x"
+                        data-guide="sprite-x"
                         tabIndex="0"
                         type="number"
                         value={this.props.disabled ? '' : Math.round(this.props.x)}
@@ -149,6 +151,7 @@ class SpriteInfo extends React.Component {
                         small
                         disabled={this.props.disabled}
                         placeholder="y"
+                        data-guide="sprite-y"
                         tabIndex="0"
                         type="number"
                         value={this.props.disabled ? '' : Math.round(this.props.y)}
@@ -191,6 +194,7 @@ class SpriteInfo extends React.Component {
                             }
                         ]}
                         disabled={this.props.disabled}
+                        guide="sprite-visible"
                     />
                 </div>
                 <div className={classNames(styles.group, styles.largerInput)}>
@@ -203,6 +207,7 @@ class SpriteInfo extends React.Component {
                             small
                             disabled={this.props.disabled}
                             label={sizeLabel}
+                            data-guide="sprite-size"
                             tabIndex="0"
                             type="number"
                             value={this.props.disabled ? '' : Math.round(this.props.size)}

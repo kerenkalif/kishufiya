@@ -93,6 +93,7 @@ const DirectionPicker = props => (
         >
             <BufferedInput
                 small
+                data-guide="sprite-direction"
                 disabled={props.disabled}
                 label={directionLabel}
                 tabIndex="0"

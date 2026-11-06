@@ -117,11 +117,22 @@ export const libraryMissing = ({open, search, searched, name}) => {
         .toLowerCase() ? 'not-in-library' : null;
 };
 
+// The fields of the sprite info pane (targets.js PANE_FIELDS). The pane can be collapsed (the sprite-properties addon
+// folds it to height 0 with overflow hidden, so its inputs keep a real rect while nothing of them is seen) or not on
+// the screen at all: then a field is not "missing", the pane is hidden - the child opens it. -> true when `rect`
+// (the field's) is really inside what `pane` (the pane's rect, or null) shows.
+export const fieldInPane = (pane, rect) => {
+    if (!pane || !rect || !(pane.width > 0) || !(pane.height > 0)) return false;
+    const slack = 1;
+    return rect.top >= pane.top - slack && rect.bottom <= pane.bottom + slack &&
+        rect.left >= pane.left - slack && rect.right <= pane.right + slack;
+};
+
 // What a quiet guide (guide levels 2-3: nothing drawn) says is missing: only what the child can act on - a sprite
 // covered or hidden, the stage hidden, the focus in a box, a library item. A block not built yet, out of view, a
 // palette scrolling are the usual state at those levels, where nothing points at them: said, they brought a wrong
 // "lost" (K12 review).
-const QUIET_REPORTS = new Set(['covered', 'hidden', 'stage-hidden', 'typing', 'library', 'not-in-library']);
+const QUIET_REPORTS = new Set(['covered', 'hidden', 'stage-hidden', 'pane-hidden', 'typing', 'library', 'not-in-library']);
 export const quietReports = reason => QUIET_REPORTS.has(reason);
 
 // A target missing for a moment is told (guide-missing) only once it stays so for `after` ms, and again when the
