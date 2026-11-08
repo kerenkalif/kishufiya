@@ -160,10 +160,11 @@ export const guideMarking = ({locate, highlight, onTheWay}) => {
     return highlight ? 'soft' : 'none';
 };
 
-// What comes with the red ring (guide.js drawGuide, marking 'ring'): at a target to press - "do this here" - the arrow, the words
-// and, not pressed for a while, a louder ring. A whole script (via 'script', targets.js) is where to look, not what to press: the
-// ring alone. An arrow there pointed at the script's top block, and the child took that block for the answer (platform point-help,
-// 2026-11-08); a louder ring, which grows, would spread over the scripts beside it.
+// What comes with the red ring (guide.js drawGuide, marking 'ring'): at a target to press - "do this here" - the
+// arrow, the words and, not pressed for a while, a louder ring. A whole script (via 'script', targets.js) is where to
+// look, not what to press: the ring alone. An arrow there pointed at the script's top block, and the child took that
+// block for the answer (platform point-help, 2026-11-08); a louder ring, which grows, would spread over the scripts
+// beside it.
 export const ringAlone = via => via === 'script';
 
 // Does a press on the target tell the lesson (guide-clicked)? Only on an action's target: a located one - the thing a

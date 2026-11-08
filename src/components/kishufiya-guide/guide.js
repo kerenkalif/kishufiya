@@ -565,8 +565,8 @@ const drawGuide = () => {
     ring.classList.remove(styles.soft);
     // a point on the stage: a round mark with a white halo, seen on a dark stage too (targets.js stagePoint)
     ring.classList.toggle(styles.point, found.via === 'stage-point');
-    // a whole script (targets.js `script`): the ring alone - no arrow, no words, no louder ring (detect.js ringAlone). Its count starts
-    // again when the guide goes on to a target to press (the script's sprite's tile)
+    // a whole script (targets.js `script`): the ring alone - no arrow, no words, no louder ring (detect.js
+    // ringAlone). Its count starts again when the guide goes on to a target to press (the script's sprite's tile)
     if (ringAlone(found.via)) {
         louderKey = '';
         louder(false);
