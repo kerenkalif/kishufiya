@@ -167,13 +167,14 @@ export const guideMarking = ({locate, highlight, onTheWay}) => {
 // beside it.
 export const ringAlone = via => via === 'script';
 
-// A whole script's ring on the screen (guide.js drawGuide, ringAlone): its box `pad` px out on every side, cut to the code
-// area - a ring over the tabs or off the screen looked broken, and the child only needs to see which script is meant (the
-// manager for Keren, 2026-11-08). A script longer than the view (after the guide's one scroll to it) is ringed where it is
-// seen; a side it goes on past is open, drawn without its edge (guide.css data-open). A side where only the `pad` is cut
-// stays closed: the script itself ends there. `rect`: the script's box; `area`: the code area's, null for no cut.
-// → {ring, seen, open} - the ring's box, the part of the script seen (what guide-at tells) and the open sides ('top',
-// 'bottom', 'left', 'right') - or null when nothing of the script is in the area.
+// A whole script's ring on the screen (guide.js drawGuide, ringAlone): its box `pad` px out on every side, cut
+// to the code area - a ring over the tabs or off the screen looked broken, and the child only needs to see which
+// script is meant (the manager for Keren, 2026-11-08). A script longer than the view (after the guide's one
+// scroll to it) is ringed where it is seen; a side it goes on past is open, drawn without its edge (guide.css
+// data-open). A side where only the `pad` is cut stays closed: the script itself ends there. `rect`: the
+// script's box; `area`: the code area's, null for no cut. → {ring, seen, open} - the ring's box, the part of the
+// script seen (what guide-at tells) and the open sides ('top', 'bottom', 'left', 'right') - or null when nothing
+// of the script is in the area.
 export const scriptRing = (rect, area, pad) => {
     const ring = {left: rect.left - pad, right: rect.right + pad, top: rect.top - pad, bottom: rect.bottom + pad};
     if (!area) return {ring, seen: rect, open: []};

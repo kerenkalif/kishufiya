@@ -535,7 +535,8 @@ const drawGuide = () => {
         hideGuide();
         return;
     }
-    // a whole script with nothing of it in the code area once scrolled to: as out of view - never ringed over the palette
+    // a whole script with nothing of it in the code area once scrolled to: as out of view - it is never ringed
+    // over the palette
     if (ringAlone(found.via) && !scriptRing(found.rect, area, 4)) found.offscreen = true;
     if (found.offscreen) found.missing = 'offscreen';
     if (found.missing) {
