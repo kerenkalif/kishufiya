@@ -167,6 +167,33 @@ export const guideMarking = ({locate, highlight, onTheWay}) => {
 // beside it.
 export const ringAlone = via => via === 'script';
 
+// A whole script's ring on the screen (guide.js drawGuide, ringAlone): its box `pad` px out on every side, cut to the code
+// area - a ring over the tabs or off the screen looked broken, and the child only needs to see which script is meant (the
+// manager for Keren, 2026-11-08). A script longer than the view (after the guide's one scroll to it) is ringed where it is
+// seen; a side it goes on past is open, drawn without its edge (guide.css data-open). A side where only the `pad` is cut
+// stays closed: the script itself ends there. `rect`: the script's box; `area`: the code area's, null for no cut.
+// → {ring, seen, open} - the ring's box, the part of the script seen (what guide-at tells) and the open sides ('top',
+// 'bottom', 'left', 'right') - or null when nothing of the script is in the area.
+export const scriptRing = (rect, area, pad) => {
+    const ring = {left: rect.left - pad, right: rect.right + pad, top: rect.top - pad, bottom: rect.bottom + pad};
+    if (!area) return {ring, seen: rect, open: []};
+    const cut = r => ({
+        left: Math.max(r.left, area.left),
+        right: Math.min(r.right, area.right),
+        top: Math.max(r.top, area.top),
+        bottom: Math.min(r.bottom, area.bottom)
+    });
+    const seen = cut(rect);
+    if (seen.right <= seen.left || seen.bottom <= seen.top) return null;
+    const past = {
+        top: rect.top < area.top,
+        bottom: rect.bottom > area.bottom,
+        left: rect.left < area.left,
+        right: rect.right > area.right
+    };
+    return {ring: cut(ring), seen, open: ['top', 'bottom', 'left', 'right'].filter(side => past[side])};
+};
+
 // Does a press on the target tell the lesson (guide-clicked)? Only on an action's target: a located one - the thing a
 // why window talks about, the block its bubble is beside - is not there to be pressed, and a press on the flag during
 // the window passed the step (platform decision 32 fix, 2026-10-31).

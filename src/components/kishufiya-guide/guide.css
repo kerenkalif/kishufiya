@@ -95,6 +95,60 @@
     box-shadow: 0 0 0 3px #ffffff, 0 0 16px 6px rgba(149, 86, 205, 0.8), inset 0 0 0 3px #ffffff;
 }
 
+/* a whole script longer than the code area's view (guide.js, detect.js scriptRing): the ring is cut at the area's edge, and
+   a side the script goes on past is open - no edge and square corners there, its pulse cut there too, inside the area */
+.ring[data-open~="top"] {
+    border-top-width: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.ring[data-open~="top"]::after {
+    top: 0;
+    border-top-width: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.ring[data-open~="bottom"] {
+    border-bottom-width: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.ring[data-open~="bottom"]::after {
+    bottom: 0;
+    border-bottom-width: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.ring[data-open~="left"] {
+    border-left-width: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.ring[data-open~="left"]::after {
+    left: 0;
+    border-left-width: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.ring[data-open~="right"] {
+    border-right-width: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.ring[data-open~="right"]::after {
+    right: 0;
+    border-right-width: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 /* (the arrow grows slowly instead, in guide.js: sizeArrow) */
 @keyframes louder {
     from { scale: 1; }

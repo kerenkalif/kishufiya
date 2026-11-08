@@ -35,6 +35,7 @@ const element = () => {
             }
         },
         setAttribute: (name, value) => attributes.set(name, String(value)),
+        getAttribute: name => (attributes.has(name) ? attributes.get(name) : null),
         removeAttribute: name => attributes.delete(name),
         hasAttribute: name => attributes.has(name),
         appendChild: child => {
@@ -86,6 +87,11 @@ const block = (id, row, group) => {
 block('hat', at(300, 100, 460, 140), at(300, 100, 560, 292));
 block('turn', at(316, 172, 560, 212), at(316, 172, 560, 212));
 block('say', at(300, 252, 420, 292), at(300, 252, 420, 292));
+// a script of any size and place, for the cut to the code area (null: the one drawn above)
+let scriptAt = null;
+const drawnScript = blocks.hat.getSvgRoot;
+blocks.hat.getSvgRoot = () => (scriptAt ? {getBoundingClientRect: () => scriptAt} : drawnScript());
+const rect = (left, top, right, bottom) => ({left, top, right, bottom, width: right - left, height: bottom - top});
 const centred = [];
 let onCentre = () => {};
 const ws = {
@@ -137,6 +143,7 @@ beforeEach(() => {
     dy = 0;
     zoom = 1;
     drawn = true;
+    scriptAt = null;
     centred.length = 0;
     onCentre = () => {};
 });
@@ -147,6 +154,7 @@ describe('the ring around a whole script', () => {
         jest.advanceTimersByTime(50);
         // the script's box, 4px out on every side as a block's ring is
         expect(ringBox()).toEqual({left: 296, top: 96, width: 268, height: 200});
+        expect(part('ring').getAttribute('data-open')).toBeNull(); // all of it in view: nothing cut
         expect(showing('pointer')).toBe(false);
         expect(showing('bubble')).toBe(false);
         expect(lastAt()).toMatchObject({
@@ -218,16 +226,75 @@ describe('a script out of the code area\'s view: the code scrolls as for a block
         expect(ringBox()).toEqual({left: 296, top: 96, width: 268, height: 200});
         expect(showing('pointer')).toBe(false);
     });
-    test('taller than the code area: scrolled to once, then ringed as it is - no more scrolling', () => {
-        zoom = 4;
+});
+
+// the code area is 0..900 across and 0..700 down (the stand-in workspace's SVG, no palette beside it)
+describe('cut to the code area: never over the tabs, the palette or off the screen', () => {
+    test('taller than the view: scrolled to once, then ringed where it is seen - open at the top and the bottom', () => {
+        scriptAt = rect(300, -200, 560, 1000);
         handleGuide({type: 'guide', id: 5, target: SCRIPT});
         jest.advanceTimersByTime(50);
         expect(centred).toEqual(['hat']);
         jest.advanceTimersByTime(1000);
-        expect(centred).toEqual(['hat']);
-        expect(ringBox()).toEqual({left: 1196, top: 396, width: 1048, height: 776});
+        expect(centred).toEqual(['hat']); // once only, as for a block
+        expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 700});
+        expect(part('ring').getAttribute('data-open')).toBe('top bottom');
         expect(showing('pointer')).toBe(false);
+        // told: the part seen; its whole script's box stays the `clear` to keep off
+        expect(lastAt()).toMatchObject({
+            id: 5,
+            rect: {left: 300, top: 0, width: 260, height: 700},
+            via: 'script',
+            arrow: null,
+            clear: {left: 300, top: -200, width: 260, height: 1200}
+        });
+    });
+    test('going on past the bottom only: open there alone', () => {
+        scriptAt = rect(300, 500, 560, 900);
+        handleGuide({type: 'guide', id: 6, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(ringBox()).toEqual({left: 296, top: 496, width: 268, height: 204});
+        expect(part('ring').getAttribute('data-open')).toBe('bottom');
+        expect(lastAt().rect).toEqual({left: 300, top: 500, width: 260, height: 200});
+    });
+    test('going on under the palette\'s side: cut at the code area\'s edge, open there', () => {
+        scriptAt = rect(700, 100, 1000, 300);
+        handleGuide({type: 'guide', id: 7, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(ringBox()).toEqual({left: 696, top: 96, width: 204, height: 208});
+        expect(part('ring').getAttribute('data-open')).toBe('right');
+    });
+    test('only its 4px past the edge: the ring stops at the edge, closed - the script ends in view, no scroll', () => {
+        scriptAt = rect(300, 2, 560, 200);
+        handleGuide({type: 'guide', id: 8, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(centred).toEqual([]);
+        expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 204});
+        expect(part('ring').getAttribute('data-open')).toBeNull();
+    });
+    test('nothing of it in the code area after the scroll: no ring, and told missing as out of view', () => {
+        scriptAt = rect(950, 100, 1100, 300);
+        handleGuide({type: 'guide', id: 9, target: SCRIPT});
+        jest.advanceTimersByTime(900);
+        expect(centred).toEqual(['hat']);
+        expect(part('ring').style.display).toBe('none');
+        expect(lastAt().rect).toBeNull();
+        expect(told.filter(msg => msg.type === 'guide-missing' && msg.id === 9)).toEqual([
+            {type: 'guide-missing', id: 9, target: SCRIPT, reason: 'offscreen', by: null}
+        ]);
+    });
+    test('a block\'s ring after a cut script: no open side left on it', () => {
+        scriptAt = rect(300, -200, 560, 1000);
+        handleGuide({type: 'guide', id: 10, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(part('ring').getAttribute('data-open')).toBe('top bottom');
+        handleGuide({type: 'guide', id: 11, target: {blockId: 'turn', in: 'code', sprite: 'Cat'}});
+        jest.advanceTimersByTime(50);
+        expect(part('ring').getAttribute('data-open')).toBeNull();
+        expect(ringBox()).toEqual({left: 312, top: 168, width: 252, height: 48});
+        expect(showing('pointer')).toBe(true);
         handleGuide({type: 'guide-clear'});
         jest.advanceTimersByTime(50);
+        expect(part('ring').getAttribute('data-open')).toBeNull();
     });
 });

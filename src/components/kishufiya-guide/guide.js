@@ -8,8 +8,9 @@
 //                                      reached through its category or its sprite's tile (the child has
 //                                      to open it first), textCategory / textSprite replace text.
 //                                      A whole script (a code target with `script: true`, targets.js) is ringed
-//                                      alone: no arrow, no bubble, never the louder ring - 'guide-at' says via
-//                                      'script' and arrow null (platform point-help, 2026-11-08)
+//                                      alone: no arrow, no bubble, never the louder ring, cut to the code area -
+//                                      'guide-at' says via 'script', arrow null and the rect of the part seen
+//                                      (platform point-help, 2026-11-08)
 //                                      quiet: nothing drawn, nothing scrolled - only told where it is and
 //                                      when it is clicked (a guide level that marks nothing, K12 2026-10-28)
 //                                      locate: found as a guide is - the code and the palette scroll to it
@@ -121,7 +122,7 @@
 //                                                   is in
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
 import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
-    quietReports, ranUnder, ringAlone, scriptRan, tellsClick, typing}
+    quietReports, ranUnder, ringAlone, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -462,6 +463,7 @@ const hideGuide = () => {
     sizeArrow(0);
     place(ring, null);
     ring.classList.remove(styles.soft);
+    ring.removeAttribute('data-open');
     pointer.style.display = 'none';
     bubble.style.display = 'none';
     placeGhost(null, null);
@@ -533,6 +535,8 @@ const drawGuide = () => {
         hideGuide();
         return;
     }
+    // a whole script with nothing of it in the code area once scrolled to: as out of view - never ringed over the palette
+    if (ringAlone(found.via) && !scriptRing(found.rect, area, 4)) found.offscreen = true;
     if (found.offscreen) found.missing = 'offscreen';
     if (found.missing) {
         tellMissing(found);
@@ -563,17 +567,22 @@ const drawGuide = () => {
     place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
     // an action's ring after a window's soft mark (the sprite's tile right after the flag's window): red again
     ring.classList.remove(styles.soft);
+    ring.removeAttribute('data-open'); // (a cut script's open sides, below)
     // a point on the stage: a round mark with a white halo, seen on a dark stage too (targets.js stagePoint)
     ring.classList.toggle(styles.point, found.via === 'stage-point');
     // a whole script (targets.js `script`): the ring alone - no arrow, no words, no louder ring (detect.js
-    // ringAlone). Its count starts again when the guide goes on to a target to press (the script's sprite's tile)
+    // ringAlone). Its count starts again when the guide goes on to a target to press (the script's sprite's tile).
+    // Cut to the code area, the sides it goes on past open (detect.js scriptRing); guide-at tells the part seen
     if (ringAlone(found.via)) {
+        const cut = scriptRing(r, area, 4);
+        place(ring, cut.ring);
+        if (cut.open.length) ring.setAttribute('data-open', cut.open.join(' '));
         louderKey = '';
         louder(false);
         pointer.style.display = 'none';
         bubble.style.display = 'none';
         placeGhost(null, null);
-        tellAt(r, found.via, null, found);
+        tellAt(cut.seen, found.via, null, found);
         return;
     }
     const now = performance.now();

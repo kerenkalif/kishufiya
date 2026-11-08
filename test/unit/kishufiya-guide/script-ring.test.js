@@ -4,7 +4,7 @@
 // first-script.test.js.
 //   npx jest test/unit/kishufiya-guide/script-ring
 import {resolve} from '../../../src/components/kishufiya-guide/targets.js';
-import {onTheWay, ringAlone} from '../../../src/components/kishufiya-guide/detect.js';
+import {onTheWay, ringAlone, scriptRing} from '../../../src/components/kishufiya-guide/detect.js';
 
 const box = (left, top, right, bottom) => ({left, top, right, bottom, width: right - left, height: bottom - top});
 const el = r => ({getBoundingClientRect: () => r});
@@ -124,5 +124,39 @@ describe('what comes with the ring', () => {
         const others = ['block', 'field', 'category', 'ui', 'sprite', 'library', 'library-tag', 'search', 'stage-sprite',
             'stage-point', null, undefined];
         for (const via of others) expect(ringAlone(via)).toBe(false);
+    });
+});
+
+describe('the ring cut to the code area (detect.js scriptRing)', () => {
+    const area = box(0, 0, 900, 700);
+    const sides = r => ({left: r.left, top: r.top, right: r.right, bottom: r.bottom});
+    test('all of the script in view: 4px out on every side, nothing cut, nothing open', () => {
+        const cut = scriptRing(script, area, 4);
+        expect(cut.ring).toEqual({left: 296, top: 96, right: 564, bottom: 296});
+        expect(sides(cut.seen)).toEqual(sides(script));
+        expect(cut.open).toEqual([]);
+    });
+    test('taller than the view: cut at the top and the bottom, both open; the part seen is what is told', () => {
+        const cut = scriptRing(box(300, -200, 560, 1000), area, 4);
+        expect(cut.ring).toEqual({left: 296, top: 0, right: 564, bottom: 700});
+        expect(cut.seen).toEqual({left: 300, top: 0, right: 560, bottom: 700});
+        expect(cut.open).toEqual(['top', 'bottom']);
+    });
+    test('going on past one side only: that side alone is open', () => {
+        expect(scriptRing(box(300, 500, 560, 900), area, 4).open).toEqual(['bottom']);
+        expect(scriptRing(box(700, 100, 1000, 300), area, 4).open).toEqual(['right']);
+        expect(scriptRing(box(-50, 100, 200, 300), area, 4).open).toEqual(['left']);
+    });
+    test('only its 4px past the edge: cut there, but closed - the script itself ends in view', () => {
+        const cut = scriptRing(box(300, 2, 560, 200), area, 4);
+        expect(cut.ring).toEqual({left: 296, top: 0, right: 564, bottom: 204});
+        expect(cut.open).toEqual([]);
+    });
+    test('nothing of it in the code area: null (not ringed over the palette)', () => {
+        expect(scriptRing(box(950, 100, 1100, 300), area, 4)).toBeNull();
+        expect(scriptRing(box(300, 702, 560, 900), area, 4)).toBeNull();
+    });
+    test('no code area to cut to: the ring 4px out, as it is', () => {
+        expect(scriptRing(script, null, 4)).toEqual({ring: {left: 296, top: 96, right: 564, bottom: 296}, seen: script, open: []});
     });
 });
