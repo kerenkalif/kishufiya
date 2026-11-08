@@ -149,9 +149,28 @@
     border-bottom-right-radius: 0;
 }
 
-/* ...and a soft mark cut so (a why window's, guide.js seenPart): its edges alone - its halo and glow go round the whole
-   box, so they drew the open sides back and spread over the tabs and the palette */
-.ring.soft[data-open] {
+/* every side cut at the code area's edge, open or closed (detect.js scriptRing edge; an open side is always one): the
+   pulse stays inside the area there - at inset -6px it spread past a closed side on the edge, onto the tabs, the palette
+   or the stage's side (review, 2026-11-09) */
+.ring[data-edge~="top"]::after {
+    top: 0;
+}
+
+.ring[data-edge~="bottom"]::after {
+    bottom: 0;
+}
+
+.ring[data-edge~="left"]::after {
+    left: 0;
+}
+
+.ring[data-edge~="right"]::after {
+    right: 0;
+}
+
+/* ...and a soft mark cut so (a why window's, guide.js seenPart), also where only its 4px margin is cut: its edges alone -
+   its halo and glow go round the whole box, so they drew the open sides back and spread over the tabs and the palette */
+.ring.soft[data-edge] {
     box-shadow: none;
 }
 

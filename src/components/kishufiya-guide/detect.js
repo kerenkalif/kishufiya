@@ -169,17 +169,19 @@ export const ringAlone = via => via === 'script';
 
 // A whole script's ring on the screen (guide.js drawGuide, ringAlone): its box `pad` px out on every side, cut
 // to the code area - a ring over the tabs or off the screen looked broken, and the child only needs to see which
-// script is meant (the manager for Keren, 2026-11-08). A script longer than the view (after the guide's one
-// scroll to it) is ringed where it is seen; a side it goes on past is open, drawn without its edge (guide.css
-// data-open). A side where only the `pad` is cut stays closed: the script itself ends there. Past every side
-// (taller and wider than the view), its sides are drawn at the area's edge and only the top and the bottom are
-// open: open all round, the ring had no line at all while guide-at told it seen (review, 2026-11-08) - and a
-// script is a stack, it goes on up and down. `rect`: the script's box; `area`: the code area's, null for no cut.
-// → {ring, seen, open} - the ring's box, the part of the script seen (what guide-at tells) and the open sides
-// ('top', 'bottom', 'left', 'right') - or null when nothing of the script is in the area.
+// script is meant (the manager for Keren, 2026-11-08). A script longer than the view is ringed where it is seen
+// (the guide scrolls the code to it only while it is not seen as well as the view can show it, scriptInView
+// below); a side it goes on past is open, drawn without its edge (guide.css data-open). A side where only the
+// `pad` is cut stays closed: the script itself ends there. Past every side (taller and wider than the view), its
+// sides are drawn at the area's edge and only the top and the bottom are open: open all round, the ring had no
+// line at all while guide-at told it seen (review, 2026-11-08) - and a script is a stack, it goes on up and down.
+// `rect`: the script's box; `area`: the code area's, null for no cut. → {ring, seen, open, edge} - the ring's
+// box, the part of the script seen (what guide-at tells), the open sides and the sides cut at the area's edge,
+// open or closed ('top', 'bottom', 'left', 'right'; guide.css data-edge keeps the ring's pulse and a soft mark's
+// glow from spreading past them) - or null when nothing of the script is in the area.
 export const scriptRing = (rect, area, pad) => {
     const ring = {left: rect.left - pad, right: rect.right + pad, top: rect.top - pad, bottom: rect.bottom + pad};
-    if (!area) return {ring, seen: rect, open: []};
+    if (!area) return {ring, seen: rect, open: [], edge: []};
     const cut = r => ({
         left: Math.max(r.left, area.left),
         right: Math.min(r.right, area.right),
@@ -198,11 +200,24 @@ export const scriptRing = (rect, area, pad) => {
         past.left = false;
         past.right = false;
     }
-    return {ring: cut(ring), seen, open: ['top', 'bottom', 'left', 'right'].filter(side => past[side])};
+    const atEdge = {
+        top: ring.top < area.top,
+        bottom: ring.bottom > area.bottom,
+        left: ring.left < area.left,
+        right: ring.right > area.right
+    };
+    const sides = ['top', 'bottom', 'left', 'right'];
+    return {
+        ring: cut(ring),
+        seen,
+        open: sides.filter(side => past[side]),
+        edge: sides.filter(side => atEdge[side])
+    };
 };
 
 // Is a whole script seen as well as the code area can show it (guide.js drawGuide: if not, the code scrolls to it,
-// once for each guide message, as to a block)? Along each of the area's sides: all of it, where it fits; where it
+// once for each guide message, as to a block - and not once it was seen so: from then on the child's own scrolling
+// is left alone)? Along each of the area's sides: all of it, where it fits; where it
 // is longer than the view, enough of it to fill half the view - from its middle, from its hat or to its end. A
 // long script is never all in view, and every guide message for it scrolled the code away from where the child
 // had it (review, 2026-11-08). `rect`: the script's box; `area`: the code area's, null for none (→ false, as for

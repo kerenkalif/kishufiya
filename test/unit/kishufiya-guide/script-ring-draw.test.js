@@ -155,6 +155,7 @@ describe('the ring around a whole script', () => {
         // the script's box, 4px out on every side as a block's ring is
         expect(ringBox()).toEqual({left: 296, top: 96, width: 268, height: 200});
         expect(part('ring').getAttribute('data-open')).toBeNull(); // all of it in view: nothing cut
+        expect(part('ring').getAttribute('data-edge')).toBeNull();
         expect(showing('pointer')).toBe(false);
         expect(showing('bubble')).toBe(false);
         expect(lastAt()).toMatchObject({
@@ -274,6 +275,8 @@ describe('cut to the code area: never over the tabs, the palette or off the scre
         expect(centred).toEqual([]);
         expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 204});
         expect(part('ring').getAttribute('data-open')).toBeNull();
+        // ...on the area's edge all the same: its pulse kept inside there, off the tabs (guide.css data-edge)
+        expect(part('ring').getAttribute('data-edge')).toBe('top');
     });
     test('nothing of it in the code area after the scroll: no ring, and told missing as out of view', () => {
         scriptAt = rect(950, 100, 1100, 300);
@@ -291,14 +294,17 @@ describe('cut to the code area: never over the tabs, the palette or off the scre
         handleGuide({type: 'guide', id: 10, target: SCRIPT});
         jest.advanceTimersByTime(250);
         expect(part('ring').getAttribute('data-open')).toBe('top bottom');
+        expect(part('ring').getAttribute('data-edge')).toBe('top bottom');
         handleGuide({type: 'guide', id: 11, target: {blockId: 'turn', in: 'code', sprite: 'Cat'}});
         jest.advanceTimersByTime(50);
         expect(part('ring').getAttribute('data-open')).toBeNull();
+        expect(part('ring').getAttribute('data-edge')).toBeNull();
         expect(ringBox()).toEqual({left: 312, top: 168, width: 252, height: 48});
         expect(showing('pointer')).toBe(true);
         handleGuide({type: 'guide-clear'});
         jest.advanceTimersByTime(50);
         expect(part('ring').getAttribute('data-open')).toBeNull();
+        expect(part('ring').getAttribute('data-edge')).toBeNull();
     });
     test('past every side (taller and wider than the view): its sides drawn at the area\'s edge, open at the top and the ' +
         'bottom - open all round, no line was drawn while guide-at told it seen (review 2026-11-08)', () => {
@@ -307,6 +313,8 @@ describe('cut to the code area: never over the tabs, the palette or off the scre
         jest.advanceTimersByTime(250);
         expect(ringBox()).toEqual({left: 0, top: 0, width: 900, height: 700});
         expect(part('ring').getAttribute('data-open')).toBe('top bottom');
+        // its drawn sides on the edge too: the pulse kept off the palette and the stage's side
+        expect(part('ring').getAttribute('data-edge')).toBe('top bottom left right');
         expect(lastAt()).toMatchObject({id: 12, rect: {left: 0, top: 0, width: 900, height: 700}, via: 'script', arrow: null});
     });
 });
@@ -336,6 +344,16 @@ describe('every marking tells, and marks, only the part seen', () => {
         expect(part('ring').classList.contains('soft')).toBe(true);
         expect(ringBox()).toEqual({left: 296, top: 96, width: 268, height: 200});
         expect(part('ring').getAttribute('data-open')).toBeNull();
+        expect(part('ring').getAttribute('data-edge')).toBeNull(); // its halo and glow as ever
+    });
+    test('...cut only by its 4px margin: nothing open, yet on the edge - its glow kept off the tabs (data-edge)', () => {
+        scriptAt = rect(300, 2, 560, 200);
+        handleGuide({type: 'guide', id: 37, target: SCRIPT, locate: true, highlight: true});
+        jest.advanceTimersByTime(250);
+        expect(part('ring').classList.contains('soft')).toBe(true);
+        expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 204});
+        expect(part('ring').getAttribute('data-open')).toBeNull();
+        expect(part('ring').getAttribute('data-edge')).toBe('top');
     });
     test('located alone: nothing drawn at it, the part seen told', () => {
         scriptAt = rect(300, -200, 560, 1000);
@@ -409,5 +427,30 @@ describe('the code scrolls to a script only when it is not seen as well as it ca
         handleGuide({type: 'guide', id: 43, target: SCRIPT});
         jest.advanceTimersByTime(250);
         expect(centred).toEqual(['hat']);
+    });
+});
+
+// Seen well once, a script is the child's for the rest of the guide (the manager, 2026-11-09): seen at the first look, the
+// code was never scrolled, so a child who then scrolled it away had the code jump back to it while they searched.
+describe('seen well once, the child\'s own scrolling is left alone', () => {
+    test('seen at the first look, then the child scrolls it to a quarter of the view: no scroll back to it', () => {
+        scriptAt = rect(300, 0, 560, 1400); // longer than the view, filling it
+        handleGuide({type: 'guide', id: 44, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(centred).toEqual([]);
+        scriptAt = rect(300, -1225, 560, 175); // the child scrolled: a quarter of the view is the script now
+        jest.advanceTimersByTime(1000);
+        expect(centred).toEqual([]);
+        expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 179});
+        expect(part('ring').getAttribute('data-open')).toBe('top');
+    });
+    test('...a script that fits, all of it in view at first, scrolled half out by the child: no scroll back either', () => {
+        handleGuide({type: 'guide', id: 45, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        dy = -200;
+        jest.advanceTimersByTime(1000);
+        expect(centred).toEqual([]);
+        expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 96});
+        expect(lastAt().rect).toEqual({left: 300, top: 0, width: 260, height: 92});
     });
 });

@@ -135,12 +135,14 @@ describe('the ring cut to the code area (detect.js scriptRing)', () => {
         expect(cut.ring).toEqual({left: 296, top: 96, right: 564, bottom: 296});
         expect(sides(cut.seen)).toEqual(sides(script));
         expect(cut.open).toEqual([]);
+        expect(cut.edge).toEqual([]);
     });
     test('taller than the view: cut at the top and the bottom, both open; the part seen is what is told', () => {
         const cut = scriptRing(box(300, -200, 560, 1000), area, 4);
         expect(cut.ring).toEqual({left: 296, top: 0, right: 564, bottom: 700});
         expect(cut.seen).toEqual({left: 300, top: 0, right: 560, bottom: 700});
         expect(cut.open).toEqual(['top', 'bottom']);
+        expect(cut.edge).toEqual(['top', 'bottom']);
     });
     test('going on past one side only: that side alone is open', () => {
         expect(scriptRing(box(300, 500, 560, 900), area, 4).open).toEqual(['bottom']);
@@ -151,13 +153,19 @@ describe('the ring cut to the code area (detect.js scriptRing)', () => {
         const cut = scriptRing(box(300, 2, 560, 200), area, 4);
         expect(cut.ring).toEqual({left: 296, top: 0, right: 564, bottom: 204});
         expect(cut.open).toEqual([]);
+        // ...yet on the area's edge: its pulse, and a soft mark's glow, kept inside there (guide.css data-edge)
+        expect(cut.edge).toEqual(['top']);
+        const corner = scriptRing(box(2, 100, 200, 698), area, 4);
+        expect(corner.edge).toEqual(['bottom', 'left']);
+        expect(corner.open).toEqual([]);
     });
     test('nothing of it in the code area: null (not ringed over the palette)', () => {
         expect(scriptRing(box(950, 100, 1100, 300), area, 4)).toBeNull();
         expect(scriptRing(box(300, 702, 560, 900), area, 4)).toBeNull();
     });
     test('no code area to cut to: the ring 4px out, as it is', () => {
-        expect(scriptRing(script, null, 4)).toEqual({ring: {left: 296, top: 96, right: 564, bottom: 296}, seen: script, open: []});
+        expect(scriptRing(script, null, 4))
+            .toEqual({ring: {left: 296, top: 96, right: 564, bottom: 296}, seen: script, open: [], edge: []});
     });
     test('past every side (taller and wider than the view): open at the top and the bottom only, its sides drawn at the ' +
         'area\'s edge - open all round, the ring was no line at all while guide-at told it seen (review 2026-11-08)', () => {
@@ -165,6 +173,8 @@ describe('the ring cut to the code area (detect.js scriptRing)', () => {
         expect(cut.ring).toEqual({left: 0, top: 0, right: 900, bottom: 700});
         expect(cut.seen).toEqual({left: 0, top: 0, right: 900, bottom: 700});
         expect(cut.open).toEqual(['top', 'bottom']);
+        // its drawn sides sit on the area's edge: the pulse stays off the palette and the stage's side there
+        expect(cut.edge).toEqual(['top', 'bottom', 'left', 'right']);
     });
     test('past three sides: the fourth is drawn, and they stay open', () => {
         expect(scriptRing(box(-100, -200, 600, 1000), area, 4).open).toEqual(['top', 'bottom', 'left']);
@@ -194,8 +204,14 @@ describe('seen as well as the code area can show it (detect.js scriptInView)', (
         expect(scriptInView(box(300, -1000, 560, 200), area)).toBe(false); // its end high in the view
         expect(scriptInView(box(300, 702, 560, 1900), area)).toBe(false); // none of it
     });
+    test('at the boundary: exactly half the view is seen, a pixel less is not', () => {
+        expect(scriptInView(box(300, 350, 560, 1500), area)).toBe(true);
+        expect(scriptInView(box(300, 351, 560, 1500), area)).toBe(false);
+    });
     test('across as well: a long script cut at the side is not seen', () => {
         expect(scriptInView(box(800, -200, 1060, 1000), area)).toBe(false);
+        // wider than the view, a third of the view's width of it in view
+        expect(scriptInView(box(-1000, 100, 300, 300), area)).toBe(false);
     });
     test('no code area: not seen, as for a block', () => {
         expect(scriptInView(script, null)).toBe(false);

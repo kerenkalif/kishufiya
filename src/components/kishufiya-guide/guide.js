@@ -13,7 +13,8 @@
 //                                      (platform point-help, 2026-11-08) - in every marking below too (quiet,
 //                                      locate; with highlight its soft mark is cut so). The code scrolls to it,
 //                                      as to a block, when it is not seen as well as the area can show it: all
-//                                      of it, or half the view of one longer than the view
+//                                      of it, or half the view of one longer than the view - and not once it
+//                                      was seen so: the child's own scrolling after that is left alone
 //                                      quiet: nothing drawn, nothing scrolled - only told where it is and
 //                                      when it is clicked (a guide level that marks nothing, K12 2026-10-28)
 //                                      locate: found as a guide is - the code and the palette scroll to it
@@ -480,19 +481,25 @@ const hideGuide = () => {
     place(ring, null);
     ring.classList.remove(styles.soft);
     ring.removeAttribute('data-open');
+    ring.removeAttribute('data-edge');
     pointer.style.display = 'none';
     bubble.style.display = 'none';
     placeGhost(null, null);
 };
 
 // The ring (red or soft) at a target, 4px out on every side - a whole script's cut to the code area, the sides it
-// goes on past open (seenPart, guide.css data-open)
+// goes on past open and every side cut at the area's edge said, for its pulse and glow to stay inside (seenPart,
+// guide.css data-open and data-edge)
 const placeRing = found => {
     const r = found.rect;
     const around = {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4};
     place(ring, found.cut ? found.cut.ring : around);
-    if (found.cut && found.cut.open.length) ring.setAttribute('data-open', found.cut.open.join(' '));
-    else ring.removeAttribute('data-open');
+    const sides = (name, list) => {
+        if (list && list.length) ring.setAttribute(name, list.join(' '));
+        else ring.removeAttribute(name);
+    };
+    sides('data-open', found.cut && found.cut.open);
+    sides('data-edge', found.cut && found.cut.edge);
 };
 
 // The target nowhere to be clicked: said once it stays so for a moment, again when the reason changes (with `by`,
@@ -545,6 +552,10 @@ const drawGuide = () => {
         tellAt(found.rect, found.via, null, found);
         return;
     }
+    // a whole script seen well once - at the first look or after the one scroll - is the child's from then on: the
+    // code is not scrolled to it again while this guide is on, though the child scrolls it away (it jumped back
+    // while they searched; the manager, 2026-11-09)
+    if (ringAlone(whole.via) && found.block && seenWell(whole, area)) scrolledTo = found.block.id;
     // a block of the code out of sight: the code area scrolls to it, once (the palette never does) - a whole script
     // when it is not seen as well as the area can show it (seenWell)
     if (found.block && scrolledTo !== found.block.id && (found.offscreen || !seenWell(whole, area))) {
