@@ -6,7 +6,10 @@
 //                                      text, also a speech bubble beside it (the page may draw its own
 //                                      instead, where 'guide-at' says the target is). While the target is
 //                                      reached through its category or its sprite's tile (the child has
-//                                      to open it first), textCategory / textSprite replace text
+//                                      to open it first), textCategory / textSprite replace text.
+//                                      A whole script (a code target with `script: true`, targets.js) is ringed
+//                                      alone: no arrow, no bubble, never the louder ring - 'guide-at' says via
+//                                      'script' and arrow null (platform point-help, 2026-11-08)
 //                                      quiet: nothing drawn, nothing scrolled - only told where it is and
 //                                      when it is clicked (a guide level that marks nothing, K12 2026-10-28)
 //                                      locate: found as a guide is - the code and the palette scroll to it
@@ -118,7 +121,7 @@
 //                                                   is in
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
 import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
-    quietReports, ranUnder, scriptRan, tellsClick, typing}
+    quietReports, ranUnder, ringAlone, scriptRan, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -562,6 +565,17 @@ const drawGuide = () => {
     ring.classList.remove(styles.soft);
     // a point on the stage: a round mark with a white halo, seen on a dark stage too (targets.js stagePoint)
     ring.classList.toggle(styles.point, found.via === 'stage-point');
+    // a whole script (targets.js `script`): the ring alone - no arrow, no words, no louder ring (detect.js ringAlone). Its count starts
+    // again when the guide goes on to a target to press (the script's sprite's tile)
+    if (ringAlone(found.via)) {
+        louderKey = '';
+        louder(false);
+        pointer.style.display = 'none';
+        bubble.style.display = 'none';
+        placeGhost(null, null);
+        tellAt(r, found.via, null, found);
+        return;
+    }
     const now = performance.now();
     const key = `${state.guide.id}|${found.via}`;
     if (key !== louderKey) {

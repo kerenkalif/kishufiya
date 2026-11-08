@@ -16,6 +16,13 @@
 //                                              with the ones under it. top: of several such blocks, the one
 //                                              under that hat; nth: 'last', the newest of them
 //   {blockId}                                  one block of the open sprite's code, by id
+//   {blockId | block, in: 'code', script: true}
+//                                              the whole script that block is in, from its top block down: every block
+//                                              under it, in its mouths and in its inputs (via 'script'). Ringed alone - no
+//                                              arrow, no words (guide.js): where the block a pointing question asks for is,
+//                                              that block never singled out (platform point-help, 2026-11-08). The way to it
+//                                              (its sprite's tile, the code tab) as for a block. An editor before this rings
+//                                              the block itself, with the arrow
 //   {category: id}                             a category of the palette (motion, looks, control, ...)
 //   {ui: name}                                 a part of the editor, see UI below
 //                                              the sprite info's fields (sprite-name, -x, -y, -size, -direction, -visible):
@@ -356,7 +363,7 @@ const fieldOf = (block, name) => {
     };
 };
 
-// → {rect, via} where via says what is pointed at: 'block', 'category', 'ui', 'sprite', 'field';
+// → {rect, via} where via says what is pointed at: 'block', 'category', 'ui', 'sprite', 'field', 'script' (a whole script);
 // {offscreen: true, block} for a block of the code out of the code area's view;
 // or {missing: reason} when it is nowhere on the screen.
 export const resolve = (target, vm) => {
@@ -531,6 +538,15 @@ export const resolve = (target, vm) => {
     // in the code (of the sprite open: ownerTile above)
     const block = codeBlock(ws, target);
     if (!block) return {missing: 'not-in-code'};
+    // the whole script it is in: the box of its top block's SVG group, which holds every block under it, in its mouths and in its
+    // inputs (scratch-blocks BlockSvg.setParent puts a block's group in its parent's) - the box guide.js tells as `clear` -, measured
+    // on every look, so it follows the scroll and the zoom. Not drawn (out of the code area's view): its top block, to scroll to as
+    // for a block - centerOnBlock centres the whole stack (the top block's getHeightWidth adds the blocks under it)
+    if (target.script) {
+        const top = block.getRootBlock();
+        const box = rectOf(top.getSvgRoot());
+        return box ? {rect: box, via: 'script', block: top} : {offscreen: true, block: top};
+    }
     const rect = rectOf(block.getSvgRoot());
     // scratch-blocks does not draw blocks out of the code area's view: there, but not on the screen
     if (!rect) return {offscreen: true, block};
