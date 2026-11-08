@@ -11,7 +11,9 @@
 //                                      alone: no arrow, no bubble, never the louder ring, cut to the code area -
 //                                      'guide-at' says via 'script', arrow null and the rect of the part seen
 //                                      (platform point-help, 2026-11-08) - in every marking below too (quiet,
-//                                      locate; with highlight its soft mark is cut so)
+//                                      locate; with highlight its soft mark is cut so). The code scrolls to it,
+//                                      as to a block, when it is not seen as well as the area can show it: all
+//                                      of it, or half the view of one longer than the view
 //                                      quiet: nothing drawn, nothing scrolled - only told where it is and
 //                                      when it is clicked (a guide level that marks nothing, K12 2026-10-28)
 //                                      locate: found as a guide is - the code and the palette scroll to it
@@ -123,7 +125,7 @@
 //                                                   is in
 import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
 import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
-    quietReports, ranUnder, ringAlone, scriptRan, scriptRing, tellsClick, typing}
+    quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -301,6 +303,10 @@ let scrolledTo = null; // the code block brought into view for this guide, once
 const DROP_MARGIN = 24; // px: a drop's outline is this far inside the code area (its scrollbar at the bottom)
 const inView = (r, area) => area &&
     r.top >= area.top && r.bottom <= area.bottom && r.left >= area.left && r.right <= area.right;
+// Seen as the code area can show it - else the code scrolls to it: a block, all of it in view; a whole script, all
+// of it or, one longer than the view, half the view of it (detect.js scriptInView; review, 2026-11-08: a long
+// script was never in view, and every guide message for it scrolled the code under the child)
+const seenWell = (found, area) => (ringAlone(found.via) ? scriptInView(found.rect, area) : inView(found.rect, area));
 // A whole script (targets.js `script`) is where it is seen: the part of it in the code area (detect.js scriptRing),
 // in every marking - told so in guide-at, marked so (red or soft), and none of it there is as out of view. The cut
 // was the red ring's alone: a soft mark went round all of it, over the tabs, and quiet told all of it seen, even
@@ -539,8 +545,9 @@ const drawGuide = () => {
         tellAt(found.rect, found.via, null, found);
         return;
     }
-    // a block of the code out of sight: the code area scrolls to it, once (the palette never does)
-    if (found.block && scrolledTo !== found.block.id && (found.offscreen || !inView(whole.rect, area))) {
+    // a block of the code out of sight: the code area scrolls to it, once (the palette never does) - a whole script
+    // when it is not seen as well as the area can show it (seenWell)
+    if (found.block && scrolledTo !== found.block.id && (found.offscreen || !seenWell(whole, area))) {
         scrolledTo = found.block.id;
         workspace().centerOnBlock(found.block.id);
         hideGuide();

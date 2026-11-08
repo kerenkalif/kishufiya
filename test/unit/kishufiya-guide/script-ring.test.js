@@ -4,7 +4,7 @@
 // first-script.test.js.
 //   npx jest test/unit/kishufiya-guide/script-ring
 import {resolve} from '../../../src/components/kishufiya-guide/targets.js';
-import {onTheWay, ringAlone, scriptRing} from '../../../src/components/kishufiya-guide/detect.js';
+import {onTheWay, ringAlone, scriptInView, scriptRing} from '../../../src/components/kishufiya-guide/detect.js';
 
 const box = (left, top, right, bottom) => ({left, top, right, bottom, width: right - left, height: bottom - top});
 const el = r => ({getBoundingClientRect: () => r});
@@ -169,5 +169,35 @@ describe('the ring cut to the code area (detect.js scriptRing)', () => {
     test('past three sides: the fourth is drawn, and they stay open', () => {
         expect(scriptRing(box(-100, -200, 600, 1000), area, 4).open).toEqual(['top', 'bottom', 'left']);
         expect(scriptRing(box(-100, -200, 1000, 500), area, 4).open).toEqual(['top', 'left', 'right']);
+    });
+});
+
+// The guide scrolls the code to a script (once for each guide message, as to a block) when it is not seen as well as the code
+// area can show it. A script longer than the view is never all in view: every guide for it scrolled the code away from where
+// the child had it (review 2026-11-08).
+describe('seen as well as the code area can show it (detect.js scriptInView)', () => {
+    const area = box(0, 0, 900, 700);
+    test('a script that fits in the view: only all of it in view, as a block', () => {
+        expect(scriptInView(script, area)).toBe(true);
+        expect(scriptInView(box(300, 2, 560, 200), area)).toBe(true); // up to the edge
+        expect(scriptInView(box(300, 500, 560, 900), area)).toBe(false); // its bottom under the edge
+        expect(scriptInView(box(700, 100, 1000, 300), area)).toBe(false); // under the palette's side
+    });
+    test('longer than the view: when it fills half the view or more - from its middle, from its hat, to its end', () => {
+        expect(scriptInView(box(300, -250, 560, 950), area)).toBe(true); // centred
+        expect(scriptInView(box(300, 40, 560, 1240), area)).toBe(true); // the child scrolled up to its hat
+        expect(scriptInView(box(300, -800, 560, 400), area)).toBe(true); // ...or down to its end
+        expect(scriptInView(box(-100, -200, 1000, 1000), area)).toBe(true); // wider than the view too
+    });
+    test('longer than the view, little of it in view: not seen', () => {
+        expect(scriptInView(box(300, 500, 560, 1700), area)).toBe(false); // its hat low in the view
+        expect(scriptInView(box(300, -1000, 560, 200), area)).toBe(false); // its end high in the view
+        expect(scriptInView(box(300, 702, 560, 1900), area)).toBe(false); // none of it
+    });
+    test('across as well: a long script cut at the side is not seen', () => {
+        expect(scriptInView(box(800, -200, 1060, 1000), area)).toBe(false);
+    });
+    test('no code area: not seen, as for a block', () => {
+        expect(scriptInView(script, null)).toBe(false);
     });
 });

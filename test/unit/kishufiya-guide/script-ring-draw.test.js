@@ -231,7 +231,10 @@ describe('a script out of the code area\'s view: the code scrolls as for a block
 // the code area is 0..900 across and 0..700 down (the stand-in workspace's SVG, no palette beside it)
 describe('cut to the code area: never over the tabs, the palette or off the screen', () => {
     test('taller than the view: scrolled to once, then ringed where it is seen - open at the top and the bottom', () => {
-        scriptAt = rect(300, -200, 560, 1000);
+        scriptAt = rect(300, 500, 560, 1700); // its hat low in the view: little of it seen
+        onCentre = () => {
+            scriptAt = rect(300, -200, 560, 1000); // centred: its middle in view
+        };
         handleGuide({type: 'guide', id: 5, target: SCRIPT});
         jest.advanceTimersByTime(50);
         expect(centred).toEqual(['hat']);
@@ -368,5 +371,43 @@ describe('every marking tells, and marks, only the part seen', () => {
         expect(part('ring').classList.contains('soft')).toBe(false);
         expect(part('ring').getAttribute('data-open')).toBeNull();
         expect(ringBox()).toEqual({left: 296, top: 96, width: 268, height: 200});
+    });
+});
+
+// A script longer than the view was never "in view", so every guide message for it - the same guide sent again after a game
+// is loaded, a new guide for the same script - scrolled the code under the child (review 2026-11-08). As a block in view is
+// left where it is, so is a script seen as well as the view can show it (detect.js scriptInView).
+describe('the code scrolls to a script only when it is not seen as well as it can be', () => {
+    test('a long script scrolled to, and the same guide sent again: left where it is', () => {
+        scriptAt = rect(300, 500, 560, 1700);
+        onCentre = () => {
+            scriptAt = rect(300, -250, 560, 950);
+        };
+        handleGuide({type: 'guide', id: 40, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(centred).toEqual(['hat']);
+        handleGuide({type: 'guide', id: 40, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(centred).toEqual(['hat']);
+        expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 700});
+    });
+    test('the child scrolled in it, up to its hat or down to its end, and a guide for it comes: the code stays', () => {
+        scriptAt = rect(300, 40, 560, 1240);
+        handleGuide({type: 'guide', id: 41, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(ringBox()).toEqual({left: 296, top: 36, width: 268, height: 664});
+        expect(part('ring').getAttribute('data-open')).toBe('bottom');
+        scriptAt = rect(300, -800, 560, 400);
+        handleGuide({type: 'guide', id: 42, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 404});
+        expect(part('ring').getAttribute('data-open')).toBe('top');
+        expect(centred).toEqual([]);
+    });
+    test('...scrolled away from it, little of it left in view: scrolled to it again, as a block is', () => {
+        scriptAt = rect(300, -1000, 560, 200);
+        handleGuide({type: 'guide', id: 43, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(centred).toEqual(['hat']);
     });
 });

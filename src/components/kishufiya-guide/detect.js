@@ -201,6 +201,21 @@ export const scriptRing = (rect, area, pad) => {
     return {ring: cut(ring), seen, open: ['top', 'bottom', 'left', 'right'].filter(side => past[side])};
 };
 
+// Is a whole script seen as well as the code area can show it (guide.js drawGuide: if not, the code scrolls to it,
+// once for each guide message, as to a block)? Along each of the area's sides: all of it, where it fits; where it
+// is longer than the view, enough of it to fill half the view - from its middle, from its hat or to its end. A
+// long script is never all in view, and every guide message for it scrolled the code away from where the child
+// had it (review, 2026-11-08). `rect`: the script's box; `area`: the code area's, null for none (→ false, as for
+// a block).
+export const scriptInView = (rect, area) => {
+    if (!area) return false;
+    const along = (from, to, start, end) => {
+        if (to - from <= end - start) return from >= start && to <= end;
+        return Math.min(to, end) - Math.max(from, start) >= (end - start) / 2;
+    };
+    return along(rect.top, rect.bottom, area.top, area.bottom) && along(rect.left, rect.right, area.left, area.right);
+};
+
 // Does a press on the target tell the lesson (guide-clicked)? Only on an action's target: a located one - the thing a
 // why window talks about, the block its bubble is beside - is not there to be pressed, and a press on the flag during
 // the window passed the step (platform decision 32 fix, 2026-10-31).
