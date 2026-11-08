@@ -159,4 +159,15 @@ describe('the ring cut to the code area (detect.js scriptRing)', () => {
     test('no code area to cut to: the ring 4px out, as it is', () => {
         expect(scriptRing(script, null, 4)).toEqual({ring: {left: 296, top: 96, right: 564, bottom: 296}, seen: script, open: []});
     });
+    test('past every side (taller and wider than the view): open at the top and the bottom only, its sides drawn at the ' +
+        'area\'s edge - open all round, the ring was no line at all while guide-at told it seen (review 2026-11-08)', () => {
+        const cut = scriptRing(box(-100, -200, 1000, 1000), area, 4);
+        expect(cut.ring).toEqual({left: 0, top: 0, right: 900, bottom: 700});
+        expect(cut.seen).toEqual({left: 0, top: 0, right: 900, bottom: 700});
+        expect(cut.open).toEqual(['top', 'bottom']);
+    });
+    test('past three sides: the fourth is drawn, and they stay open', () => {
+        expect(scriptRing(box(-100, -200, 600, 1000), area, 4).open).toEqual(['top', 'bottom', 'left']);
+        expect(scriptRing(box(-100, -200, 1000, 500), area, 4).open).toEqual(['top', 'left', 'right']);
+    });
 });

@@ -297,4 +297,13 @@ describe('cut to the code area: never over the tabs, the palette or off the scre
         jest.advanceTimersByTime(50);
         expect(part('ring').getAttribute('data-open')).toBeNull();
     });
+    test('past every side (taller and wider than the view): its sides drawn at the area\'s edge, open at the top and the ' +
+        'bottom - open all round, no line was drawn while guide-at told it seen (review 2026-11-08)', () => {
+        scriptAt = rect(-100, -200, 1000, 1000);
+        handleGuide({type: 'guide', id: 12, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(ringBox()).toEqual({left: 0, top: 0, width: 900, height: 700});
+        expect(part('ring').getAttribute('data-open')).toBe('top bottom');
+        expect(lastAt()).toMatchObject({id: 12, rect: {left: 0, top: 0, width: 900, height: 700}, via: 'script', arrow: null});
+    });
 });

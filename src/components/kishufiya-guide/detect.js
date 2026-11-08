@@ -171,10 +171,12 @@ export const ringAlone = via => via === 'script';
 // to the code area - a ring over the tabs or off the screen looked broken, and the child only needs to see which
 // script is meant (the manager for Keren, 2026-11-08). A script longer than the view (after the guide's one
 // scroll to it) is ringed where it is seen; a side it goes on past is open, drawn without its edge (guide.css
-// data-open). A side where only the `pad` is cut stays closed: the script itself ends there. `rect`: the
-// script's box; `area`: the code area's, null for no cut. → {ring, seen, open} - the ring's box, the part of the
-// script seen (what guide-at tells) and the open sides ('top', 'bottom', 'left', 'right') - or null when nothing
-// of the script is in the area.
+// data-open). A side where only the `pad` is cut stays closed: the script itself ends there. Past every side
+// (taller and wider than the view), its sides are drawn at the area's edge and only the top and the bottom are
+// open: open all round, the ring had no line at all while guide-at told it seen (review, 2026-11-08) - and a
+// script is a stack, it goes on up and down. `rect`: the script's box; `area`: the code area's, null for no cut.
+// → {ring, seen, open} - the ring's box, the part of the script seen (what guide-at tells) and the open sides
+// ('top', 'bottom', 'left', 'right') - or null when nothing of the script is in the area.
 export const scriptRing = (rect, area, pad) => {
     const ring = {left: rect.left - pad, right: rect.right + pad, top: rect.top - pad, bottom: rect.bottom + pad};
     if (!area) return {ring, seen: rect, open: []};
@@ -192,6 +194,10 @@ export const scriptRing = (rect, area, pad) => {
         left: rect.left < area.left,
         right: rect.right > area.right
     };
+    if (past.top && past.bottom && past.left && past.right) {
+        past.left = false;
+        past.right = false;
+    }
     return {ring: cut(ring), seen, open: ['top', 'bottom', 'left', 'right'].filter(side => past[side])};
 };
 
