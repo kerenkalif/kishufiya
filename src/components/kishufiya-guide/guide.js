@@ -10,7 +10,8 @@
 //                                      A whole script (a code target with `script: true`, targets.js) is ringed
 //                                      alone: no arrow, no bubble, never the louder ring, cut to the code area -
 //                                      'guide-at' says via 'script', arrow null and the rect of the part seen
-//                                      (platform point-help, 2026-11-08)
+//                                      (platform point-help, 2026-11-08) - in every marking below too (quiet,
+//                                      locate; with highlight its soft mark is cut so)
 //                                      quiet: nothing drawn, nothing scrolled - only told where it is and
 //                                      when it is clicked (a guide level that marks nothing, K12 2026-10-28)
 //                                      locate: found as a guide is - the code and the palette scroll to it
@@ -300,6 +301,15 @@ let scrolledTo = null; // the code block brought into view for this guide, once
 const DROP_MARGIN = 24; // px: a drop's outline is this far inside the code area (its scrollbar at the bottom)
 const inView = (r, area) => area &&
     r.top >= area.top && r.bottom <= area.bottom && r.left >= area.left && r.right <= area.right;
+// A whole script (targets.js `script`) is where it is seen: the part of it in the code area (detect.js scriptRing),
+// in every marking - told so in guide-at, marked so (red or soft), and none of it there is as out of view. The cut
+// was the red ring's alone: a soft mark went round all of it, over the tabs, and quiet told all of it seen, even
+// under the palette (review, 2026-11-08). Any other target: as found.
+const seenPart = (found, area) => {
+    if (!ringAlone(found.via)) return found;
+    const cut = scriptRing(found.rect, area, 4);
+    return cut ? {...found, rect: cut.seen, cut} : {offscreen: true, block: found.block};
+};
 
 const uiRect = selector => {
     const el = document.querySelector(selector);
@@ -469,6 +479,16 @@ const hideGuide = () => {
     placeGhost(null, null);
 };
 
+// The ring (red or soft) at a target, 4px out on every side - a whole script's cut to the code area, the sides it
+// goes on past open (seenPart, guide.css data-open)
+const placeRing = found => {
+    const r = found.rect;
+    const around = {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4};
+    place(ring, found.cut ? found.cut.ring : around);
+    if (found.cut && found.cut.open.length) ring.setAttribute('data-open', found.cut.open.join(' '));
+    else ring.removeAttribute('data-open');
+};
+
 // The target nowhere to be clicked: said once it stays so for a moment, again when the reason changes (with `by`,
 // the sprite covering a sprite on the stage); the palette scrolling to it, never (detect.js missingStep). A quiet
 // guide says it too: a step at guide level 2-3 was stuck (K12 review).
@@ -497,7 +517,10 @@ const drawGuide = () => {
         tellAt(null);
         return;
     }
-    const found = resolve(state.guide.target, vm);
+    // (a whole script: the part of it seen, from here on - its whole box decides the scroll)
+    const whole = resolve(state.guide.target, vm);
+    const area = codeArea();
+    const found = seenPart(whole, area);
     if (state.guide.quiet) {
         // nothing drawn or scrolled: where it is (or that it is missing), and what is on it for a click
         if (found.offscreen) found.missing = 'offscreen';
@@ -517,7 +540,7 @@ const drawGuide = () => {
         return;
     }
     // a block of the code out of sight: the code area scrolls to it, once (the palette never does)
-    if (found.block && scrolledTo !== found.block.id && (found.offscreen || !inView(found.rect, codeArea()))) {
+    if (found.block && scrolledTo !== found.block.id && (found.offscreen || !inView(whole.rect, area))) {
         scrolledTo = found.block.id;
         workspace().centerOnBlock(found.block.id);
         hideGuide();
@@ -525,7 +548,6 @@ const drawGuide = () => {
     }
     // ...and where a block goes, when that place is out of sight (under a long script): to its anchor, once.
     // All of the outline, clear of the scrollbar at the bottom: half of it sat under it (donuts 8.9, 2026-10-26)
-    const area = codeArea();
     const dropBottom = found.drop && (found.slot ? found.slot.bottom : found.drop.y + GHOST_ROW);
     const dropTop = found.drop && (found.slot ? found.slot.top : found.drop.y);
     const dropOut = found.drop && area && (dropTop < area.top + DROP_MARGIN || dropBottom + DROP_MARGIN > area.bottom);
@@ -535,9 +557,6 @@ const drawGuide = () => {
         hideGuide();
         return;
     }
-    // a whole script with nothing of it in the code area once scrolled to: as out of view - it is never ringed
-    // over the palette
-    if (ringAlone(found.via) && !scriptRing(found.rect, area, 4)) found.offscreen = true;
     if (found.offscreen) found.missing = 'offscreen';
     if (found.missing) {
         tellMissing(found);
@@ -558,32 +577,28 @@ const drawGuide = () => {
         hideGuide();
         shown = {rect: r, via: found.via, input: Boolean(found.input)};
         if (marking === 'soft') {
-            place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
+            placeRing(found);
             ring.classList.add(styles.soft);
             ring.classList.toggle(styles.point, found.via === 'stage-point');
         }
         tellAt(r, found.via, null, found);
         return;
     }
-    place(ring, {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4});
+    placeRing(found);
     // an action's ring after a window's soft mark (the sprite's tile right after the flag's window): red again
     ring.classList.remove(styles.soft);
-    ring.removeAttribute('data-open'); // (a cut script's open sides, below)
     // a point on the stage: a round mark with a white halo, seen on a dark stage too (targets.js stagePoint)
     ring.classList.toggle(styles.point, found.via === 'stage-point');
     // a whole script (targets.js `script`): the ring alone - no arrow, no words, no louder ring (detect.js
     // ringAlone). Its count starts again when the guide goes on to a target to press (the script's sprite's tile).
-    // Cut to the code area, the sides it goes on past open (detect.js scriptRing); guide-at tells the part seen
+    // Cut to the code area, the sides it goes on past open, and the part seen told, as in every marking (seenPart)
     if (ringAlone(found.via)) {
-        const cut = scriptRing(r, area, 4);
-        place(ring, cut.ring);
-        if (cut.open.length) ring.setAttribute('data-open', cut.open.join(' '));
         louderKey = '';
         louder(false);
         pointer.style.display = 'none';
         bubble.style.display = 'none';
         placeGhost(null, null);
-        tellAt(cut.seen, found.via, null, found);
+        tellAt(r, found.via, null, found);
         return;
     }
     const now = performance.now();

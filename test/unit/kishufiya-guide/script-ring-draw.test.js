@@ -307,3 +307,66 @@ describe('cut to the code area: never over the tabs, the palette or off the scre
         expect(lastAt()).toMatchObject({id: 12, rect: {left: 0, top: 0, width: 900, height: 700}, via: 'script', arrow: null});
     });
 });
+
+// The cut was the red ring's alone (review 2026-11-08): a soft mark went round the whole script, over the tabs and the
+// palette, and every other marking told the whole script as seen - quiet too, with all of it under the palette.
+describe('every marking tells, and marks, only the part seen', () => {
+    test('the soft mark (locate and highlight, a why window\'s): cut there as the red ring is, open where it goes on', () => {
+        scriptAt = rect(300, -200, 560, 1000);
+        handleGuide({type: 'guide', id: 30, target: SCRIPT, locate: true, highlight: true});
+        jest.advanceTimersByTime(250);
+        expect(part('ring').classList.contains('soft')).toBe(true);
+        expect(ringBox()).toEqual({left: 296, top: 0, width: 268, height: 700});
+        expect(part('ring').getAttribute('data-open')).toBe('top bottom');
+        expect(showing('pointer')).toBe(false);
+        expect(lastAt()).toMatchObject({
+            id: 30,
+            rect: {left: 300, top: 0, width: 260, height: 700},
+            via: 'script',
+            arrow: null,
+            clear: {left: 300, top: -200, width: 260, height: 1200}
+        });
+    });
+    test('...all of it in view: 4px out on every side, nothing open', () => {
+        handleGuide({type: 'guide', id: 31, target: SCRIPT, locate: true, highlight: true});
+        jest.advanceTimersByTime(250);
+        expect(part('ring').classList.contains('soft')).toBe(true);
+        expect(ringBox()).toEqual({left: 296, top: 96, width: 268, height: 200});
+        expect(part('ring').getAttribute('data-open')).toBeNull();
+    });
+    test('located alone: nothing drawn at it, the part seen told', () => {
+        scriptAt = rect(300, -200, 560, 1000);
+        handleGuide({type: 'guide', id: 32, target: SCRIPT, locate: true});
+        jest.advanceTimersByTime(250);
+        expect(part('ring').style.display).toBe('none');
+        expect(lastAt()).toMatchObject({id: 32, rect: {left: 300, top: 0, width: 260, height: 700}, via: 'script', arrow: null});
+    });
+    test('quiet: nothing drawn or scrolled, the part seen told', () => {
+        scriptAt = rect(300, 500, 560, 1700);
+        handleGuide({type: 'guide', id: 33, target: SCRIPT, quiet: true});
+        jest.advanceTimersByTime(250);
+        expect(centred).toEqual([]);
+        expect(part('ring').style.display).toBe('none');
+        expect(lastAt()).toMatchObject({id: 33, rect: {left: 300, top: 500, width: 260, height: 200}, via: 'script'});
+    });
+    test('quiet, all of it under the palette: told not there (no rect), never missing (quiet keeps out of view to ' +
+        'itself), nothing scrolled', () => {
+        scriptAt = rect(950, 100, 1100, 300);
+        handleGuide({type: 'guide', id: 34, target: SCRIPT, quiet: true});
+        jest.advanceTimersByTime(900);
+        expect(centred).toEqual([]);
+        expect(lastAt()).toMatchObject({id: 34, rect: null});
+        expect(told.filter(msg => msg.type === 'guide-missing' && msg.id === 34)).toEqual([]);
+    });
+    test('a red ring after a cut soft mark: red, and cut as its own script is', () => {
+        scriptAt = rect(300, -200, 560, 1000);
+        handleGuide({type: 'guide', id: 35, target: SCRIPT, locate: true, highlight: true});
+        jest.advanceTimersByTime(250);
+        scriptAt = null;
+        handleGuide({type: 'guide', id: 36, target: SCRIPT});
+        jest.advanceTimersByTime(250);
+        expect(part('ring').classList.contains('soft')).toBe(false);
+        expect(part('ring').getAttribute('data-open')).toBeNull();
+        expect(ringBox()).toEqual({left: 296, top: 96, width: 268, height: 200});
+    });
+});

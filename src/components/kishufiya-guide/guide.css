@@ -149,6 +149,12 @@
     border-bottom-right-radius: 0;
 }
 
+/* ...and a soft mark cut so (a why window's, guide.js seenPart): its edges alone - its halo and glow go round the whole
+   box, so they drew the open sides back and spread over the tabs and the palette */
+.ring.soft[data-open] {
+    box-shadow: none;
+}
+
 /* (the arrow grows slowly instead, in guide.js: sizeArrow) */
 @keyframes louder {
     from { scale: 1; }
