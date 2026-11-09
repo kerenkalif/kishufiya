@@ -1,8 +1,9 @@
 // The picture of the stage a save sends for "המשחקים שלי" (lib/kishufiya-thumbnail.js): its PNG fits the platform's
 // limit (KidsTeachingPlatform src/lib/limits.ts MAX_THUMBNAIL_BYTES) whatever the stage shows.
-//   npx jest test/unit/kishufiya-thumbnail
+//   npm run test:thumb
 import zlib from 'zlib';
 import {
+    OTHER_CHUNKS,
     PLATFORM_MAX_THUMBNAIL_BYTES,
     THUMBNAIL_HEIGHT,
     THUMBNAIL_WIDTH,
@@ -13,44 +14,90 @@ import {
 
 const W = THUMBNAIL_WIDTH;
 const H = THUMBNAIL_HEIGHT;
-const ROWS = H * (1 + (4 * W)); // what the PNG deflates: each row a filter byte and 4 bytes a pixel
+const ROW = 1 + (4 * W); // a row as the PNG deflates it: its filter byte, then 4 bytes a pixel
+const ROWS = H * ROW;
+const SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
-// Bytes that do not compress, the same on every run (xorshift32): the worst a stage can give the encoder.
-const noise = length => {
-    const bytes = Buffer.alloc(length);
+// The rows of a picture that does not compress, the same on every run (xorshift32): the worst a stage can give the
+// encoder. Each row opens with filter 0 (none), as in a real PNG.
+const noise = () => {
+    const rows = Buffer.alloc(ROWS);
     let x = 2463534242;
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < ROWS; i++) {
         x ^= x << 13;
         x ^= x >>> 17;
         x ^= x << 5;
-        bytes[i] = x & 255;
+        if (i % ROW !== 0) rows[i] = x & 255;
     }
-    return bytes;
+    return rows;
 };
 
-// The size of a PNG around a zlib stream, as libpng writes it: signature, IHDR, IDAT chunks of 8192 bytes, IEND.
-const pngAround = zlibLength => 8 + 25 + zlibLength + (12 * Math.ceil(zlibLength / 8192)) + 12;
+// A chunk as the PNG format has it: the length of its data, its type, the data, and the CRC of the type and data.
+const chunk = (type, data = Buffer.alloc(0)) => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const typed = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(zlib.crc32(typed));
+    return Buffer.concat([length, typed, crc]);
+};
+
+// A whole PNG of width x height in 8-bit RGBA around a zlib stream, as libpng writes one: the signature, IHDR, the
+// stream in IDAT chunks of 8192 bytes (its PNG_ZBUF_SIZE), IEND. Nothing else: that is OTHER_CHUNKS's room.
+const pngFile = (width, height, stream) => {
+    const header = Buffer.alloc(13); // compression, filter and interlace stay 0
+    header.writeUInt32BE(width, 0);
+    header.writeUInt32BE(height, 4);
+    header[8] = 8; // bits a channel
+    header[9] = 6; // RGBA
+    const idat = [];
+    for (let at = 0; at < stream.length; at += 8192) idat.push(chunk('IDAT', stream.subarray(at, at + 8192)));
+    return Buffer.concat([SIGNATURE, chunk('IHDR', header), ...idat, chunk('IEND')]);
+};
 
 describe('the picture of the stage for "המשחקים שלי"', () => {
     test('is 4:3, as the stage and the card', () => {
         expect(W * 3).toBe(H * 4);
     });
 
+    test("the limit is the platform's own number: changed here alone, this fails", () => {
+        expect(PLATFORM_MAX_THUMBNAIL_BYTES).toBe(300000); // KidsTeachingPlatform src/lib/limits.ts
+    });
+
     test("its PNG can never pass the platform's limit", () => {
         expect(pngUpperBound(W, H)).toBeLessThan(PLATFORM_MAX_THUMBNAIL_BYTES);
     });
 
-    test('the bound holds for pixels that do not compress, at every zlib level and both strategies libpng uses', () => {
-        const pixels = noise(ROWS);
+    test('a whole PNG of pixels that do not compress fits, at every zlib level and both strategies libpng uses', () => {
+        const rows = noise();
         const {Z_DEFAULT_STRATEGY, Z_FILTERED} = zlib.constants;
         for (const strategy of [Z_DEFAULT_STRATEGY, Z_FILTERED]) {
             for (let level = 0; level <= 9; level++) {
-                const stream = zlib.deflateSync(pixels, {level, strategy, windowBits: 15, memLevel: 8});
+                const stream = zlib.deflateSync(rows, {level, strategy, windowBits: 15, memLevel: 8});
                 expect(stream.length).toBeGreaterThan(ROWS); // nothing compressed: the worst case
                 expect(stream.length).toBeLessThanOrEqual(zlibBound(ROWS));
-                expect(pngAround(stream.length)).toBeLessThanOrEqual(pngUpperBound(W, H));
+                // the file itself, without the room left for an encoder's other chunks
+                expect(pngFile(W, H, stream).length).toBeLessThanOrEqual(pngUpperBound(W, H) - OTHER_CHUNKS);
             }
         }
+    });
+
+    test('the PNG built here is a PNG: its chunks in order, and its IDAT data inflates back to the pixels', () => {
+        const rows = noise();
+        const file = pngFile(W, H, zlib.deflateSync(rows));
+        expect(file.subarray(0, 8).equals(SIGNATURE)).toBe(true);
+        const types = [];
+        const idat = [];
+        for (let at = 8; at < file.length; at += 12 + file.readUInt32BE(at)) {
+            const end = at + 8 + file.readUInt32BE(at);
+            expect(file.readUInt32BE(end)).toBe(zlib.crc32(file.subarray(at + 4, end)));
+            types.push(file.toString('ascii', at + 4, at + 8));
+            if (types[types.length - 1] === 'IDAT') idat.push(file.subarray(at + 8, end));
+        }
+        expect(types[0]).toBe('IHDR');
+        expect(types[types.length - 1]).toBe('IEND');
+        expect(types.length).toBe(idat.length + 2);
+        expect(zlib.inflateSync(Buffer.concat(idat)).equals(rows)).toBe(true);
     });
 
     test('the bound is never below the pixels themselves', () => {

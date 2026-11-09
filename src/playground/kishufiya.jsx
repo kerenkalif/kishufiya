@@ -64,7 +64,12 @@ import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
-import {THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH, fitInside} from '../lib/kishufiya-thumbnail.js';
+import {
+    PLATFORM_MAX_THUMBNAIL_BYTES,
+    THUMBNAIL_HEIGHT,
+    THUMBNAIL_WIDTH,
+    fitInside
+} from '../lib/kishufiya-thumbnail.js';
 
 // Always Hebrew, whatever the class PC's browser was set to last.
 try {
@@ -169,7 +174,7 @@ const load = async (url, title, lesson, id) => {
 
 // The renderer's snapshot (a PNG data URL at the stage canvas's own size) drawn at the thumbnail's size, as PNG
 // bytes: the platform refused the snapshot itself over a detailed backdrop (lib/kishufiya-thumbnail.js). Null if any
-// step fails, and the save goes on without a picture.
+// step fails, or the PNG is past the platform's limit all the same, and the save goes on without a picture.
 const thumbnailOf = async url => {
     try {
         const image = new Image();
@@ -189,7 +194,9 @@ const thumbnailOf = async url => {
         context.imageSmoothingQuality = 'high';
         context.drawImage(image, place.x, place.y, place.width, place.height);
         const png = await new Promise(done => canvas.toBlob(done, 'image/png'));
-        return png ? await png.arrayBuffer() : null;
+        // the size's bound is libpng's; a browser that encodes otherwise sends no picture rather than one refused
+        if (!png || png.size > PLATFORM_MAX_THUMBNAIL_BYTES) return null;
+        return await png.arrayBuffer();
     } catch (e) {
         return null;
     }

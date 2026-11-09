@@ -4,7 +4,11 @@
 // on screen times the screen's pixel ratio - 480x360 as the editor opens, up to 720x540 dragged larger, more at full
 // screen or on a sharper screen - and over a detailed backdrop its PNG was past the limit on every save
 // (donuts-war-in-space, 2026-11-09). So the picture is drawn at one size whose PNG cannot pass the limit, whatever
-// the stage shows.
+// the stage shows, and a PNG past it all the same (an encoder unlike libpng) is not sent.
+//
+// The editor's one other picture of the stage, the guide's 'snapshot' (components/kishufiya-guide/guide.js), is the
+// renderer's own at its own size: the lesson shows it on its finish screen and uploads it nowhere. A picture the
+// platform keeps is made here.
 
 // KidsTeachingPlatform src/lib/limits.ts MAX_THUMBNAIL_BYTES: change the two together.
 export const PLATFORM_MAX_THUMBNAIL_BYTES = 300000;
@@ -19,7 +23,8 @@ const CHUNK = 12; // around every chunk's data: its length, type and CRC
 const IHDR = CHUNK + 13;
 const IEND = CHUNK;
 const IDAT_DATA = 8192; // libpng cuts the zlib stream into IDAT chunks of this much; larger chunks cost less
-const OTHER_CHUNKS = 4096; // room for what an encoder adds: sRGB, sBIT, gAMA, pHYs, an ICC profile
+// Room for what an encoder adds: sRGB, sBIT, gAMA, pHYs, an ICC profile. The test builds a PNG without them.
+export const OTHER_CHUNKS = 4096;
 
 // The most a zlib stream of n bytes can take at the settings libpng gives zlib (windowBits 15, memLevel 8), whatever
 // the level and strategy: zlib's own bound (deflateBound, zlib.h). Bytes that do not compress are stored as they
