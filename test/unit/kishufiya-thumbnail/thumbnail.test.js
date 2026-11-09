@@ -1,6 +1,6 @@
 // The picture of the stage a save sends for "המשחקים שלי" (lib/kishufiya-thumbnail.js): its PNG fits the platform's
 // limit (KidsTeachingPlatform src/lib/limits.ts MAX_THUMBNAIL_BYTES) whatever the stage shows.
-//   npm run test:thumb
+//   npm run test:thumb    (by hand: CI runs only test:unit; zlib.crc32 needs Node 20.15 or 22.2 and later)
 import zlib from 'zlib';
 import {
     OTHER_CHUNKS,

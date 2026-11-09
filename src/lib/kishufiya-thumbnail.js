@@ -6,9 +6,9 @@
 // (donuts-war-in-space, 2026-11-09). So the picture is drawn at one size whose PNG cannot pass the limit, whatever
 // the stage shows, and a PNG past it all the same (an encoder unlike libpng) is not sent.
 //
-// The editor's one other picture of the stage, the guide's 'snapshot' (components/kishufiya-guide/guide.js), is the
-// renderer's own at its own size: the lesson shows it on its finish screen and uploads it nowhere. A picture the
-// platform keeps is made here.
+// The editor's other pictures of the stage are the renderer's own at its own size and never reach the platform's
+// store: the guide's 'snapshot' (components/kishufiya-guide/guide.js), which the lesson shows on its finish screen,
+// and a restore point's (lib/tw-restore-point-api.js), kept in the browser. A picture the platform keeps is made here.
 
 // KidsTeachingPlatform src/lib/limits.ts MAX_THUMBNAIL_BYTES: change the two together.
 export const PLATFORM_MAX_THUMBNAIL_BYTES = 300000;
