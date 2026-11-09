@@ -22,7 +22,9 @@
  *   editor -> parent  {kishufiya: 'changed'}         the child changed something since the last save
  *   parent -> editor  {kishufiya: 'title', title}     rename the game (the child renamed it on the platform)
  *   editor -> parent  {kishufiya: 'saved', id, data, thumbnail}
- *                                                    data: the .sb3, thumbnail: a PNG of the stage (or null);
+ *                                                    data: the .sb3, thumbnail: a PNG of the stage at one small
+ *                                                    size, always under the platform's limit
+ *                                                    (lib/kishufiya-thumbnail.js), or null;
  *                                                    both ArrayBuffers, transferred
  *   lesson <-> editor through the page, passed on as they are (the platform's KishufiyaLesson):
  *   lesson -> editor  {kishufiya: 'to-editor', msg: {type, ...}}
@@ -62,6 +64,7 @@ import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
+import {THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH, fitInside} from '../lib/kishufiya-thumbnail.js';
 
 // Always Hebrew, whatever the class PC's browser was set to last.
 try {
@@ -164,11 +167,38 @@ const load = async (url, title, lesson, id) => {
     }
 };
 
-// The stage as the renderer drew it last, for the list of the child's games.
+// The renderer's snapshot (a PNG data URL at the stage canvas's own size) drawn at the thumbnail's size, as PNG
+// bytes: the platform refused the snapshot itself over a detailed backdrop (lib/kishufiya-thumbnail.js). Null if any
+// step fails, and the save goes on without a picture.
+const thumbnailOf = async url => {
+    try {
+        const image = new Image();
+        const loaded = await new Promise(done => {
+            image.onload = () => done(true);
+            image.onerror = () => done(false);
+            image.src = url;
+        });
+        const place = loaded && fitInside(image.naturalWidth, image.naturalHeight);
+        if (!place) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = THUMBNAIL_WIDTH;
+        canvas.height = THUMBNAIL_HEIGHT;
+        const context = canvas.getContext('2d');
+        if (!context) return null;
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        context.drawImage(image, place.x, place.y, place.width, place.height);
+        const png = await new Promise(done => canvas.toBlob(done, 'image/png'));
+        return png ? await png.arrayBuffer() : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+// The stage as the renderer draws it next, for the game's card in "המשחקים שלי".
 const snapshot = () => new Promise(resolve => {
     try {
-        vm.renderer.requestSnapshot(url => fetch(url).then(r => r.arrayBuffer())
-            .then(resolve, () => resolve(null)));
+        vm.renderer.requestSnapshot(url => thumbnailOf(url).then(resolve));
     } catch (e) {
         resolve(null);
     }
