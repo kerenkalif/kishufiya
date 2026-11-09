@@ -202,10 +202,15 @@ const thumbnailOf = async url => {
     }
 };
 
-// The stage as the renderer draws it next, for the game's card in "המשחקים שלי".
+// The stage as it is now, for the game's card in "המשחקים שלי". The renderer takes a snapshot only when it draws, and
+// TurboWarp's runtime draws nothing while the page is hidden: a page hidden after it asked for a save with a picture
+// (the platform asks none of a hidden page) held the game back until it was shown again, and the platform asks for no
+// other save while one holding every change is on its way. So the stage is drawn here at once, as the GUI's own
+// thumbnails are (lib/project-saver-hoc.jsx; lib/tw-restore-point-api.js when no draw comes).
 const snapshot = () => new Promise(resolve => {
     try {
         vm.renderer.requestSnapshot(url => thumbnailOf(url).then(resolve));
+        vm.renderer.draw();
     } catch (e) {
         resolve(null);
     }
