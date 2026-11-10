@@ -55,6 +55,13 @@
     overflow-y: auto;
 }
 
+/* כישופייה: matches the tighter sprite info of a low screen (sprite-info.css) */
+@media (max-height: 720px) {
+    .scroll-wrapper {
+        height: calc(100% - 4.5rem);
+    }
+}
+
 .scroll-wrapper-dragging {
     background-color: $drop-highlight;
 }

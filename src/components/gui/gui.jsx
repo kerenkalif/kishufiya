@@ -242,7 +242,9 @@ const GUIComponent = props => {
                 style={{
                     // הכישופייה: a small stage frees half its width, so the editor fits beside the lesson
                     minWidth: nonStageWidth + stageDisplayWidth + Math.max(0, customStageSize.width - 480),
-                    minHeight: 640 + Math.max(0, customStageSize.height - 360)
+                    // the page was 640 tall at least, which cut the bottom off a low screen (2026-11-10); below this
+                    // the sprites and backdrops column scrolls (gui.css .target-wrapper)
+                    minHeight: 480 + Math.max(0, customStageSize.height - 360)
                 }}
                 {...componentProps}
             >

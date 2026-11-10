@@ -90,3 +90,14 @@
 .sprite-input {
     width: 8rem;
 }
+
+/* כישופייה: a low screen gets a tighter sprite info, so the sprites and the backdrop selector keep more room */
+@media (max-height: 720px) {
+    .sprite-info {
+        padding: 0.375rem 0.5rem;
+    }
+
+    .row-primary {
+        margin-bottom: 0.25rem;
+    }
+}

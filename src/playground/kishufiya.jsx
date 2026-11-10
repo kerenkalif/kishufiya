@@ -51,7 +51,10 @@ import {compose} from 'redux';
 import {setStageSize, setStageWidth} from '../reducers/stage-size';
 import {setProjectTitle} from '../reducers/project-title';
 import {setProjectUnchanged} from '../reducers/project-changed';
-import {STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH} from '../lib/layout-constants';
+import {
+    STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH, FIXED_WIDTH
+} from '../lib/layout-constants';
+import {autoStage, readChoice, saveChoice} from '../lib/kishufiya-stage-auto';
 import AppStateHOC from '../lib/app-state-hoc.jsx';
 import ErrorBoundaryHOC from '../lib/error-boundary-hoc.jsx';
 import GUI from './render-gui.jsx';
@@ -282,7 +285,13 @@ const LEAST_WIDTH = NON_STAGE.small + MIN_DRAGGED_STAGE_WIDTH;
 
 // The stage width the child chose (buttons, the splitter); the editor shrinks the stage below it only
 // for lack of room, and gives it back when the room returns (the lesson beside it narrowed).
-let preferredStage = null;
+// A choice made in an earlier visit (kept in this browser) counts as the child's too; without any, the
+// size follows the window (lib/kishufiya-stage-auto.js: small on a low or narrow screen).
+const savedChoice = readChoice();
+let preferredStage = savedChoice === 'small' ? FIXED_WIDTH * 0.5 : (savedChoice === 'large' ? FIXED_WIDTH : null);
+let chose = savedChoice !== null;
+let autoCurrent = 'large';
+let started = false; // the first stage change is the editor's own opening in large, not a choice
 let fitting = false; // the next stage change is the editor's own, not the child's
 
 const Bridge = connect(
@@ -316,11 +325,23 @@ const Bridge = connect(
         const current = () => STAGE_DISPLAY_SCALE_METADATA[size === STAGE_SIZE_MODES.small ? 'small' : 'large'].width;
         // The editor starts in 'full' for a moment before the large stage it opens with: not a choice.
         if (size === STAGE_SIZE_MODES.full) return;
-        if (fitting) fitting = false;
-        else preferredStage = current();
+        if (!started) started = true;
+        else if (fitting) fitting = false;
+        else {
+            preferredStage = current();
+            chose = true;
+            saveChoice(preferredStage < SMALL_LAYOUT_BELOW ? 'small' : 'large');
+        }
+        // the guide's rings and the stage's own rect follow every change of the stage's size
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
         // The widest stage up to the child's choice that leaves the rest of the editor its room.
         const fit = () => {
-            const want = preferredStage || current();
+            if (!chose) {
+                autoCurrent = autoStage({width: window.innerWidth, height: window.innerHeight, current: autoCurrent});
+            }
+            const want = chose ?
+                (preferredStage || current()) :
+                (autoCurrent === 'small' ? FIXED_WIDTH * 0.5 : FIXED_WIDTH);
             let target = Math.min(want, window.innerWidth - nonStageFor(want));
             if (target < SMALL_LAYOUT_BELOW) target = Math.min(want, window.innerWidth - NON_STAGE.small);
             target = Math.max(MIN_DRAGGED_STAGE_WIDTH, Math.floor(target));

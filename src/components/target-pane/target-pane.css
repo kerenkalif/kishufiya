@@ -5,6 +5,8 @@
     display: flex;
     flex-direction: row;
     flex-grow: 1;
+    /* כישופייה: below this the column scrolls (.target-wrapper) rather than squash the selectors */
+    min-height: 15rem;
 }
 
 .stage-selector-wrapper {

@@ -231,6 +231,11 @@
     */
     /* TODO this also breaks the thermometer menu */
     /* overflow: hidden; */
+
+    /* כישופייה: on a low screen the sprites and the backdrop selector scroll instead of being cut off
+       (Keren, 2026-11-10: a child could not reach the backdrop selector) */
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .extension-button-container {
