@@ -54,7 +54,7 @@ import {setProjectUnchanged} from '../reducers/project-changed';
 import {
     STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH, FIXED_WIDTH
 } from '../lib/layout-constants';
-import {autoStage, readChoice, saveChoice} from '../lib/kishufiya-stage-auto';
+import {autoStage, choiceWidth, readChoice, saveChoice} from '../lib/kishufiya-stage-auto';
 import AppStateHOC from '../lib/app-state-hoc.jsx';
 import ErrorBoundaryHOC from '../lib/error-boundary-hoc.jsx';
 import GUI from './render-gui.jsx';
@@ -212,8 +212,20 @@ const thumbnailOf = async url => {
 // thumbnails are (lib/project-saver-hoc.jsx; lib/tw-restore-point-api.js when no draw comes).
 const snapshot = () => new Promise(resolve => {
     try {
-        vm.renderer.requestSnapshot(url => thumbnailOf(url).then(resolve));
-        vm.renderer.draw();
+        const {renderer, runtime} = vm;
+        const canvas = renderer.canvas;
+        // A small stage draws into a canvas of its own small size, and the picture would be a blown-up 240x180.
+        // So the stage is drawn once at its own full size for the snapshot, then put back (2026-11-10).
+        const ratio = window.devicePixelRatio || 1; // renderer.resize takes CSS pixels
+        const own = {width: canvas.width / ratio, height: canvas.height / ratio};
+        const wide = runtime.stageWidth && own.width < runtime.stageWidth - 1;
+        if (wide) renderer.resize(runtime.stageWidth, runtime.stageHeight);
+        renderer.requestSnapshot(url => thumbnailOf(url).then(resolve));
+        renderer.draw();
+        if (wide) {
+            renderer.resize(own.width, own.height);
+            renderer.draw();
+        }
     } catch (e) {
         resolve(null);
     }
@@ -285,13 +297,13 @@ const LEAST_WIDTH = NON_STAGE.small + MIN_DRAGGED_STAGE_WIDTH;
 
 // The stage width the child chose (buttons, the splitter); the editor shrinks the stage below it only
 // for lack of room, and gives it back when the room returns (the lesson beside it narrowed).
-// A choice made in an earlier visit (kept in this browser) counts as the child's too; without any, the
-// size follows the window (lib/kishufiya-stage-auto.js: small on a low or narrow screen).
-const savedChoice = readChoice();
-let preferredStage = savedChoice === 'small' ? FIXED_WIDTH * 0.5 : (savedChoice === 'large' ? FIXED_WIDTH : null);
-let chose = savedChoice !== null;
-let autoCurrent = 'large';
+// A choice made in an earlier visit counts as the child's too, but only in the kind of window it was made in
+// (lib/kishufiya-stage-auto.js); without one, the size follows the window: small on a low or narrow screen.
+let storedChoice = readChoice();
+let preferredStage = null; // the child's width in this kind of window
+let autoCurrent = autoStage({width: window.innerWidth, height: window.innerHeight, current: 'large'});
 let started = false; // the first stage change is the editor's own opening in large, not a choice
+let latestFit = null; // the current fit of the stage to the window (Bridge)
 let fitting = false; // the next stage change is the editor's own, not the child's
 
 const Bridge = connect(
@@ -329,19 +341,22 @@ const Bridge = connect(
         else if (fitting) fitting = false;
         else {
             preferredStage = current();
-            chose = true;
-            saveChoice(preferredStage < SMALL_LAYOUT_BELOW ? 'small' : 'large');
+            storedChoice = {bucket: autoCurrent, width: preferredStage};
+            saveChoice(autoCurrent, preferredStage);
         }
         // the guide's rings and the stage's own rect follow every change of the stage's size
         requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
         // The widest stage up to the child's choice that leaves the rest of the editor its room.
         const fit = () => {
-            if (!chose) {
-                autoCurrent = autoStage({width: window.innerWidth, height: window.innerHeight, current: autoCurrent});
+            const before = autoCurrent;
+            autoCurrent = autoStage({width: window.innerWidth, height: window.innerHeight, current: autoCurrent});
+            // another kind of window: the choice made in the first is void
+            if (autoCurrent !== before && started) {
+                preferredStage = null;
+                if (storedChoice && storedChoice.bucket !== autoCurrent) storedChoice = null;
             }
-            const want = chose ?
-                (preferredStage || current()) :
-                (autoCurrent === 'small' ? FIXED_WIDTH * 0.5 : FIXED_WIDTH);
+            const held = preferredStage || choiceWidth(storedChoice, autoCurrent);
+            const want = held || (autoCurrent === 'small' ? FIXED_WIDTH * 0.5 : FIXED_WIDTH);
             let target = Math.min(want, window.innerWidth - nonStageFor(want));
             if (target < SMALL_LAYOUT_BELOW) target = Math.min(want, window.innerWidth - NON_STAGE.small);
             target = Math.max(MIN_DRAGGED_STAGE_WIDTH, Math.floor(target));
@@ -352,9 +367,15 @@ const Bridge = connect(
             requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
         };
         fit();
-        window.addEventListener('resize', fit);
-        return () => window.removeEventListener('resize', fit);
+        latestFit = fit;
     }, [size, width]);
+    // The listener stays for the editor's life: an effect that returns early (the 'full' moment) must not
+    // leave the window's resizes unheard - the stage then never followed a window made lower or narrower.
+    useEffect(() => {
+        const onResize = () => latestFit && latestFit();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
     return null;
 });
 Bridge.propTypes = {
