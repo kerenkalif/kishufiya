@@ -46,6 +46,9 @@ export const keepable = value => {
     return text.length <= MAX_CLOUD_VALUE && !text.includes(NUL) && !HALF_PAIR.test(text) ? text : null;
 };
 
+// Kept as text: one that reads back as the same number was a number.
+const asVariableValue = text => (text !== '' && String(Number(text)) === text ? Number(text) : text);
+
 const bytes = values => new TextEncoder().encode(JSON.stringify(values)).length;
 
 // The ☁ values the page has for the game: none when the game's response says it has none, or they cannot
@@ -134,13 +137,79 @@ export const attachCloud = (vm, send) => {
                 if (!Object.prototype.hasOwnProperty.call(values, variable.name)) continue;
                 const value = keepable(values[variable.name]);
                 if (value === null) continue;
-                // kept as text: one that reads back as the same number was a number
-                variable.value = value !== '' && String(Number(value)) === value ? Number(value) : value;
+                variable.value = asVariableValue(value);
             }
             kept = {};
             kept = current();
             sent = JSON.stringify(kept); // what the game opened with is not news to the page
             vm.setCloudProvider(provider);
         }
+    };
+};
+
+/**
+ * A locked copy played against the class's board (shared cloud, unit 10, 2026-11-11; the messages are in
+ * playground/kishufiya-player.jsx). The page hands in the board's values (apply) and hears only what the
+ * GAME ITSELF wrote: the VM tells its provider of a ☁ variable a block set or changed, and of nothing else,
+ * so a value put in by apply is never said back. Without that a child would send a friend's record as their
+ * own, and the server alone cannot tell (the platform's shared-cloud design, section 7).
+ * @param {VirtualMachine} vm the player's VM, its game loaded
+ * @param {function(object)} send tells the page what the game wrote, {name: value as text}, those names only
+ * @returns {{apply: function(object), flush: function()}} apply(values): the board's values, into the
+ *   variables; flush(): say now what the game wrote and was not said yet (the run ended)
+ */
+export const attachSharedCloud = (vm, send) => {
+    let wrote = {}; // what the game set since the last send, as it was when the block ran
+    const said = {}; // the last value said of each variable: a game setting the same one every frame says it once
+    let timer = null;
+
+    const flush = () => {
+        clearTimeout(timer);
+        timer = null;
+        if (!Object.keys(wrote).length) return;
+        const values = wrote;
+        wrote = {};
+        Object.assign(said, values);
+        send(values);
+    };
+    const provider = {
+        // the value the block wrote, not the variable's a moment later: by then the board's may be in it
+        updateVariable (name, value) {
+            if (!cloudVariables(vm).some(v => v.name === name)) return;
+            const text = keepable(value);
+            if (text === null) return; // past the cap: the last one that fitted stays the one to say
+            if (!Object.prototype.hasOwnProperty.call(wrote, name) && said[name] === text) return;
+            if (bytes({...wrote, [name]: text}) > MAX_CLOUD_BYTES) return;
+            wrote[name] = text;
+            if (!timer) timer = setTimeout(flush, SEND_AFTER_MS);
+        },
+        // a player makes, renames and deletes no variable
+        createVariable: () => {},
+        renameVariable: () => {},
+        deleteVariable: () => {},
+        requestCloseConnection: () => {}
+    };
+
+    vm.on('HAS_CLOUD_DATA_UPDATE', hasCloud => {
+        if (hasCloud) vm.setCloudProvider(provider);
+    });
+    vm.setCloudProvider(provider);
+
+    return {
+        apply (values) {
+            if (!values || typeof values !== 'object') return;
+            for (const variable of cloudVariables(vm)) {
+                if (!Object.prototype.hasOwnProperty.call(values, variable.name)) continue;
+                const given = values[variable.name];
+                if (typeof given !== 'string' && !(typeof given === 'number' && Number.isFinite(given))) continue;
+                const value = keepable(given);
+                if (value === null) continue;
+                // straight into the variable, past the provider: not the game's doing, so not said to the page.
+                // What the game wrote and was not said yet stays in `wrote` and is still said.
+                variable.value = asVariableValue(value);
+                delete said[variable.name]; // the board moved: the same value written again is news again
+            }
+        },
+        flush
     };
 };

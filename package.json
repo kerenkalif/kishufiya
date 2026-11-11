@@ -29,6 +29,7 @@
     "test:thumb": "jest test[\\\\/]unit[\\\\/]kishufiya-thumbnail",
     "test:tts": "jest test[\\\\/]unit[\\\\/]kishufiya-tts",
     "test:words": "jest test[\\\\/]unit[\\\\/]kishufiya-words",
+    "test:cloud": "jest test[\\\\/]unit[\\\\/]kishufiya-cloud",
     "test:smoke": "jest --runInBand test[\\\\/]smoke",
     "watch": "webpack --colors --watch"
   },
