@@ -41,7 +41,7 @@ describe('resolve: a hat from the palette into an empty sprite', () => {
         RTL: true,
         scale: 0.675,
         getParentSvg: () => svg,
-        getFlyout: () => ({getWorkspace: () => ({getTopBlocks: () => [hat]}), svgGroup_: flyoutSvg, scrollTarget: 0}),
+        getFlyout: () => ({getWorkspace: () => ({getTopBlocks: () => [hat], getMetrics: () => ({contentHeight: 900, viewHeight: 600}), scrollY: 0, scale: 0.675}), svgGroup_: flyoutSvg, scrollTarget: 0}),
         getTopBlocks: () => tops,
         isDragging: () => false,
         getToolbox: () => null
@@ -54,7 +54,7 @@ describe('resolve: a hat from the palette into an empty sprite', () => {
     test('no code yet: the hat in the palette, and a drop point in the code area\'s top-right, nothing to scroll to', () => {
         tops = [];
         expect(resolve({block: 'event_whenflagclicked', in: 'palette'}, vm))
-            .toEqual({rect: hatRect, via: 'block', drop: {x: 550 - FIRST_SCRIPT_PX, y: FIRST_SCRIPT_PX}, anchor: null});
+            .toMatchObject({rect: hatRect, via: 'block', drop: {x: 550 - FIRST_SCRIPT_PX, y: FIRST_SCRIPT_PX}, anchor: null});
     });
     test('code there already: under its lowest script, as before (the first script\'s spot is only for an empty sprite)', () => {
         const script = {

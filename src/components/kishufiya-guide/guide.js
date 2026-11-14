@@ -1,6 +1,10 @@
 // כישופייה guide (2026-10-23): the lesson points into the editor instead of showing screenshots.
 // Generic on purpose - it knows nothing of lessons, children or answers; the platform decides what to
 // show and what a pick means. Messages (msg.type), from the page around the editor:
+//   guide-scroll {id, container, top}  the base's decision (platform scroll-target.ts, SPEC-editor-base 3.3 item 7): scroll the box
+//                                      'palette', 'sprite-list' or 'library' to `top` (screen px). A target in such a box is told in
+//                                      'guide-at' with its `rect` even out of the box's view, and `scroller` {id, top, bottom, scrollTop,
+//                                      maxScrollTop}; until it is wholly in view nothing is drawn. The editor holds no rule for this.
 //   guide        {target, text?, textCategory?, textSprite?}
 //                                      ring the target (targets.js) and bounce an arrow at it; with a
 //                                      text, also a speech bubble beside it (the page may draw its own
@@ -125,7 +129,7 @@
 //                                                   at a library) arrive as one library-pick each, in marking order, each
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
-import {resetScrolls, resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf} from './targets.js';
+import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf} from './targets.js';
 import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
@@ -355,11 +359,12 @@ const tellAt = (rect, via, arrow, extra) => {
     const box = root && root.getSvgRoot ? root.getSvgRoot().getBoundingClientRect() : null;
     const clear = box && box.width > 0 ? frameOf(box) : null;
     const lab = frameOf(more.label);
-    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab]);
+    const scroller = more.scroller || null; // the scrolling box the target is in: the base asks for its scroll
+    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab, scroller]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear, label: lab});
+    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear, label: lab, scroller});
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
@@ -571,6 +576,15 @@ const drawGuide = () => {
         scrolled(found.anchor.id);
         workspace().centerOnBlock(found.anchor.id);
         hideGuide();
+        return;
+    }
+    // in a scrolling box (the palette, a list) out of its view: told where it is and the box, nothing drawn - the base asks
+    // for the scroll ('guide-scroll') and the mark comes when the box has moved (scroll-target.ts scrollDecision)
+    if (found.scrolling) {
+        hideGuide();
+        missingSince = 0;
+        reported = null;
+        tellAt(found.rect, found.via, null, found);
         return;
     }
     if (found.offscreen) found.missing = 'offscreen';
@@ -910,12 +924,15 @@ export const handleGuide = msg => {
         missingSince = 0;
         reported = null;
         scrolledTo = null;
-        resetScrolls(); // the palette and the lists scroll to the new target, once
         lastAt = ''; // a new guide is told where its target is even when it is where the last one was
         tellWindow(true); // ...and whether a window is open: the page may have been loaded since
         break;
     case 'names':
         setNameAsk(msg);
+        break;
+    case 'guide-scroll':
+        // the base's decision, done: a box scrolled to a target (targets.js scrollContainer)
+        if (state.guide && msg.id === state.guide.id) scrollContainer(msg.container, msg.top);
         break;
     case 'guide-clear':
         setNameAsk({clear: true});

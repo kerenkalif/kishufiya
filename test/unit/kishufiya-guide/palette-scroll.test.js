@@ -1,7 +1,8 @@
-// A palette block under the palette's lower edge: the palette scrolls to bring it to the middle of its height, once
-// (Keren, 2026-11-14: "קבע y" in the donuts, 1911x915). Stand-in workspace, flyout and document, as look-targets does.
+// A palette block under the palette's lower edge: the editor tells where it is and the palette's box and holds the mark back; the
+// scroll itself is the base's decision (scroll-target.ts), done here on 'guide-scroll' (Keren, 2026-11-14: "קבע y" in the
+// donuts, 1911x915). Stand-in workspace, flyout and document, as look-targets does.
 //   npx jest test/unit/kishufiya-guide/palette-scroll
-import {resetScrolls, resolve} from '../../../src/components/kishufiya-guide/targets.js';
+import {resolve, scrollContainer} from '../../../src/components/kishufiya-guide/targets.js';
 
 const rect = (top, bottom) => ({left: 0, right: 200, top, bottom, width: 200, height: bottom - top});
 const PALETTE = {top: 100, bottom: 700}; // a palette 600 tall
@@ -38,32 +39,39 @@ const setup = blockTop => {
 };
 
 describe('palette targets', () => {
-    beforeEach(() => resetScrolls());
-
-    test('a block under the lower edge: the palette scrolls so that it is in the middle, and nothing is ringed meanwhile', () => {
-        const {calls} = setup(720);
-        expect(resolve({block: 'looks_show', in: 'palette'}, null)).toEqual({missing: 'scrolling'});
-        // block middle 740 -> container middle 400: 340px lower; scroll now 500px -> 840px, in workspace units / 0.5
-        expect(calls).toEqual([840 / 0.5]);
+    test('a block under the lower edge: told with the palette box, not drawn', () => {
+        setup(720);
+        expect(resolve({block: 'looks_show', in: 'palette'}, null)).toMatchObject({
+            via: 'block',
+            scrolling: true,
+            rect: {top: 720, bottom: 760},
+            scroller: {id: 'palette', top: 100, bottom: 700, scrollTop: 500, maxScrollTop: 2400}
+        });
     });
 
-    test('a block cut by the lower edge (its middle is seen) scrolls too', () => {
-        const {calls} = setup(680);
-        expect(resolve({block: 'looks_show', in: 'palette'}, null)).toEqual({missing: 'scrolling'});
-        expect(calls).toHaveLength(1);
+    test('a block cut by the lower edge is held back too', () => {
+        setup(680);
+        expect(resolve({block: 'looks_show', in: 'palette'}, null)).toMatchObject({scrolling: true});
     });
 
-    test('a block seen is ringed and the palette is left alone', () => {
+    test('a block in view is marked as before, with the palette box for the base', () => {
         const {calls} = setup(300);
-        expect(resolve({block: 'looks_show', in: 'palette'}, null)).toMatchObject({via: 'block'});
+        const found = resolve({block: 'looks_show', in: 'palette'}, null);
+        expect(found).toMatchObject({via: 'block', scroller: {id: 'palette'}});
+        expect(found.scrolling).toBeUndefined();
         expect(calls).toEqual([]);
     });
 
-    test('a block under the window\'s lower edge (a palette taller than the window) scrolls', () => {
-        const {calls, state} = setup(850);
+    test('a block under the window lower edge (a palette taller than the window) is held back', () => {
+        setup(850);
         global.window.innerHeight = 800;
-        state.top = 850;
-        expect(resolve({block: 'looks_show', in: 'palette'}, null)).toEqual({missing: 'scrolling'});
-        expect(calls).toHaveLength(1);
+        expect(resolve({block: 'looks_show', in: 'palette'}, null)).toMatchObject({scrolling: true});
+    });
+
+    test('guide-scroll scrolls the palette: screen px to the flyout workspace units, never 0', () => {
+        const {calls} = setup(720);
+        scrollContainer('palette', 840);
+        scrollContainer('palette', 0);
+        expect(calls).toEqual([840 / 0.5, 1]);
     });
 });

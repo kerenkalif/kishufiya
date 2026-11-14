@@ -114,7 +114,6 @@ const UI = {
     'variable-kept': '[class*="prompt_cloud-option_"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
-import {scrollTopToShow, targetSeen} from './scroll-target.js';
 import {coveredBy, fieldInPane, firstScriptSpot, libraryMissing, samplePoints, spriteOnStage, stagePointOf, stagePointOnScreen,
     typing} from './detect.js';
 
@@ -240,17 +239,11 @@ export const surrounding = block => {
     return kinds;
 };
 
-// the palette block scrolled into view for the open category, once (resolve below)
-let paletteScrolledTo = null;
-// the sprite tile or library item scrolled into view of its list, once for each guide message
-let listScrolledTo = null;
-export const resetScrolls = () => {
-    paletteScrolledTo = null;
-    listScrolledTo = null;
-};
-
-// A box's rectangle as far as the window shows it: a box taller than the window (a palette on a low screen) is seen to the window's edge
+// The scrolling box a target sits in, as the base asks for it (guide-at `scroller`, SPEC-editor-base 3.3 item 7): which box, as much of
+// it as the window shows, and its scroll. The editor decides nothing about it: the base asks for the scroll ('guide-scroll') and the
+// editor does it (scrollContainer).
 const spanOf = rect => ({top: Math.max(rect.top, 0), bottom: Math.min(rect.bottom, window.innerHeight || rect.bottom)});
+const listBoxes = {}; // the scrolling lists by the id the base knows them by, as last reported
 
 // The nearest ancestor that scrolls by itself (the sprite list's wrapper, the library's grid), null for none.
 const scrollerOf = el => {
@@ -259,22 +252,39 @@ const scrollerOf = el => {
     }
     return null;
 };
-
-// A tile or item of a scrolling list is seen as the list shows it, else the list scrolls to it (scroll-target.js): once for
-// each guide message, then the child's own scrolling is left alone. true: the list was scrolled (look again next time).
-const scrollListTo = (key, el) => {
-    if (listScrolledTo === key) return false;
-    listScrolledTo = key;
+const listScroller = (id, el) => {
     const list = scrollerOf(el);
-    const rect = rectOf(el);
     const box = list && rectOf(list);
-    if (!rect || !box) return false;
-    const to = scrollTopToShow(rect, spanOf(box), list.scrollTop, list.scrollHeight - list.clientHeight);
-    if (to === null) return false;
-    list.scrollTop = to;
-    return true;
+    if (!box) return null;
+    listBoxes[id] = list;
+    return {id, ...spanOf(box), scrollTop: list.scrollTop, maxScrollTop: list.scrollHeight - list.clientHeight};
+};
+// The palette's own scroll is in px of the screen here (-scrollY); the flyout's scrollTo takes workspace units
+const paletteScroller = (fws, area) => {
+    const metrics = fws.getMetrics();
+    return {id: 'palette', ...spanOf(area), scrollTop: Math.max(0, -fws.scrollY), maxScrollTop: metrics.contentHeight - metrics.viewHeight};
+};
+// Whether the whole of a rect is within what the box shows: only to hold the mark back until the base has scrolled to it
+const within = (rect, scroller) => Boolean(rect && scroller) && rect.top >= scroller.top && rect.bottom <= scroller.bottom;
+
+// The base's 'guide-scroll' {container, top}: scrolls the box (top in the screen's px, as the scroller said it). Not 0 for the
+// palette: scratch-blocks takes a target of 0 for none, and does not scroll.
+export const scrollContainer = (container, top) => {
+    if (container === 'palette') {
+        const ws = workspace();
+        const flyout = ws && ws.getFlyout();
+        const fws = flyout && flyout.getWorkspace();
+        if (fws) flyout.scrollTo(Math.max(1, top / fws.scale));
+        return;
+    }
+    if (listBoxes[container]) listBoxes[container].scrollTop = top;
 };
 
+// a sprite's tile: held back (told, not drawn) until the sprite list shows all of it, and the list's box said for the base
+const spriteScroller = tile => {
+    const scroller = listScroller('sprite-list', tile);
+    return scroller ? {scroller, scrolling: !within(rectOf(tile), scroller)} : {};
+};
 const editingTarget = vm => (vm && vm.editingTarget) || null;
 const spriteTile = name => {
     for (const el of document.querySelectorAll('[class*="sprite-selector-item_sprite-name_"]')) {
@@ -307,9 +317,8 @@ const ownerTile = (target, vm) => {
     const open = editingTarget(vm);
     if (!target.sprite || !open || open.getName() === target.sprite) return null;
     const tile = tileOf(vm, target.sprite);
-    if (tile) scrollListTo(`sprite:${target.sprite}`, tile);
     const rect = rectOf(tile);
-    return rect ? {rect, via: 'sprite'} : {missing: 'sprite'};
+    return rect ? {rect, via: 'sprite', ...spriteScroller(tile)} : {missing: 'sprite'};
 };
 
 // `exclude`: a block that is not it (the block being moved is not its own anchor)
@@ -522,10 +531,12 @@ export const resolve = (target, vm) => {
     if (target.library) {
         const item = libraryItem(target.library);
         const grid = item && item.closest('[class*="library_library-scroll-grid_"]');
-        if (item && grid) scrollListTo(`library:${target.library}`, item);
         const rect = rectOf(item);
+        const scroller = grid && listScroller('library', item);
+        // out of the grid's view: told with the grid's box, not drawn, until the base has scrolled to it
+        if (rect && scroller) return {rect, via: 'library', scroller, scrolling: !within(rect, scroller)};
         const area = rectOf(grid) || {top: 0, bottom: window.innerHeight};
-        if (rect && targetSeen(rect, spanOf(area))) return {rect, via: 'library'};
+        if (rect && rect.top >= area.top && rect.bottom <= area.bottom) return {rect, via: 'library'};
         const box = uiElement('library-search');
         const search = rectOf(box);
         const why = libraryMissing({
@@ -539,9 +550,8 @@ export const resolve = (target, vm) => {
     // a sprite alone: its tile (with a category it is only the sprite the category is opened in)
     if (target.sprite && !target.block && !target.blockId && !target.category) {
         const tile = tileOf(vm, target.sprite);
-        if (tile) scrollListTo(`sprite:${target.sprite}`, tile);
         const rect = rectOf(tile);
-        return rect ? {rect, via: 'sprite'} : {missing: 'sprite'};
+        return rect ? {rect, via: 'sprite', ...spriteScroller(tile)} : {missing: 'sprite'};
     }
     const ws = workspace();
     if (!ws) return {missing: 'workspace'};
@@ -558,50 +568,33 @@ export const resolve = (target, vm) => {
         const block = fws && fws.getTopBlocks(false).find(ofIt);
         const rect = block && rectOf(block.getSvgRoot());
         const area = rectOf(flyoutSvg(ws));
-        // all of the block in the palette, as far as the window shows it (scroll-target.js): a block cut by the palette's lower
-        // edge, or by the window's, is not seen (Keren, 2026-11-14: "קבע y" in the donuts, 1911x915)
-        const view = area && spanOf(area);
-        // ...and a block the palette cannot scroll any nearer to the middle (the last of its list) is seen from its middle on
-        const middleSeen = Boolean(rect && view) && (rect.top + rect.bottom) / 2 >= view.top && (rect.top + rect.bottom) / 2 <= view.bottom;
-        const seen = Boolean(rect && view) && (targetSeen(rect, view) || (paletteScrolledTo === target.block && middleSeen));
+        // The palette's box goes to the base with the block's place (guide-at `scroller`): the base decides whether the block is
+        // seen there and asks for the scroll (SPEC-editor-base 3.3 item 7; Keren, 2026-11-14: "קבע y" in the donuts, 1911x915)
+        const scroller = area && fws ? paletteScroller(fws, area) : null;
         // While the palette scrolls nothing is ringed: for a moment it was the block passing by (2026-10-25).
         // scratch-blocks itself takes a target of 0 for none (it never animates to 0, and the 0 stays).
         if (flyout && flyout.scrollTarget) return {missing: 'scrolling'};
-        if (seen) {
+        if (within(rect, scroller)) {
             if (!target.to) {
                 // a new script's hat: a free spot under the code there is ("למקום ריק"), outlined like any drop
                 const spot = block.nextConnection && !block.previousConnection ? freeSpot(ws) : null;
-                if (spot && spot.out) return {rect, via: 'block', block: spot.anchor};
-                if (!spot) return {rect, via: 'block'};
-                return {rect, via: 'block', drop: {x: spot.x, y: spot.y}, anchor: spot.anchor};
+                if (spot && spot.out) return {rect, via: 'block', block: spot.anchor, scroller};
+                if (!spot) return {rect, via: 'block', scroller};
+                return {rect, via: 'block', drop: {x: spot.x, y: spot.y}, anchor: spot.anchor, scroller};
             }
             const drop = dropPoint(ws, target.to);
-            if (drop.offscreen) return {rect, via: 'block', block: drop.offscreen};
-            if (!drop.point) return {rect, via: 'block'};
-            return {rect, via: 'block', drop: drop.point, slot: drop.slot, anchor: drop.anchor};
+            if (drop.offscreen) return {rect, via: 'block', block: drop.offscreen, scroller};
+            if (!drop.point) return {rect, via: 'block', scroller};
+            return {rect, via: 'block', drop: drop.point, slot: drop.slot, anchor: drop.anchor, scroller};
         }
         const category = categoryOf(target.block);
-        // The child opened the block's category, and the block is lower down in it (or above, after a
-        // scroll): the palette scrolls to it, once - within the category the child chose, no switch of
-        // category (Keren, 2026-10-25: "הצג" is low in "מראה", and the arrow went back to "מראה" for ever).
+        // The child opened the block's category, and the block is lower down in it (or above, after a scroll): the base
+        // scrolls the palette to it - within the category the child chose, no switch of category (Keren, 2026-10-25: "הצג" is
+        // low in "מראה", and the arrow went back to "מראה" for ever). Told, not drawn, until it has.
         const toolbox = ws.getToolbox && ws.getToolbox();
         const selected = toolbox && toolbox.getSelectedItem && toolbox.getSelectedItem();
         const inIt = Boolean(block && selected && selected.id_ === category);
-        if (!inIt) paletteScrolledTo = null;
-        else if (paletteScrolledTo !== target.block) {
-            paletteScrolledTo = target.block;
-            // to the middle of the palette's height (scroll-target.js), as far as the palette can scroll. The palette's own
-            // scroll is in px of the screen here (-scrollY); scrollTo takes workspace units. Not 0: scratch-blocks takes a
-            // target of 0 for none, and does not scroll.
-            const metrics = fws.getMetrics();
-            const to = area && rect ?
-                scrollTopToShow(rect, spanOf(area), -fws.scrollY, metrics.contentHeight - metrics.viewHeight) :
-                null;
-            if (to !== null) {
-                flyout.scrollTo(Math.max(1, to / fws.scale));
-                return {missing: 'scrolling'};
-            }
-        }
+        if (inIt && rect && scroller) return {rect, via: 'block', scroller, scrolling: true};
         const item = category && rectOf(document.querySelector(`.scratchCategoryId-${category}`));
         return item ? {rect: item, via: 'category', category} : {missing: block ? 'palette' : 'not-in-palette'};
     }
