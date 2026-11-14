@@ -130,7 +130,7 @@ export const uiElement = name => (UI[name] ? document.querySelector(UI[name]) : 
 // null for a box with none.
 const PROMPT_LABEL = '[class*="prompt_label_"]';
 export const inputLabel = el => {
-    if (!el || el.tagName !== 'INPUT') return null;
+    if (!el || el.tagName !== 'INPUT' || !el.closest) return null;
     const label = el.closest('label');
     const words = label ?
         Array.from(label.querySelectorAll('span')).find(span => !span.contains(el) && span.textContent.trim()) :
