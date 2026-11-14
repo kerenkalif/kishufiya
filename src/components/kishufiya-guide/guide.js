@@ -125,7 +125,7 @@
 //                                                   at a library) arrive as one library-pick each, in marking order, each
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
-import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf} from './targets.js';
+import {resetScrolls, resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf} from './targets.js';
 import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
@@ -301,7 +301,13 @@ const MISSING_AFTER_MS = 500;
 let missingSince = 0;
 let reported = null;
 let lastCategory = null;
-let scrolledTo = null; // the code block brought into view for this guide, once
+let scrolledTo = null; // the code block brought into view for this guide, once...
+let scrolledScale = null; // ...at this zoom: a zoom moves every block, so the code is brought to it again (scroll-target)
+const scrolledHere = id => scrolledTo === id && scrolledScale === workspace().scale;
+const scrolled = id => {
+    scrolledTo = id;
+    scrolledScale = workspace().scale;
+};
 const DROP_MARGIN = 24; // px: a drop's outline is this far inside the code area (its scrollbar at the bottom)
 const inView = (r, area) => area &&
     r.top >= area.top && r.bottom <= area.bottom && r.left >= area.left && r.right <= area.right;
@@ -547,11 +553,11 @@ const drawGuide = () => {
     // a whole script seen well once - at the first look or after the one scroll - is the child's from then on: the
     // code is not scrolled to it again while this guide is on, though the child scrolls it away (it jumped back
     // while they searched; the manager, 2026-11-09)
-    if (ringAlone(whole.via) && found.block && seenWell(whole, area)) scrolledTo = found.block.id;
+    if (ringAlone(whole.via) && found.block && seenWell(whole, area)) scrolled(found.block.id);
     // a block of the code out of sight: the code area scrolls to it, once (the palette never does) - a whole script
     // when it is not seen as well as the area can show it (seenWell)
-    if (found.block && scrolledTo !== found.block.id && (found.offscreen || !seenWell(whole, area))) {
-        scrolledTo = found.block.id;
+    if (found.block && !scrolledHere(found.block.id) && (found.offscreen || !seenWell(whole, area))) {
+        scrolled(found.block.id);
         workspace().centerOnBlock(found.block.id);
         hideGuide();
         return;
@@ -561,8 +567,8 @@ const drawGuide = () => {
     const dropBottom = found.drop && (found.slot ? found.slot.bottom : found.drop.y + GHOST_ROW);
     const dropTop = found.drop && (found.slot ? found.slot.top : found.drop.y);
     const dropOut = found.drop && area && (dropTop < area.top + DROP_MARGIN || dropBottom + DROP_MARGIN > area.bottom);
-    if (dropOut && found.anchor && scrolledTo !== found.anchor.id) {
-        scrolledTo = found.anchor.id;
+    if (dropOut && found.anchor && !scrolledHere(found.anchor.id)) {
+        scrolled(found.anchor.id);
         workspace().centerOnBlock(found.anchor.id);
         hideGuide();
         return;
@@ -904,6 +910,7 @@ export const handleGuide = msg => {
         missingSince = 0;
         reported = null;
         scrolledTo = null;
+        resetScrolls(); // the palette and the lists scroll to the new target, once
         lastAt = ''; // a new guide is told where its target is even when it is where the last one was
         tellWindow(true); // ...and whether a window is open: the page may have been loaded since
         break;
