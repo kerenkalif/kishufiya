@@ -84,10 +84,11 @@
 //   page tells them apart from what was said about the guide before)
 //   guide-missing {id, target, reason, by}          the target is nowhere on the screen, or cannot be clicked
 //                                                   (for half a second): why - targets.js
-//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?}
+//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?, label?}
 //                                                   where the guided target is now, in this frame's pixels,
 //                                                   and on which side of it the arrow is; a field's value as
 //                                                   shown, and itself (raw: 'right arrow' for "חץ ימינה");
+//                                                   a box's label {left, top, width, height}: the words that say what it is;
 //                                                   a dragged block's drop point {x, y} - sent on change
 //   ui {name: 'run' | 'flag' | 'stop'}              a run / the green flag itself / the stop sign
 //   script-ran {hat, key?, sprites, from?, blocks, changed, done}
@@ -357,11 +358,17 @@ const tellAt = (rect, via, arrow, extra) => {
         width: Math.round(box.width),
         height: Math.round(box.height)
     } : null;
-    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear]);
+    const lab = more.label ? {
+        left: Math.round(more.label.left),
+        top: Math.round(more.label.top),
+        width: Math.round(more.label.right - more.label.left),
+        height: Math.round(more.label.bottom - more.label.top)
+    } : null;
+    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear});
+    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear, label: lab});
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,

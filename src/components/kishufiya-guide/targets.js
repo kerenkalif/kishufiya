@@ -124,6 +124,13 @@ export const TAB_OF_LIST = {'costume-list': 'costumes-tab', 'sound-list': 'sound
 const PANE_FIELDS = new Set(['sprite-name', 'sprite-x', 'sprite-y', 'sprite-size', 'sprite-direction', 'sprite-visible']);
 export const isPaneField = name => PANE_FIELDS.has(name);
 export const uiElement = name => (UI[name] ? document.querySelector(UI[name]) : null);
+// The words that say what a box to type in is (the "y" over the sprite's y number): the page keeps its bubble off them too
+// (guide-at `label`, bubble-marks.ts). The label's own words, found by the box's <label>: null for a box with none.
+const inputLabel = el => {
+    const label = el && el.tagName === 'INPUT' ? el.closest('label') : null;
+    const words = label && Array.from(label.querySelectorAll('span')).find(span => !span.contains(el) && span.textContent.trim());
+    return words ? rectOf(words) : null;
+};
 
 // A window of the editor over it (a library, a prompt), and in a prompt the box to name a new message or
 // variable.
@@ -458,7 +465,7 @@ export const resolve = (target, vm) => {
         const value = el && el.tagName === 'INPUT' ? el.value : null;
         const input = Boolean(el && el.tagName === 'INPUT');
         if (!rect && target.ui === 'sprite-info') return {missing: 'pane-hidden'};
-        return rect ? {rect, via: 'ui', value, raw: value, input} : {missing: 'ui'};
+        return rect ? {rect, via: 'ui', value, raw: value, input, label: inputLabel(el)} : {missing: 'ui'};
     }
     if (target.libraryTag) {
         const rect = rectOf(libraryTagButton(target.libraryTag));
