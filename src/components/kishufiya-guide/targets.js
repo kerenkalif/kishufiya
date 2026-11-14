@@ -124,13 +124,27 @@ export const TAB_OF_LIST = {'costume-list': 'costumes-tab', 'sound-list': 'sound
 const PANE_FIELDS = new Set(['sprite-name', 'sprite-x', 'sprite-y', 'sprite-size', 'sprite-direction', 'sprite-visible']);
 export const isPaneField = name => PANE_FIELDS.has(name);
 export const uiElement = name => (UI[name] ? document.querySelector(UI[name]) : null);
-// The words that say what a box to type in is (the "y" over the sprite's y number): the page keeps its bubble off them too
-// (guide-at `label`, bubble-marks.ts). The label's own words, found by the box's <label>: null for a box with none.
-const inputLabel = el => {
-    const label = el && el.tagName === 'INPUT' ? el.closest('label') : null;
-    const words = label && Array.from(label.querySelectorAll('span')).find(span => !span.contains(el) && span.textContent.trim());
+// The words that say what a box to type in is (the "y" over the sprite's y number; "Variable name" over the new variable's box):
+// the page keeps its bubble off them too (guide-at `label`, bubble-marks.ts). Two shapes in the editor: the box inside a <label>
+// with the words in a span (the sprite info), or the words in their own element above it (the prompt's `prompt_label_`).
+// null for a box with none.
+const PROMPT_LABEL = '[class*="prompt_label_"]';
+export const inputLabel = el => {
+    if (!el || el.tagName !== 'INPUT') return null;
+    const label = el.closest('label');
+    const words = label ?
+        Array.from(label.querySelectorAll('span')).find(span => !span.contains(el) && span.textContent.trim()) :
+        el.closest('[class*="prompt_body_"]') && el.closest('[class*="prompt_body_"]').querySelector(PROMPT_LABEL);
     return words ? rectOf(words) : null;
 };
+
+// A DOMRect as guide-at says a place: {left, top, width, height}, whole pixels (width and height from right and bottom).
+export const frameOf = rect => rect ? {
+    left: Math.round(rect.left),
+    top: Math.round(rect.top),
+    width: Math.round(rect.right - rect.left),
+    height: Math.round(rect.bottom - rect.top)
+} : null;
 
 // A window of the editor over it (a library, a prompt), and in a prompt the box to name a new message or
 // variable.
@@ -398,7 +412,7 @@ export const resolve = (target, vm) => {
         // button that opens it (Keren, 2026-10-25: the ring stayed on the category, behind the window)
         const input = document.querySelector(NAME_BOX);
         const rect = rectOf(input);
-        if (rect) return {rect, via: 'ui', value: input.value, raw: input.value, input: true};
+        if (rect) return {rect, via: 'ui', value: input.value, raw: input.value, input: true, label: inputLabel(input)};
         return resolve({ui: 'make-variable'}, vm);
     }
     if (target.ui === 'make-variable') {

@@ -125,7 +125,7 @@
 //                                                   at a library) arrive as one library-pick each, in marking order, each
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
-import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow} from './targets.js';
+import {resolve, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf} from './targets.js';
 import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
@@ -334,12 +334,7 @@ const keepClearOf = () => {
 // Where the page is told the target is: sent only when it changes.
 let lastAt = '';
 const tellAt = (rect, via, arrow, extra) => {
-    const at = rect ? {
-        left: Math.round(rect.left),
-        top: Math.round(rect.top),
-        width: Math.round(rect.right - rect.left),
-        height: Math.round(rect.bottom - rect.top)
-    } : null;
+    const at = frameOf(rect);
     const more = extra || {};
     const drop = more.drop ? {x: Math.round(more.drop.x), y: Math.round(more.drop.y)} : null;
     const value = typeof more.value === 'string' ? more.value : null;
@@ -352,18 +347,8 @@ const tellAt = (rect, via, arrow, extra) => {
     const own = ofCode && more.block && !more.drop ? more.block : keepClearOf();
     const root = own && own.getRootBlock && own.getRootBlock();
     const box = root && root.getSvgRoot ? root.getSvgRoot().getBoundingClientRect() : null;
-    const clear = box && box.width > 0 ? {
-        left: Math.round(box.left),
-        top: Math.round(box.top),
-        width: Math.round(box.width),
-        height: Math.round(box.height)
-    } : null;
-    const lab = more.label ? {
-        left: Math.round(more.label.left),
-        top: Math.round(more.label.top),
-        width: Math.round(more.label.right - more.label.left),
-        height: Math.round(more.label.bottom - more.label.top)
-    } : null;
+    const clear = box && box.width > 0 ? frameOf(box) : null;
+    const lab = frameOf(more.label);
     const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab]);
     if (key === lastAt) return;
     lastAt = key;
