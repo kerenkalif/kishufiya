@@ -75,6 +75,18 @@ export const firstScriptSpot = ({area, rtl, margin = FIRST_SCRIPT_PX}) => {
     return {x: rtl ? area.right - margin : area.left + margin, y: area.top + margin};
 };
 
+// The outline of a block's drop, kept to the code area (the box where a released block is accepted: the palette beside it takes a
+// block back, and a block's width stuck out past the area's edge is a mark over the palette). The part of `box` inside `area`;
+// null when none of it is (nothing is drawn). No area: the box as it is. Pure.
+export const insideArea = (box, area) => {
+    if (!area) return box;
+    const left = Math.max(box.left, area.left);
+    const right = Math.min(box.right, area.right);
+    const top = Math.max(box.top, area.top);
+    const bottom = Math.min(box.bottom, area.bottom);
+    return right > left && bottom > top ? {left, right, top, bottom} : null;
+};
+
 // A point on the stage (Scratch's coordinates, y up) on the screen: a small round mark around it on the stage's canvas
 // (its client rect), for a lesson's "why" that points at where a sprite will arrive (platform decision 28 stage 2,
 // 2026-10-31). → {rect} - POINT_MARK px wide, following the stage's size and place - or {missing: 'stage-hidden'} (no

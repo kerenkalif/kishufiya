@@ -130,7 +130,7 @@
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf} from './targets.js';
-import {TOLD_HATS, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
+import {TOLD_HATS, insideArea, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
@@ -381,7 +381,13 @@ const placeGhost = (r, drop, slot) => {
     // a block going into a slot: the slot itself; else the block's first row with the corner it joins by
     // (its top-right in a right-to-left editor) at the drop point
     const height = Math.min(r.bottom - r.top, GHOST_ROW);
-    const box = slot || {left: drop.x - (r.right - r.left), right: drop.x, top: drop.y, bottom: drop.y + height};
+    const whole = slot || {left: drop.x - (r.right - r.left), right: drop.x, top: drop.y, bottom: drop.y + height};
+    const box = insideArea(whole, codeArea()); // only where a released block is accepted (detect.js insideArea)
+    if (!box) {
+        ghost.style.display = 'none';
+        lastGhost = '';
+        return;
+    }
     const key = [box.left, box.right, box.top, box.bottom].map(Math.round).join();
     if (key === lastGhost) return;
     lastGhost = key;
