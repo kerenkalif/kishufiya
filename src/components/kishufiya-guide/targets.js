@@ -114,7 +114,7 @@ const UI = {
     'variable-kept': '[class*="prompt_cloud-option_"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
-import {coveredBy, fieldInPane, firstScriptSpot, libraryMissing, samplePoints, spriteOnStage, stagePointOf, stagePointOnScreen,
+import {SCRIPTS_ID, coveredBy, fieldInPane, firstScriptSpot, libraryMissing, samplePoints, scriptsScrollY, scriptsScroller, spriteOnStage, stagePointOf, stagePointOnScreen,
     typing} from './detect.js';
 
 // The tab a list lives in: while another tab is open the tab is pointed at first, like a closed category.
@@ -267,6 +267,12 @@ const paletteScroller = (fws, area) => {
 // Whether the whole of a rect is within what the box shows: only to hold the mark back until the base has scrolled to it
 const within = (rect, scroller) => Boolean(rect && scroller) && rect.top >= scroller.top && rect.bottom <= scroller.bottom;
 
+// The code area's scroll, for a dock frame the base wants whole inside it (guide-at `dropScroller`); null without a workspace.
+export const codeScroller = () => {
+    const ws = workspace();
+    return ws && ws.getMetrics ? scriptsScroller(ws.getMetrics()) : null;
+};
+
 // The base's 'guide-scroll' {container, top}: scrolls the box (top in the screen's px, as the scroller said it). Not 0 for the
 // palette: scratch-blocks takes a target of 0 for none, and does not scroll.
 export const scrollContainer = (container, top) => {
@@ -275,6 +281,11 @@ export const scrollContainer = (container, top) => {
         const flyout = ws && ws.getFlyout();
         const fws = flyout && flyout.getWorkspace();
         if (fws) flyout.scrollTo(Math.max(1, top / fws.scale));
+        return;
+    }
+    if (container === SCRIPTS_ID) {
+        const ws = workspace();
+        if (ws && ws.scroll && ws.getMetrics) ws.scroll(ws.scrollX, scriptsScrollY(ws.getMetrics(), top));
         return;
     }
     if (listBoxes[container]) listBoxes[container].scrollTop = top;

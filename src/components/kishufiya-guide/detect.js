@@ -84,6 +84,17 @@ export const dropBox = (r, drop, slot) => {
     return slot || {left: drop.x - (r.right - r.left), right: drop.x, top: drop.y, bottom: drop.y + height};
 };
 
+// The code area's scroll as the base asks for it (guide-at `dropScroller`, SPEC-editor-base 3.3 item 2): id 'scripts', how far the view is
+// from the content's top, and the most it can be. `m`: the workspace's getMetrics(). The base asks for a scroll ('guide-scroll') when a
+// dock frame is not whole inside the accepted area; scriptsScrollY is the workspace's scrollY that puts the view at `top`. Pure.
+export const SCRIPTS_ID = 'scripts';
+export const scriptsScroller = m => ({
+    id: SCRIPTS_ID,
+    scrollTop: Math.round(m.viewTop - m.contentTop),
+    maxScrollTop: Math.max(0, Math.round(m.contentHeight - m.viewHeight))
+});
+export const scriptsScrollY = (m, top) => -(m.contentTop + top);
+
 // A point on the stage (Scratch's coordinates, y up) on the screen: a small round mark around it on the stage's canvas
 // (its client rect), for a lesson's "why" that points at where a sprite will arrive (platform decision 28 stage 2,
 // 2026-10-31). → {rect} - POINT_MARK px wide, following the stage's size and place - or {missing: 'stage-hidden'} (no

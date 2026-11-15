@@ -2,7 +2,7 @@
 // Generic on purpose - it knows nothing of lessons, children or answers; the platform decides what to
 // show and what a pick means. Messages (msg.type), from the page around the editor:
 //   guide-scroll {id, container, top}  the base's decision (platform scroll-target.ts, SPEC-editor-base 3.3 item 7): scroll the box
-//                                      'palette', 'sprite-list' or 'library' to `top` (screen px). A target in such a box is told in
+//                                      'palette', 'sprite-list', 'library' or 'scripts' (the code area) to `top` (screen px). A target in such a box is told in
 //                                      'guide-at' with its `rect` even out of the box's view, and `scroller` {id, top, bottom, scrollTop,
 //                                      maxScrollTop}; until it is wholly in view nothing is drawn. The editor holds no rule for this.
 //   guide        {target, text?, textCategory?, textSprite?}
@@ -131,7 +131,7 @@
 //                                                   at a library) arrive as one library-pick each, in marking order, each
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
-import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf} from './targets.js';
+import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
 import {TOLD_HATS, GHOST_ROW, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
@@ -367,12 +367,14 @@ const tellAt = (rect, via, arrow, extra) => {
     const whole = more.drop && rect ? dropBox(rect, more.drop, more.slot) : null;
     const dropRect = whole ? frameOf(whole) : null;
     const accept = whole ? frameOf(codeArea()) : null;
-    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab, scroller, dropRect, accept]);
+    // the code area's scroll, for a dock frame the base wants whole inside `accept` (it answers 'guide-scroll' {container: 'scripts'})
+    const dropScroller = dropRect ? codeScroller() : null;
+    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab, scroller, dropRect, accept, dropScroller]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
     send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear, label: lab, scroller,
-        ...(dropRect ? {dropRect, accept, dropKind: 'dock'} : {})});
+        ...(dropRect ? {dropRect, accept, dropKind: 'dock', dropScroller} : {})});
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
