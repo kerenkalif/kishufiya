@@ -19,6 +19,7 @@ describe('the box reported for a dragged block', () => {
 
 // What the editor REPORTS for the base (platform drop-frame.ts decides; the whole loop - report, decision, drawing, a block attaching - is tested
 // there, test:editor-parity). Here only the reports and the scroll the editor does when told.
+import {SNAP_RADIUS} from '../../../src/lib/kishufiya-tidy-layout.js';
 import {scriptsScroller, scriptsScrollX, scriptsScrollY, attachOf, SCRIPTS_ID} from '../../../src/components/kishufiya-guide/detect.js';
 describe('the code area reports its scroll and scrolls as the base asks', () => {
     const metrics = {viewTop: 300, contentTop: 100, viewHeight: 400, contentHeight: 1000, viewLeft: 50, contentLeft: 20, viewWidth: 600, contentWidth: 900};
@@ -42,5 +43,19 @@ describe('a dock target reports its attach range: Blockly snap radius at the zoo
     test('no radius or no place: nothing is reported', () => {
         expect(attachOf(null, {x: 1, y: 1}, 48, 1)).toBeNull();
         expect(attachOf({left: 0, right: 10, top: 0, bottom: 10}, {x: 10, y: 0}, 48, 0)).toBeNull();
+    });
+});
+
+// Parity with the platform: what this editor reports must equal the numbers the platform's decision is tested against, ATTACH_RULES.kishufiya
+// in KidsTeachingPlatform src/lib/lesson/editor-parity.test.ts (radius 48 * 0.675 = 32.4, held {x: -60, y: 22}). Copied here on purpose:
+// change them there and here together.
+describe('attach report equals the platform ATTACH_RULES.kishufiya', () => {
+    test('radius SNAP_RADIUS (48) times zoom 0.675, held 60 left of the drop point and 22 down', () => {
+        expect(SNAP_RADIUS).toBe(48);
+        const drop = {x: 560, y: 330};
+        const whole = dropBox({left: 0, right: 120, top: 0, bottom: 200}, drop, null);
+        const attach = attachOf(whole, drop, SNAP_RADIUS, 0.675);
+        expect(attach.radius).toBeCloseTo(48 * 0.675, 1);
+        expect(attach.held).toEqual({x: -60, y: 22});
     });
 });
