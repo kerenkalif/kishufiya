@@ -1,25 +1,18 @@
-// A drawn drop outline lies inside the code area, where a released block is accepted (detect.js insideArea; the palette beside
-// the area takes a block back, so a mark over it is one the child follows and fails).
+// The drop frame is decided once in the platform's base (drop-frame.ts, SPEC-editor-base 3.3); this editor REPORTS the box a dragged
+// block would have (guide-at `dropRect`, unclipped), the code area as `accept`, and draws only what 'guide-frame' says.
 //   npx jest test/unit/kishufiya-guide/drop-inside
-import {insideArea} from '../../../src/components/kishufiya-guide/detect.js';
+import {dropBox, GHOST_ROW} from '../../../src/components/kishufiya-guide/detect.js';
 
-const area = {left: 100, right: 500, top: 50, bottom: 450};
-
-describe('a drop outline kept to the code area', () => {
-    test('inside: as it is', () => {
-        const box = {left: 200, right: 300, top: 100, bottom: 144};
-        expect(insideArea(box, area)).toEqual(box);
+describe('the box reported for a dragged block', () => {
+    test('a block going to a drop point: its first row, joined by its top-right corner at the point, whole - never cut to an area', () => {
+        const r = {left: 0, right: 120, top: 0, bottom: 200};
+        expect(dropBox(r, {x: 560, y: 100}, null)).toEqual({left: 440, right: 560, top: 100, bottom: 100 + GHOST_ROW});
     });
-    test('a block wider than the room left in the area is cut at its edge, not drawn over the palette', () => {
-        expect(insideArea({left: 60, right: 180, top: 100, bottom: 144}, area)).toEqual({left: 100, right: 180, top: 100, bottom: 144});
-        expect(insideArea({left: 450, right: 560, top: 100, bottom: 144}, area)).toEqual({left: 450, right: 500, top: 100, bottom: 144});
+    test('a short block is its own height', () => {
+        expect(dropBox({left: 0, right: 80, top: 0, bottom: 30}, {x: 100, y: 10}, null)).toEqual({left: 20, right: 100, top: 10, bottom: 40});
     });
-    test('wholly outside: nothing is drawn', () => {
-        expect(insideArea({left: 510, right: 600, top: 100, bottom: 144}, area)).toBeNull();
-        expect(insideArea({left: 200, right: 300, top: 460, bottom: 500}, area)).toBeNull();
-    });
-    test('no code area: the box as it is', () => {
-        const box = {left: 1, right: 2, top: 3, bottom: 4};
-        expect(insideArea(box, null)).toBe(box);
+    test('a slot is the slot itself', () => {
+        const slot = {left: 5, right: 50, top: 6, bottom: 30};
+        expect(dropBox({left: 0, right: 80, top: 0, bottom: 30}, {x: 1, y: 1}, slot)).toBe(slot);
     });
 });

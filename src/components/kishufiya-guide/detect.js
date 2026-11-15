@@ -75,16 +75,13 @@ export const firstScriptSpot = ({area, rtl, margin = FIRST_SCRIPT_PX}) => {
     return {x: rtl ? area.right - margin : area.left + margin, y: area.top + margin};
 };
 
-// The outline of a block's drop, kept to the code area (the box where a released block is accepted: the palette beside it takes a
-// block back, and a block's width stuck out past the area's edge is a mark over the palette). The part of `box` inside `area`;
-// null when none of it is (nothing is drawn). No area: the box as it is. Pure.
-export const insideArea = (box, area) => {
-    if (!area) return box;
-    const left = Math.max(box.left, area.left);
-    const right = Math.min(box.right, area.right);
-    const top = Math.max(box.top, area.top);
-    const bottom = Math.min(box.bottom, area.bottom);
-    return right > left && bottom > top ? {left, right, top, bottom} : null;
+// The box a dragged block going to `drop` would have, as the editor REPORTS it (guide-at `dropRect`, unclipped: platform drop-frame.ts
+// decides what is drawn): a slot itself; else the block's first row (a C block's mouth is not drawn, its top row says where it joins,
+// GHOST_ROW px) with the corner it joins by (its top-right in a right-to-left editor) at the drop point. `r`: the block's own box. Pure.
+export const GHOST_ROW = 44;
+export const dropBox = (r, drop, slot) => {
+    const height = Math.min(r.bottom - r.top, GHOST_ROW);
+    return slot || {left: drop.x - (r.right - r.left), right: drop.x, top: drop.y, bottom: drop.y + height};
 };
 
 // A point on the stage (Scratch's coordinates, y up) on the screen: a small round mark around it on the stage's canvas

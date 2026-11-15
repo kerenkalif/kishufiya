@@ -88,12 +88,14 @@
 //   page tells them apart from what was said about the guide before)
 //   guide-missing {id, target, reason, by}          the target is nowhere on the screen, or cannot be clicked
 //                                                   (for half a second): why - targets.js
-//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?, label?}
+//   guide-frame {id, frame}             the frame to draw at the drop, as the base decided it (drop-frame.ts); null: nothing left to draw
+//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?, dropRect?, accept?, dropKind?, label?}
 //                                                   where the guided target is now, in this frame's pixels,
 //                                                   and on which side of it the arrow is; a field's value as
 //                                                   shown, and itself (raw: 'right arrow' for "חץ ימינה");
 //                                                   a box's label {left, top, width, height}: the words that say what it is;
-//                                                   a dragged block's drop point {x, y} - sent on change
+//                                                   a dragged block's drop point {x, y} - sent on change - with `dropRect`, the frame it
+//                                                   would have (unclipped), `accept` (the code area) and `dropKind` 'dock'
 //   ui {name: 'run' | 'flag' | 'stop'}              a run / the green flag itself / the stop sign
 //   script-ran {hat, key?, sprites, from?, blocks, changed, done}
 //                                                   scripts a hat started (the flag, a key - `key` its Scratch
@@ -130,7 +132,7 @@
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf} from './targets.js';
-import {TOLD_HATS, insideArea, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
+import {TOLD_HATS, GHOST_ROW, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
@@ -360,38 +362,36 @@ const tellAt = (rect, via, arrow, extra) => {
     const clear = box && box.width > 0 ? frameOf(box) : null;
     const lab = frameOf(more.label);
     const scroller = more.scroller || null; // the scrolling box the target is in: the base asks for its scroll
-    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab, scroller]);
+    // a dragged block's place: the frame it would have and where a release is accepted - reported, never decided here (platform
+    // drop-frame.ts answers 'guide-frame', and only that is drawn)
+    const whole = more.drop && rect ? dropBox(rect, more.drop, more.slot) : null;
+    const dropRect = whole ? frameOf(whole) : null;
+    const accept = whole ? frameOf(codeArea()) : null;
+    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab, scroller, dropRect, accept]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear, label: lab, scroller});
+    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear, label: lab, scroller,
+        ...(dropRect ? {dropRect, accept, dropKind: 'dock'} : {})});
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
 // 2026-10-25: a ghost sliding there over and over looked like a target in empty space, and faded just
 // where the block goes).
-const GHOST_ROW = 44; // px: a C block's mouth is not drawn, its top row says where it joins
+// What is drawn is the frame the base told ('guide-frame', {left, top, width, height} | null): none until it comes, nothing on null
+let toldFrame = null;
 let lastGhost = '';
-const placeGhost = (r, drop, slot) => {
-    if (!r || !drop) {
+const placeGhost = (r, drop) => {
+    const f = toldFrame;
+    if (!r || !drop || !f || !(f.width > 0) || !(f.height > 0)) {
         ghost.style.display = 'none';
         lastGhost = '';
         return;
     }
-    // a block going into a slot: the slot itself; else the block's first row with the corner it joins by
-    // (its top-right in a right-to-left editor) at the drop point
-    const height = Math.min(r.bottom - r.top, GHOST_ROW);
-    const whole = slot || {left: drop.x - (r.right - r.left), right: drop.x, top: drop.y, bottom: drop.y + height};
-    const box = insideArea(whole, codeArea()); // only where a released block is accepted (detect.js insideArea)
-    if (!box) {
-        ghost.style.display = 'none';
-        lastGhost = '';
-        return;
-    }
-    const key = [box.left, box.right, box.top, box.bottom].map(Math.round).join();
+    const key = [f.left, f.top, f.width, f.height].join();
     if (key === lastGhost) return;
     lastGhost = key;
-    place(ghost, box);
+    place(ghost, {left: f.left, right: f.left + f.width, top: f.top, bottom: f.top + f.height});
 };
 
 // The arrow bounces above the target, pointing down; below it, pointing up, when there is no room above -
@@ -648,7 +648,7 @@ const drawGuide = () => {
     if (state.frozen) louderSince = now;
     louder(!state.frozen && now - louderSince >= LOUDER_AFTER_MS);
     sizeArrow(now - louderSince, state.guide.grow);
-    placeGhost(r, found.drop, found.slot);
+    placeGhost(r, found.drop);
     const target = state.guide.target;
     const ofCode = found.block && !found.drop && target.in !== 'palette' &&
         (found.via === 'block' || found.via === 'field');
@@ -930,6 +930,7 @@ export const handleGuide = msg => {
         missingSince = 0;
         reported = null;
         scrolledTo = null;
+        toldFrame = null;
         lastAt = ''; // a new guide is told where its target is even when it is where the last one was
         tellWindow(true); // ...and whether a window is open: the page may have been loaded since
         break;
@@ -940,7 +941,15 @@ export const handleGuide = msg => {
         // the base's decision, done: a box scrolled to a target (targets.js scrollContainer)
         if (state.guide && msg.id === state.guide.id) scrollContainer(msg.container, msg.top);
         break;
+    case 'guide-frame':
+        // the base's decision for the frame at the drop (platform drop-frame.ts): drawn exactly, nothing on null
+        if (state.guide && msg.id === state.guide.id) {
+            toldFrame = msg.frame || null;
+            lastGhost = '';
+        }
+        break;
     case 'guide-clear':
+        toldFrame = null;
         setNameAsk({clear: true});
         state.guide = null;
         setLibraryStep(false);
