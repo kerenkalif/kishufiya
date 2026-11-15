@@ -91,9 +91,23 @@ export const SCRIPTS_ID = 'scripts';
 export const scriptsScroller = m => ({
     id: SCRIPTS_ID,
     scrollTop: Math.round(m.viewTop - m.contentTop),
-    maxScrollTop: Math.max(0, Math.round(m.contentHeight - m.viewHeight))
+    maxScrollTop: Math.max(0, Math.round(m.contentHeight - m.viewHeight)),
+    // sideways too (the view's distance from the content's left edge, whatever the writing direction)
+    scrollLeft: Math.round(m.viewLeft - m.contentLeft),
+    maxScrollLeft: Math.max(0, Math.round(m.contentWidth - m.viewWidth))
 });
 export const scriptsScrollY = (m, top) => -(m.contentTop + top);
+export const scriptsScrollX = (m, left) => -(m.contentLeft + left);
+
+// How a dock target attaches, as the editor REPORTS it (guide-at `dropAttach`; the base draws the dock frame from it, platform drop-frame.ts
+// dockFrame): Blockly connects a dragged block's connection to the target's when they are within SNAP_RADIUS (48 workspace units,
+// Blockly.SNAP_RADIUS; kishufiya-tidy-layout.js SNAP_RADIUS) - `scale` screen px to a unit - and a child holds the block by its middle, so the
+// held point is the middle of the box the block has at the drop (`dropBox`), as an offset from the drop point. Pure.
+export const attachOf = (whole, drop, snap, scale) => {
+    const radius = snap * scale;
+    if (!whole || !drop || !(radius > 0)) return null;
+    return {radius: Math.round(radius * 10) / 10, held: {x: Math.round((whole.left + whole.right) / 2 - drop.x), y: Math.round((whole.top + whole.bottom) / 2 - drop.y)}};
+};
 
 // A point on the stage (Scratch's coordinates, y up) on the screen: a small round mark around it on the stage's canvas
 // (its client rect), for a lesson's "why" that points at where a sprite will arrive (platform decision 28 stage 2,

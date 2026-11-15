@@ -114,7 +114,7 @@ const UI = {
     'variable-kept': '[class*="prompt_cloud-option_"]',
     'library-search': '[class*="library_filter-input_"], [class*="filter_filter-input_"]'
 };
-import {SCRIPTS_ID, coveredBy, fieldInPane, firstScriptSpot, libraryMissing, samplePoints, scriptsScrollY, scriptsScroller, spriteOnStage, stagePointOf, stagePointOnScreen,
+import {SCRIPTS_ID, coveredBy, fieldInPane, firstScriptSpot, libraryMissing, samplePoints, scriptsScrollX, scriptsScrollY, scriptsScroller, spriteOnStage, stagePointOf, stagePointOnScreen,
     typing} from './detect.js';
 
 // The tab a list lives in: while another tab is open the tab is pointed at first, like a closed category.
@@ -275,7 +275,7 @@ export const codeScroller = () => {
 
 // The base's 'guide-scroll' {container, top}: scrolls the box (top in the screen's px, as the scroller said it). Not 0 for the
 // palette: scratch-blocks takes a target of 0 for none, and does not scroll.
-export const scrollContainer = (container, top) => {
+export const scrollContainer = (container, top, left) => {
     if (container === 'palette') {
         const ws = workspace();
         const flyout = ws && ws.getFlyout();
@@ -285,7 +285,10 @@ export const scrollContainer = (container, top) => {
     }
     if (container === SCRIPTS_ID) {
         const ws = workspace();
-        if (ws && ws.scroll && ws.getMetrics) ws.scroll(ws.scrollX, scriptsScrollY(ws.getMetrics(), top));
+        if (ws && ws.scroll && ws.getMetrics) {
+            const m = ws.getMetrics();
+            ws.scroll(Number.isFinite(left) ? scriptsScrollX(m, left) : ws.scrollX, scriptsScrollY(m, top));
+        }
         return;
     }
     if (listBoxes[container]) listBoxes[container].scrollTop = top;
@@ -591,7 +594,7 @@ export const resolve = (target, vm) => {
                 const spot = block.nextConnection && !block.previousConnection ? freeSpot(ws) : null;
                 if (spot && spot.out) return {rect, via: 'block', block: spot.anchor, scroller};
                 if (!spot) return {rect, via: 'block', scroller};
-                return {rect, via: 'block', drop: {x: spot.x, y: spot.y}, anchor: spot.anchor, scroller};
+                return {rect, via: 'block', drop: {x: spot.x, y: spot.y}, anchor: spot.anchor, scroller, free: true};
             }
             const drop = dropPoint(ws, target.to);
             if (drop.offscreen) return {rect, via: 'block', block: drop.offscreen, scroller};

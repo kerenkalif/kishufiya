@@ -1,7 +1,7 @@
 // כישופייה guide (2026-10-23): the lesson points into the editor instead of showing screenshots.
 // Generic on purpose - it knows nothing of lessons, children or answers; the platform decides what to
 // show and what a pick means. Messages (msg.type), from the page around the editor:
-//   guide-scroll {id, container, top}  the base's decision (platform scroll-target.ts, SPEC-editor-base 3.3 item 7): scroll the box
+//   guide-scroll {id, container, top, left?}  the base's decision (platform scroll-target.ts, SPEC-editor-base 3.3 item 7): scroll the box
 //                                      'palette', 'sprite-list', 'library' or 'scripts' (the code area) to `top` (screen px). A target in such a box is told in
 //                                      'guide-at' with its `rect` even out of the box's view, and `scroller` {id, top, bottom, scrollTop,
 //                                      maxScrollTop}; until it is wholly in view nothing is drawn. The editor holds no rule for this.
@@ -132,11 +132,12 @@
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
-import {TOLD_HATS, GHOST_ROW, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
+import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
     quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
+import {SNAP_RADIUS} from '../../lib/kishufiya-tidy-layout.js';
 import {setNameAsk} from './name-ask.js';
 
 let vm = null;
@@ -369,12 +370,18 @@ const tellAt = (rect, via, arrow, extra) => {
     const accept = whole ? frameOf(codeArea()) : null;
     // the code area's scroll, for a dock frame the base wants whole inside `accept` (it answers 'guide-scroll' {container: 'scripts'})
     const dropScroller = dropRect ? codeScroller() : null;
-    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab, scroller, dropRect, accept, dropScroller]);
+    // a free spot (a new script's hat) is no docking point: the frame is the box it would have, shifted or clipped by the base; a place
+    // where a block joins attaches within Blockly's snap radius (zoomed), reported for the base's dock frame
+    const free = Boolean(more.free);
+    const ws = workspace();
+    const snap = (typeof Blockly !== 'undefined' && Blockly.SNAP_RADIUS) || SNAP_RADIUS;
+    const dropAttach = whole && !free && ws ? attachOf(whole, more.drop, snap, ws.scale || 1) : null;
+    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
     send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear, label: lab, scroller,
-        ...(dropRect ? {dropRect, accept, dropKind: 'dock', dropScroller} : {})});
+        ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})});
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
@@ -941,7 +948,7 @@ export const handleGuide = msg => {
         break;
     case 'guide-scroll':
         // the base's decision, done: a box scrolled to a target (targets.js scrollContainer)
-        if (state.guide && msg.id === state.guide.id) scrollContainer(msg.container, msg.top);
+        if (state.guide && msg.id === state.guide.id) scrollContainer(msg.container, msg.top, msg.left);
         break;
     case 'guide-frame':
         // the base's decision for the frame at the drop (platform drop-frame.ts): drawn exactly, nothing on null

@@ -17,40 +17,30 @@ describe('the box reported for a dragged block', () => {
     });
 });
 
-// The code area's scroll the base asks for (platform drop-frame.ts decideDrop: dockShift + scrollForDock, mirrored here as the protocol says).
-import {scriptsScroller, scriptsScrollY, SCRIPTS_ID} from '../../../src/components/kishufiya-guide/detect.js';
-const dockShift = (n, a) => {
-    if (n.height > a.height) return 0;
-    if (n.top < a.top) return Math.round(a.top - n.top);
-    const over = n.top + n.height - (a.top + a.height);
-    return over > 0 ? -Math.round(over) : 0;
-};
+// What the editor REPORTS for the base (platform drop-frame.ts decides; the whole loop - report, decision, drawing, a block attaching - is tested
+// there, test:editor-parity). Here only the reports and the scroll the editor does when told.
+import {scriptsScroller, scriptsScrollX, scriptsScrollY, attachOf, SCRIPTS_ID} from '../../../src/components/kishufiya-guide/detect.js';
 describe('the code area reports its scroll and scrolls as the base asks', () => {
-    const metrics = {viewTop: 300, contentTop: 100, viewHeight: 400, contentHeight: 1000};
-    test('dropScroller: id scripts, the view\'s distance from the content top, the most it can be', () => {
-        expect(scriptsScroller(metrics)).toEqual({id: SCRIPTS_ID, scrollTop: 200, maxScrollTop: 600});
-        expect(scriptsScroller({viewTop: 0, contentTop: 0, viewHeight: 500, contentHeight: 300}).maxScrollTop).toBe(0);
+    const metrics = {viewTop: 300, contentTop: 100, viewHeight: 400, contentHeight: 1000, viewLeft: 50, contentLeft: 20, viewWidth: 600, contentWidth: 900};
+    test('dropScroller: id scripts, the distance of the view from the content top and left, the most it can be', () => {
+        expect(scriptsScroller(metrics)).toEqual({id: SCRIPTS_ID, scrollTop: 200, maxScrollTop: 600, scrollLeft: 30, maxScrollLeft: 300});
+        const small = scriptsScroller({viewTop: 0, contentTop: 0, viewHeight: 500, contentHeight: 300, viewLeft: 0, contentLeft: 0, viewWidth: 500, contentWidth: 300});
+        expect([small.maxScrollTop, small.maxScrollLeft]).toEqual([0, 0]);
     });
-    test('guide-scroll top maps to the workspace scrollY, and back', () => {
+    test('guide-scroll top and left map to the workspace scroll, and back', () => {
         expect(scriptsScrollY(metrics, 200)).toBe(-300);
         expect(scriptsScrollY(metrics, 0)).toBe(-100);
+        expect(scriptsScrollX(metrics, 30)).toBe(-50);
     });
-    test('an RTL ghost (right edge at the drop point) protruding below the code area: scrolling moves the whole frame inside', () => {
-        const accept = {left: 100, top: 50, width: 500, height: 300};
-        const r = {left: 0, right: 120, top: 0, bottom: 200};
+});
+describe('a dock target reports its attach range: Blockly snap radius at the zoom, and the point the block is held by (its middle)', () => {
+    test('an RTL block 120 by 44 joining by its top right corner: held 60 left of the drop point and 22 down', () => {
         const drop = {x: 560, y: 330};
-        const frame = dropBox(r, drop, null); // 440..560, 330..374: 24px below the area
-        const natural = {left: frame.left, top: frame.top, width: frame.right - frame.left, height: frame.bottom - frame.top};
-        const shift = dockShift(natural, accept);
-        expect(shift).toBe(-24);
-        const s = scriptsScroller({viewTop: 400, contentTop: 100, viewHeight: 300, contentHeight: 1000});
-        const to = Math.max(0, Math.min(s.maxScrollTop, Math.round(s.scrollTop - shift)));
-        // the workspace content moves by `shift`: scrollY goes from -(contentTop+scrollTop) to -(contentTop+to)
-        const moved = scriptsScrollY({contentTop: 100}, to) - scriptsScrollY({contentTop: 100}, s.scrollTop);
-        expect(moved).toBe(shift);
-        const after = {top: natural.top + moved, bottom: natural.top + moved + natural.height};
-        expect(after.top).toBeGreaterThanOrEqual(accept.top);
-        expect(after.bottom).toBeLessThanOrEqual(accept.top + accept.height);
-        expect(natural.left).toBeGreaterThanOrEqual(accept.left); // RTL: the left side stays off the flyout's side
+        const whole = dropBox({left: 0, right: 120, top: 0, bottom: 200}, drop, null);
+        expect(attachOf(whole, drop, 48, 0.675)).toEqual({radius: 32.4, held: {x: -60, y: 22}});
+    });
+    test('no radius or no place: nothing is reported', () => {
+        expect(attachOf(null, {x: 1, y: 1}, 48, 1)).toBeNull();
+        expect(attachOf({left: 0, right: 10, top: 0, bottom: 10}, {x: 10, y: 0}, 48, 0)).toBeNull();
     });
 });
