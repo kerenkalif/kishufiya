@@ -77,12 +77,12 @@
 }
 
 /* the thing a window of the lesson talks about (platform decision 32, 2026-10-31; guide.js marking 'soft'): a soft mark in
-   ניצוצי's purple (the platform's --ked-nitz #6a1b9a) - an outline with a glow, no pulse, no arrow, nothing that asks for a
+   ניצוצי's purple (the platform's --ked-nitz #6a1b9a) - or the guide message's `markColour` (guide.js setSoftColour) - an outline with a glow, no pulse, no arrow, nothing that asks for a
    press. A white halo inside and out, so it is seen on the stage's dark backdrop (space) as on a light one. */
 .ring.soft {
-    border: 3px solid #6a1b9a;
+    border: 3px solid var(--mark-line, #6a1b9a);
     border-radius: 10px;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 16px 6px rgba(149, 86, 205, 0.65), inset 0 0 0 2px rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 16px 6px var(--mark-glow, rgba(149, 86, 205, 0.65)), inset 0 0 0 2px rgba(255, 255, 255, 0.9);
     animation: none;
 }
 
@@ -92,7 +92,7 @@
 
 .ring.soft.point {
     border-radius: 50%;
-    box-shadow: 0 0 0 3px #ffffff, 0 0 16px 6px rgba(149, 86, 205, 0.8), inset 0 0 0 3px #ffffff;
+    box-shadow: 0 0 0 3px #ffffff, 0 0 16px 6px var(--mark-glow-point, rgba(149, 86, 205, 0.8)), inset 0 0 0 3px #ffffff;
 }
 
 /* a whole script longer than the code area's view (guide.js, detect.js scriptRing): the ring is cut at the area's edge, and

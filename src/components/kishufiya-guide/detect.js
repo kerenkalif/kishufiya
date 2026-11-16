@@ -365,3 +365,64 @@ export const scriptRan = ({hat, fields, threads, before, after, done, blocks, se
     }
     return message;
 };
+
+// ---- the arrow's side, the ring inside the screen, the soft mark's colour (pure; guide.js placePointer, placeRing) ----
+
+const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+// Where the bouncing arrow goes at a target to press: 'above' | 'below' | 'left' | 'right', and its box. Above or
+// below the target by default (the one with room, as before); but never over a neighbouring button or off the screen
+// - a button at the bottom or in a corner has its neighbour right over it ("בחרו דמות" over "בחרו רקע"), so the arrow
+// goes to the free side. Tried in order: the default side, the other one, then left and right (the one with more room first).
+// `rect`: the target; `neighbours`: boxes the arrow must stay off (any that touches the target is the target itself or its
+// frame, and is ignored); `screen`: {width, height}; `bounds`: {top, bottom} the vertical sides keep to (the categories'
+// column), default the screen. Nothing free (a crowded corner): the default side, as before. → {side, left, top}
+export const pointerPlace = ({rect, neighbours = [], screen, size, gap = 6, bounds}) => {
+    const top = bounds ? bounds.top : 0;
+    const bottom = bounds ? bounds.bottom : screen.height;
+    const centredLeft = Math.max(0, Math.min(screen.width - size, Math.round(((rect.left + rect.right) / 2) - (size / 2))));
+    const centredTop = Math.round(((rect.top + rect.bottom) / 2) - (size / 2));
+    const aboveFirst = rect.top - size - 8 > top || rect.bottom + size + 8 > bottom;
+    const spot = {
+        above: {side: 'above', left: centredLeft, top: Math.round(rect.top - size - gap)},
+        below: {side: 'below', left: centredLeft, top: Math.round(rect.bottom + gap)},
+        left: {side: 'left', left: Math.round(rect.left - size - gap), top: centredTop},
+        right: {side: 'right', left: Math.round(rect.right + gap), top: centredTop}
+    };
+    const wider = rect.left > screen.width - rect.right ? ['left', 'right'] : ['right', 'left'];
+    const order = (aboveFirst ? ['above', 'below'] : ['below', 'above']).concat(wider);
+    const others = neighbours.filter(n => !overlaps(n, rect));
+    const free = s => s.left >= 0 && s.left + size <= screen.width && s.top >= 0 && s.top + size <= screen.height &&
+        !others.some(n => overlaps(n, {left: s.left, right: s.left + size, top: s.top, bottom: s.top + size}));
+    return order.map(name => spot[name]).find(free) || spot[order[0]];
+};
+
+// The ring at a target: `pad` px out on every side but kept inside the screen - a button on the screen's edge had its
+// ring cut. A side it was moved in on is in `edge` (guide.css data-edge keeps the pulse and a soft mark's glow inside
+// there too). → {ring, edge}
+export const ringInScreen = (rect, screen, pad) => {
+    const out = {left: rect.left - pad, right: rect.right + pad, top: rect.top - pad, bottom: rect.bottom + pad};
+    const ring = {
+        left: Math.max(0, out.left),
+        right: Math.min(screen.width, out.right),
+        top: Math.max(0, out.top),
+        bottom: Math.min(screen.height, out.bottom)
+    };
+    const edge = [];
+    if (ring.top !== out.top) edge.push('top');
+    if (ring.bottom !== out.bottom) edge.push('bottom');
+    if (ring.left !== out.left) edge.push('left');
+    if (ring.right !== out.right) edge.push('right');
+    return {ring, edge};
+};
+
+// The soft mark's colour as the page sends it (guide message `markColour`, platform bubble-colours.ts: a hex colour):
+// the line and the two glows, or null when there is none or it is not a hex colour - then the mark keeps guide.css's
+// purple, as for a page that does not send it.
+export const softMarkColours = value => {
+    const hex = typeof value === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value.slice(1) : null;
+    if (!hex) return null;
+    const full = hex.length === 3 ? hex.replace(/./g, '$&$&') : hex;
+    const [r, g, b] = [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
+    return {line: `#${full}`, glow: `rgba(${r}, ${g}, ${b}, 0.65)`, glowPoint: `rgba(${r}, ${g}, ${b}, 0.8)`};
+};

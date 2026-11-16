@@ -132,8 +132,9 @@
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
-import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pressingBroadcast,
-    quietReports, ranUnder, ringAlone, scriptInView, scriptRan, scriptRing, tellsClick, typing}
+import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pointerPlace,
+    pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView, scriptRan, scriptRing, softMarkColours,
+    tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -439,6 +440,12 @@ const sideways = (r, x, side) => {
     pointer.setAttribute('data-side', side);
     return side;
 };
+// The buttons the arrow must not cover (the layer's own boxes are not among them)
+const NEIGHBOUR_BUTTONS = 'button, [role="button"], [class*="_add-button_"]';
+const neighbourButtons = () => Array.from(document.querySelectorAll(NEIGHBOUR_BUTTONS))
+    .filter(el => !layer.contains(el))
+    .map(el => el.getBoundingClientRect())
+    .filter(box => box.width > 0 && box.height > 0);
 const placePointer = (r, how, within) => {
     const area = how && codeArea();
     if (how === 'beside' && area) {
@@ -453,16 +460,21 @@ const placePointer = (r, how, within) => {
             (right + arrow <= area.right && sideways(r, right, 'right'));
         if (done) return done;
     }
-    const top = how === 'menu' && within ? within.top : 0;
-    const bottom = how === 'menu' && within ? within.bottom : window.innerHeight;
-    const above = r.top - arrow - 8 > top || r.bottom + arrow + 8 > bottom;
+    const menu = how === 'menu' && within;
+    // above, below, or - at the screen's edge, where those cover the neighbouring button - the free side (detect.js
+    // pointerPlace; kept inside the screen as it grows). A category is among its own column's rows: no neighbours there.
+    const put = pointerPlace({
+        rect: r,
+        neighbours: menu ? [] : neighbourButtons(),
+        screen: {width: window.innerWidth, height: window.innerHeight},
+        size: arrow,
+        bounds: menu ? within : null
+    });
     pointer.style.display = 'block';
-    // (kept inside the screen sideways as it grows)
-    const centred = Math.round(((r.left + r.right) / 2) - (arrow / 2));
-    pointer.style.left = `${Math.max(0, Math.min(window.innerWidth - arrow, centred))}px`;
-    pointer.style.top = `${Math.round(above ? r.top - arrow - 6 : r.bottom + 6)}px`;
-    pointer.setAttribute('data-side', above ? 'above' : 'below');
-    return above ? 'above' : 'below';
+    pointer.style.left = `${put.left}px`;
+    pointer.style.top = `${put.top}px`;
+    pointer.setAttribute('data-side', put.side);
+    return put.side;
 };
 
 // What the ring is on now, for a click on it.
@@ -492,6 +504,20 @@ const closeFieldEditors = () => {
     } catch (e) { /* the blocks are not loaded yet */ }
 };
 
+// The soft mark's colour from the guide message (`markColour`, softMarkColours in detect.js), as the variables guide.css
+// reads; none (null): its own purple
+let softColoured = false; // the variables are on the ring now
+const setSoftColour = colours => {
+    if (!colours && !softColoured) return;
+    const vars = {'--mark-line': colours && colours.line, '--mark-glow': colours && colours.glow,
+        '--mark-glow-point': colours && colours.glowPoint};
+    for (const name of Object.keys(vars)) {
+        if (vars[name]) ring.style.setProperty(name, vars[name]);
+        else ring.style.removeProperty(name);
+    }
+    softColoured = Boolean(colours);
+};
+
 const hideGuide = () => {
     shown = null;
     louderKey = '';
@@ -499,6 +525,7 @@ const hideGuide = () => {
     sizeArrow(0);
     place(ring, null);
     ring.classList.remove(styles.soft);
+    setSoftColour(null);
     ring.removeAttribute('data-open');
     ring.removeAttribute('data-edge');
     pointer.style.display = 'none';
@@ -511,14 +538,15 @@ const hideGuide = () => {
 // guide.css data-open and data-edge)
 const placeRing = found => {
     const r = found.rect;
-    const around = {left: r.left - 4, right: r.right + 4, top: r.top - 4, bottom: r.bottom + 4};
-    place(ring, found.cut ? found.cut.ring : around);
+    // a target on the screen's edge: the ring is kept inside it, its pulse and glow too (data-edge)
+    const inside = ringInScreen(r, {width: window.innerWidth, height: window.innerHeight}, 4);
+    place(ring, found.cut ? found.cut.ring : inside.ring);
     const sides = (name, list) => {
         if (list && list.length) ring.setAttribute(name, list.join(' '));
         else ring.removeAttribute(name);
     };
     sides('data-open', found.cut && found.cut.open);
-    sides('data-edge', found.cut && found.cut.edge);
+    sides('data-edge', found.cut ? found.cut.edge : inside.edge);
 };
 
 // The target nowhere to be clicked: said once it stays so for a moment, again when the reason changes (with `by`,
@@ -625,6 +653,7 @@ const drawGuide = () => {
         if (marking === 'soft') {
             placeRing(found);
             ring.classList.add(styles.soft);
+            setSoftColour(softMarkColours(state.guide.markColour));
             ring.classList.toggle(styles.point, found.via === 'stage-point');
         }
         tellAt(r, found.via, null, found);
@@ -633,6 +662,7 @@ const drawGuide = () => {
     placeRing(found);
     // an action's ring after a window's soft mark (the sprite's tile right after the flag's window): red again
     ring.classList.remove(styles.soft);
+    setSoftColour(null);
     // a point on the stage: a round mark with a white halo, seen on a dark stage too (targets.js stagePoint)
     ring.classList.toggle(styles.point, found.via === 'stage-point');
     // a whole script (targets.js `script`): the ring alone - no arrow, no words, no louder ring (detect.js
@@ -929,6 +959,7 @@ export const handleGuide = msg => {
             textCategory: msg.textCategory,
             textSprite: msg.textSprite,
             grow: msg.grow,
+            markColour: msg.markColour,
             quiet: Boolean(msg.quiet),
             locate: Boolean(msg.locate),
             highlight: Boolean(msg.highlight),
