@@ -139,6 +139,7 @@ import styles from './guide.css';
 import {watchPicks} from './picks.js';
 import {SNAP_RADIUS} from '../../lib/kishufiya-tidy-layout.js';
 import {setNameAsk} from './name-ask.js';
+import {openMenuRects} from './open-menus.js';
 
 let vm = null;
 let send = () => {};
@@ -1013,9 +1014,12 @@ export const handleGuide = msg => {
 // buttons (2026-10-26).
 let lastArea = '';
 let areaTicks = 0;
+// asked often, so a menu that opens is heard at once; sent only when it changed, and again every second
+const AREA_EVERY_MS = 250;
+const AREA_RESEND = 4;
 const tellCodeArea = () => {
     // said again now and then: a lesson page loaded anew after the editor did not hear it
-    if (++areaTicks % 10 === 0) lastArea = '';
+    if (++areaTicks % AREA_RESEND === 0) lastArea = '';
     const box = r => r && r.width > 0 && {
         left: Math.round(r.left),
         top: Math.round(r.top),
@@ -1026,7 +1030,9 @@ const tellCodeArea = () => {
     // the controls ניצוצי must not cover: the zoom buttons, the sprite tiles' pane, the stage
     const avoid = ['.blocklyZoom', '[class*="target-pane_target-pane_"]', '[class*="stage-wrapper_stage-wrapper_"]']
         .map(selector => box(uiRect(selector)))
-        .filter(Boolean);
+        .filter(Boolean)
+        // ...and any menu open over the code: the bubble stands off it while it is open (open-menus.js)
+        .concat(openMenuRects(document));
     const key = JSON.stringify([rect, avoid]);
     if (key === lastArea || !send) return;
     lastArea = key;
@@ -1174,5 +1180,5 @@ export const attachGuide = (theVm, sender) => {
     vm.runtime.on('PROJECT_RUN_STOP', () => send({type: 'ui', name: 'stop'}));
     window.addEventListener('resize', wake);
     // the code area, for the page to put ניצוצי where it covers no button (its middle, at the bottom)
-    setInterval(tellCodeArea, 1000);
+    setInterval(tellCodeArea, AREA_EVERY_MS);
 };
