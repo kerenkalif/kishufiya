@@ -132,9 +132,9 @@
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
-import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow, missingStep, onTheWay, pointerPlace,
-    pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView, scriptRan, scriptRing, softMarkColours,
-    tellsClick, typing}
+import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
+    missingStep, onTheWay, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
+    scriptRan, scriptRing, softMarkColours, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -442,10 +442,22 @@ const sideways = (r, x, side) => {
 };
 // The buttons the arrow must not cover (the layer's own boxes are not among them)
 const NEIGHBOUR_BUTTONS = 'button, [role="button"], [class*="_add-button_"]';
-const neighbourButtons = () => Array.from(document.querySelectorAll(NEIGHBOUR_BUTTONS))
-    .filter(el => !layer.contains(el))
-    .map(el => el.getBoundingClientRect())
-    .filter(box => box.width > 0 && box.height > 0);
+// measured once per animation frame, however many times a draw places the arrow in it
+let buttonBoxes = null;
+const neighbourButtons = () => {
+    if (!buttonBoxes) {
+        buttonBoxes = Array.from(document.querySelectorAll(NEIGHBOUR_BUTTONS))
+            .filter(el => !layer.contains(el))
+            .map(el => el.getBoundingClientRect())
+            .filter(box => box.width > 0 && box.height > 0);
+        const forget = () => {
+            buttonBoxes = null;
+        };
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(forget);
+        else setTimeout(forget, 0);
+    }
+    return buttonBoxes;
+};
 const placePointer = (r, how, within) => {
     const area = how && codeArea();
     if (how === 'beside' && area) {
@@ -461,8 +473,9 @@ const placePointer = (r, how, within) => {
         if (done) return done;
     }
     const menu = how === 'menu' && within;
-    // above, below, or - at the screen's edge, where those cover the neighbouring button - the free side (detect.js
-    // pointerPlace; kept inside the screen as it grows). A category is among its own column's rows: no neighbours there.
+    // above, below, or - at the screen's edge, where those cover the neighbouring button - the free side
+    // (detect.js pointerPlace; kept inside the screen as it grows). A category is among its own column's rows:
+    // no neighbours there.
     const put = pointerPlace({
         rect: r,
         neighbours: menu ? [] : neighbourButtons(),
@@ -504,13 +517,16 @@ const closeFieldEditors = () => {
     } catch (e) { /* the blocks are not loaded yet */ }
 };
 
-// The soft mark's colour from the guide message (`markColour`, softMarkColours in detect.js), as the variables guide.css
-// reads; none (null): its own purple
+// The soft mark's colour from the guide message (`markColour`, softMarkColours in detect.js), as the variables
+// guide.css reads; none (null): its own purple
 let softColoured = false; // the variables are on the ring now
 const setSoftColour = colours => {
     if (!colours && !softColoured) return;
-    const vars = {'--mark-line': colours && colours.line, '--mark-glow': colours && colours.glow,
-        '--mark-glow-point': colours && colours.glowPoint};
+    const vars = {
+        '--mark-line': colours && colours.line,
+        '--mark-glow': colours && colours.glow,
+        '--mark-glow-point': colours && colours.glowPoint
+    };
     for (const name of Object.keys(vars)) {
         if (vars[name]) ring.style.setProperty(name, vars[name]);
         else ring.style.removeProperty(name);
@@ -540,7 +556,7 @@ const placeRing = found => {
     const r = found.rect;
     // a target on the screen's edge: the ring is kept inside it, its pulse and glow too (data-edge)
     const inside = ringInScreen(r, {width: window.innerWidth, height: window.innerHeight}, 4);
-    place(ring, found.cut ? found.cut.ring : inside.ring);
+    place(ring, found.cut ? found.cut.ring : inside.ring); // no ring: place hides it
     const sides = (name, list) => {
         if (list && list.length) ring.setAttribute(name, list.join(' '));
         else ring.removeAttribute(name);

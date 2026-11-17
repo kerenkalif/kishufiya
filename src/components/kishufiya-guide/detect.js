@@ -366,21 +366,28 @@ export const scriptRan = ({hat, fields, threads, before, after, done, blocks, se
     return message;
 };
 
-// ---- the arrow's side, the ring inside the screen, the soft mark's colour (pure; guide.js placePointer, placeRing) ----
+// ---- the arrow's side, the ring inside the screen, the soft mark's colour ----
+// (pure; guide.js placePointer, placeRing)
 
 const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
 // Where the bouncing arrow goes at a target to press: 'above' | 'below' | 'left' | 'right', and its box. Above or
 // below the target by default (the one with room, as before); but never over a neighbouring button or off the screen
-// - a button at the bottom or in a corner has its neighbour right over it ("בחרו דמות" over "בחרו רקע"), so the arrow
-// goes to the free side. Tried in order: the default side, the other one, then left and right (the one with more room first).
-// `rect`: the target; `neighbours`: boxes the arrow must stay off (any that touches the target is the target itself or its
-// frame, and is ignored); `screen`: {width, height}; `bounds`: {top, bottom} the vertical sides keep to (the categories'
-// column), default the screen. Nothing free (a crowded corner): the default side, as before. → {side, left, top}
+// - a button at the bottom or in a corner has its neighbour right over it ("בחרו דמות" over "בחרו רקע"), so the
+// arrow goes to the free side. Tried in order: the default side, the other one, then left and right (the one with
+// more room first).
+// `rect`: the target; `neighbours`: boxes the arrow must stay off (the target itself and a frame around it, which
+// contain it within 2px, are ignored; a button next to it, even touching it, is kept); `screen`: {width, height};
+// `bounds`: {top, bottom} the vertical sides keep to (the categories' column), default the screen. Nothing free
+// (a crowded corner): the default side, as before. → {side, left, top}
+const SAME_BOX = 2;
+const isTargetOrFrame = (n, rect) => n.left <= rect.left + SAME_BOX && n.top <= rect.top + SAME_BOX &&
+    n.right >= rect.right - SAME_BOX && n.bottom >= rect.bottom - SAME_BOX;
 export const pointerPlace = ({rect, neighbours = [], screen, size, gap = 6, bounds}) => {
     const top = bounds ? bounds.top : 0;
     const bottom = bounds ? bounds.bottom : screen.height;
-    const centredLeft = Math.max(0, Math.min(screen.width - size, Math.round(((rect.left + rect.right) / 2) - (size / 2))));
+    const middle = Math.round(((rect.left + rect.right) / 2) - (size / 2));
+    const centredLeft = Math.max(0, Math.min(screen.width - size, middle));
     const centredTop = Math.round(((rect.top + rect.bottom) / 2) - (size / 2));
     const aboveFirst = rect.top - size - 8 > top || rect.bottom + size + 8 > bottom;
     const spot = {
@@ -391,15 +398,15 @@ export const pointerPlace = ({rect, neighbours = [], screen, size, gap = 6, boun
     };
     const wider = rect.left > screen.width - rect.right ? ['left', 'right'] : ['right', 'left'];
     const order = (aboveFirst ? ['above', 'below'] : ['below', 'above']).concat(wider);
-    const others = neighbours.filter(n => !overlaps(n, rect));
+    const others = neighbours.filter(n => !isTargetOrFrame(n, rect));
     const free = s => s.left >= 0 && s.left + size <= screen.width && s.top >= 0 && s.top + size <= screen.height &&
         !others.some(n => overlaps(n, {left: s.left, right: s.left + size, top: s.top, bottom: s.top + size}));
     return order.map(name => spot[name]).find(free) || spot[order[0]];
 };
 
-// The ring at a target: `pad` px out on every side but kept inside the screen - a button on the screen's edge had its
-// ring cut. A side it was moved in on is in `edge` (guide.css data-edge keeps the pulse and a soft mark's glow inside
-// there too). → {ring, edge}
+// The ring at a target: `pad` px out on every side but kept inside the screen - a button on the screen's edge had
+// its ring cut. A side it was moved in on is in `edge` (guide.css data-edge keeps the pulse and a soft mark's glow
+// inside there too). A target wholly off the screen has no ring: {ring: null, edge: []}. → {ring, edge}
 export const ringInScreen = (rect, screen, pad) => {
     const out = {left: rect.left - pad, right: rect.right + pad, top: rect.top - pad, bottom: rect.bottom + pad};
     const ring = {
@@ -408,6 +415,7 @@ export const ringInScreen = (rect, screen, pad) => {
         top: Math.max(0, out.top),
         bottom: Math.min(screen.height, out.bottom)
     };
+    if (ring.right <= ring.left || ring.bottom <= ring.top) return {ring: null, edge: []};
     const edge = [];
     if (ring.top !== out.top) edge.push('top');
     if (ring.bottom !== out.bottom) edge.push('bottom');
@@ -416,9 +424,9 @@ export const ringInScreen = (rect, screen, pad) => {
     return {ring, edge};
 };
 
-// The soft mark's colour as the page sends it (guide message `markColour`, platform bubble-colours.ts: a hex colour):
-// the line and the two glows, or null when there is none or it is not a hex colour - then the mark keeps guide.css's
-// purple, as for a page that does not send it.
+// The soft mark's colour as the page sends it (guide message `markColour`, platform bubble-colours.ts: a hex
+// colour): the line and the two glows, or null when there is none or it is not a hex colour - then the mark keeps
+// guide.css's purple, as for a page that does not send it.
 export const softMarkColours = value => {
     const hex = typeof value === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value.slice(1) : null;
     if (!hex) return null;

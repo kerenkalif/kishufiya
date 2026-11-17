@@ -57,6 +57,10 @@ describe('the arrow\'s side', () => {
 });
 
 describe('the ring inside the screen', () => {
+    test('a target wholly off the screen: no ring', () => {
+        expect(ringInScreen(box(1100, 100, 50, 30), screen, 4)).toEqual({ring: null, edge: []});
+        expect(ringInScreen(box(100, -80, 50, 30), screen, 4)).toEqual({ring: null, edge: []});
+    });
     test('a target away from the edge: 4px out on every side, no edge', () => {
         const {ring, edge} = ringInScreen(box(100, 100, 50, 30), screen, 4);
         expect(ring).toEqual({left: 96, right: 154, top: 96, bottom: 134});
