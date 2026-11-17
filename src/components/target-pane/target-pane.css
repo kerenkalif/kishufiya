@@ -5,8 +5,9 @@
     display: flex;
     flex-direction: row;
     flex-grow: 1;
-    /* כישופייה: below this the column scrolls (.target-wrapper) rather than squash the selectors */
-    min-height: 15rem;
+    /* כישופייה: no least height of its own: the stage keeps it its room (kishufiya-stage-auto.js PANE_ROOM), and in
+       a window lower than that it shrinks with the window, so its two add buttons are never under the fold */
+    min-height: 0;
 }
 
 .stage-selector-wrapper {

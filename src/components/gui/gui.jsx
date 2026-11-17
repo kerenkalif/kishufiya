@@ -42,8 +42,10 @@ import {
     STAGE_SIZE_MODES,
     STAGE_DISPLAY_SCALE_METADATA,
     FIXED_WIDTH,
-    UNCONSTRAINED_NON_STAGE_WIDTH
+    UNCONSTRAINED_NON_STAGE_WIDTH,
+    MIN_DRAGGED_STAGE_WIDTH
 } from '../../lib/layout-constants';
+import {leastHeight} from '../../lib/kishufiya-stage-auto';
 import StageSplitter from '../kishufiya-stage-splitter/stage-splitter.jsx';
 import {resolveStageSize} from '../../lib/screen-utils';
 import {Theme} from '../../lib/themes';
@@ -242,9 +244,10 @@ const GUIComponent = props => {
                 style={{
                     // הכישופייה: a small stage frees half its width, so the editor fits beside the lesson
                     minWidth: nonStageWidth + stageDisplayWidth + Math.max(0, customStageSize.width - 480),
-                    // the page was 640 tall at least, which cut the bottom off a low screen (2026-11-10); below this
-                    // the sprites and backdrops column scrolls (gui.css .target-wrapper)
-                    minHeight: 480 + Math.max(0, customStageSize.height - 360)
+                    // the page was 640 tall at least, which cut the bottom off a low screen (2026-11-10). Down to this
+                    // the stage gives way to the window's height (lib/kishufiya-stage-auto.js stageWidthFor); it is
+                    // what the least stage and the sprites and backdrops pane need
+                    minHeight: leastHeight(MIN_DRAGGED_STAGE_WIDTH) + Math.max(0, customStageSize.height - 360)
                 }}
                 {...componentProps}
             >

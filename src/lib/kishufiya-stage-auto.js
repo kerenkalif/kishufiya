@@ -15,6 +15,30 @@ const autoStage = ({width, height, current}) => {
     return height < SMALL_BELOW_HEIGHT || width < SMALL_BELOW_WIDTH ? 'small' : 'large';
 };
 
+// The window's height holds the stage too (Keren, 2026-11-17: on a class laptop the backdrop button was below the
+// window). Until then only the width did: a stage the child chose large, or a window between the small line and
+// what the large stage really needs, pushed the sprites and backdrops pane under the window's bottom, where its
+// two add buttons could only be reached by scrolling. The rule: whatever stage is wanted, it is no taller than
+// what leaves the pane PANE_ROOM under it. Every number is measured from the laid-out editor:
+// the menu bar (48) and the stage's header (44) above the stage, its border and the pane's padding (10) under it.
+const ABOVE_STAGE = 92;
+const UNDER_STAGE = 10;
+const PANE_ROOM = 240; // the sprite info, a row of sprites and the two add buttons (target-pane.css)
+const STAGE_RATIO = 4 / 3;
+// the widest stage a window this high has room for
+const widestStageFor = height => Math.floor((height - ABOVE_STAGE - UNDER_STAGE - PANE_ROOM) * STAGE_RATIO);
+// The height below which even the least stage leaves the pane less than PANE_ROOM (gui.jsx's page min-height)
+const leastHeight = leastStage => ABOVE_STAGE + Math.ceil(leastStage / STAGE_RATIO) + UNDER_STAGE + PANE_ROOM;
+
+// The stage's width in this window: the wanted one (the child's choice, or the automatic size), held by the
+// window's width (the rest of the editor keeps `nonStageFor(stage)`, more in the small layout) and by its height.
+// Never under `least`: below that the pane gives way instead (it has no least height of its own, gui.css).
+const stageWidthFor = ({want, width, height, least, smallLayoutBelow, nonStageFor}) => {
+    let target = Math.min(want, width - nonStageFor(want), widestStageFor(height));
+    if (target < smallLayoutBelow) target = Math.min(target, width - nonStageFor(target));
+    return Math.max(least, Math.floor(target));
+};
+
 // The child's own choice (the size buttons, the splitter) wins for the kind of window it was made in
 // ("bucket": small or large, as autoStage says), and is kept in this browser. In a window of the other kind
 // it is void: a shared classroom computer, or a laptop docked to a big screen, does not carry one child's
@@ -51,6 +75,6 @@ const saveChoice = (bucket, width) => {
 };
 
 export {
-    autoStage, choiceWidth, encodeChoice, parseChoice, readChoice, saveChoice,
+    autoStage, stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM, choiceWidth, encodeChoice, parseChoice, readChoice, saveChoice,
     SMALL_BELOW_HEIGHT, SMALL_BELOW_WIDTH, HYSTERESIS
 };

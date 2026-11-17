@@ -232,10 +232,11 @@
     /* TODO this also breaks the thermometer menu */
     /* overflow: hidden; */
 
-    /* כישופייה: on a low screen the sprites and the backdrop selector scroll instead of being cut off
-       (Keren, 2026-11-10: a child could not reach the backdrop selector) */
-    overflow-x: hidden;
-    overflow-y: auto;
+    /* כישופייה: this column never scrolls (Keren, 2026-11-17: the add-sprite and add-backdrop buttons are seen in
+       every window, with no scrolling). In a low window the stage above gives way (lib/kishufiya-stage-auto.js
+       stageWidthFor) and the pane takes what is left; the sprite list scrolls inside it, the two buttons stay at
+       its bottom. From 2026-11-10 until then the column scrolled, and the buttons were under the fold. */
+    overflow: hidden;
 }
 
 .extension-button-container {

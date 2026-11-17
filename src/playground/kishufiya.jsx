@@ -54,7 +54,7 @@ import {setProjectUnchanged} from '../reducers/project-changed';
 import {
     STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH, FIXED_WIDTH
 } from '../lib/layout-constants';
-import {autoStage, choiceWidth, readChoice, saveChoice} from '../lib/kishufiya-stage-auto';
+import {autoStage, choiceWidth, readChoice, saveChoice, stageWidthFor} from '../lib/kishufiya-stage-auto';
 import AppStateHOC from '../lib/app-state-hoc.jsx';
 import ErrorBoundaryHOC from '../lib/error-boundary-hoc.jsx';
 import GUI from './render-gui.jsx';
@@ -357,9 +357,15 @@ const Bridge = connect(
             }
             const held = preferredStage || choiceWidth(storedChoice, autoCurrent);
             const want = held || (autoCurrent === 'small' ? FIXED_WIDTH * 0.5 : FIXED_WIDTH);
-            let target = Math.min(want, window.innerWidth - nonStageFor(want));
-            if (target < SMALL_LAYOUT_BELOW) target = Math.min(want, window.innerWidth - NON_STAGE.small);
-            target = Math.max(MIN_DRAGGED_STAGE_WIDTH, Math.floor(target));
+            // held by the window's width and by its height (lib/kishufiya-stage-auto.js stageWidthFor)
+            const target = stageWidthFor({
+                want,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                least: MIN_DRAGGED_STAGE_WIDTH,
+                smallLayoutBelow: SMALL_LAYOUT_BELOW,
+                nonStageFor
+            });
             if (target === current()) return;
             fitting = true;
             onFit(target);

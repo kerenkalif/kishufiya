@@ -14,6 +14,10 @@
     border-width: 1px;
     border-style: solid;
     border-bottom: 0;
+    /* כישופייה: the sprite info, then the list in the rest (.scroll-wrapper) */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .sprite-wrapper {
@@ -51,15 +55,11 @@
               also introduces a new bug in Chrome when vertically resizing window down,
               then back up, introduces white space in the outside the page container.
     */
-    height: calc(100% - $sprite-info-height);
+    /* כישופייה: what the sprite info above leaves, whatever its height (it is taller in the small layout, and
+       tighter in a low window): a share worked out from one fixed height ran under the pane's bottom */
+    flex: 1 1 0;
+    min-height: 0;
     overflow-y: auto;
-}
-
-/* כישופייה: matches the tighter sprite info of a low screen (sprite-info.css) */
-@media (max-height: 720px) {
-    .scroll-wrapper {
-        height: calc(100% - 4.5rem);
-    }
 }
 
 .scroll-wrapper-dragging {
