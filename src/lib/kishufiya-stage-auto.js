@@ -42,6 +42,13 @@ const stageWidthFor = ({want, width, height, least, smallLayoutBelow, nonStageFo
     return Math.max(least, Math.floor(target));
 };
 
+// TurboWarp switches the "large" mode to "full" when the large button is not shown (stage-header.jsx
+// checkInvalidStageSizeMode). A stage with a width of its own (fitted to the window, or dragged) is not that case:
+// switching it dropped the width, the fit set it again, and the editor went round until React stopped it - at
+// every fitted width from 408 to 479 (a window 680 to 702 high; before 2026-11-17, one 1000 to 1023 wide).
+const largeModeGivesWay = ({mode, stageWidth, largeShown}) =>
+    mode === 'large' && !largeShown && (stageWidth === null || typeof stageWidth === 'undefined');
+
 // The child's own choice (the size buttons, the splitter) wins for the kind of window it was made in
 // ("bucket": small or large, as autoStage says), and is kept in this browser. In a window of the other kind
 // it is void: a shared classroom computer, or a laptop docked to a big screen, does not carry one child's
@@ -78,7 +85,8 @@ const saveChoice = (bucket, width) => {
 };
 
 export {
-    autoStage, stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM, PANE_LEAST,
+    autoStage, largeModeGivesWay, stageWidthFor, widestStageFor, leastHeight,
+    ABOVE_STAGE, UNDER_STAGE, PANE_ROOM, PANE_LEAST,
     choiceWidth, encodeChoice, parseChoice, readChoice, saveChoice,
     SMALL_BELOW_HEIGHT, SMALL_BELOW_WIDTH, HYSTERESIS
 };

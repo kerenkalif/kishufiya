@@ -2,7 +2,7 @@
 //   npx jest test/unit/kishufiya-guide/stage-auto
 import {
     autoStage, choiceWidth, encodeChoice, parseChoice,
-    stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM, PANE_LEAST
+    largeModeGivesWay, stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM, PANE_LEAST
 } from '../../../src/lib/kishufiya-stage-auto.js';
 
 describe('autoStage', () => {
@@ -93,5 +93,20 @@ describe('the stage gives way to the height of the window', () => {
         const height = 700;
         expect(widestStageFor(height)).toBe(Math.floor((height - ABOVE_STAGE - UNDER_STAGE - PANE_ROOM) * 4 / 3));
         expect(leastHeight(160) - PANE_LEAST).toBe(ABOVE_STAGE + 120 + UNDER_STAGE);
+    });
+});
+
+// The editor stopped (React's "Maximum update depth") when the fit put the large stage at 477: the header switched
+// a large stage narrower than 480 to "full", and the fit put it back.
+describe('a fitted stage keeps the large mode', () => {
+    test('a stage with a width of its own is never switched to full', () => {
+        expect(largeModeGivesWay({mode: 'large', stageWidth: 477, largeShown: false})).toBe(false);
+        expect(largeModeGivesWay({mode: 'large', stageWidth: 408, largeShown: false})).toBe(false);
+    });
+    test('the own width of the mode still gives way, as TurboWarp has it', () => {
+        expect(largeModeGivesWay({mode: 'large', stageWidth: null, largeShown: false})).toBe(true);
+        expect(largeModeGivesWay({mode: 'large', largeShown: false})).toBe(true);
+        expect(largeModeGivesWay({mode: 'large', stageWidth: null, largeShown: true})).toBe(false);
+        expect(largeModeGivesWay({mode: 'small', stageWidth: null, largeShown: false})).toBe(false);
     });
 });

@@ -4,6 +4,7 @@ import bindAll from 'lodash.bindall';
 import VM from 'scratch-vm';
 import {STAGE_DISPLAY_SCALE_METADATA, STAGE_DISPLAY_SIZES, STAGE_SIZE_MODES} from '../lib/layout-constants';
 import {setStageSize} from '../reducers/stage-size';
+import {largeModeGivesWay} from '../lib/kishufiya-stage-auto';
 import {setFullScreen} from '../reducers/mode';
 import {openSettingsModal} from '../reducers/modals';
 
@@ -36,7 +37,14 @@ class StageHeader extends React.Component {
     }
     checkInvalidStageSizeMode () {
         // Switch from "large" to "full" when the large option isn't even displayed in the interface
-        if (this.props.stageSizeMode === STAGE_SIZE_MODES.large && !this.showFixedLargeSize()) {
+        // כישופייה: never a stage the editor fitted to the window, or the child dragged (stageWidth): the fit put
+        // the large stage at 477 in a window 700 high, this switched it to "full" (480), the fit put it back, and
+        // the two went round until React stopped the editor (kishufiya-stage-auto.js largeModeGivesWay)
+        if (largeModeGivesWay({
+            mode: this.props.stageSizeMode,
+            stageWidth: this.props.stageWidth,
+            largeShown: this.showFixedLargeSize()
+        })) {
             this.props.onSetStageFull();
         }
     }
@@ -79,12 +87,14 @@ StageHeader.propTypes = {
     // tw: replace showBranding
     isEmbedded: PropTypes.bool.isRequired,
     stageSizeMode: PropTypes.oneOf(Object.keys(STAGE_SIZE_MODES)).isRequired,
+    stageWidth: PropTypes.number,
     vm: PropTypes.instanceOf(VM).isRequired
 };
 
 const mapStateToProps = state => ({
     customStageSize: state.scratchGui.customStageSize,
     stageSizeMode: state.scratchGui.stageSize.stageSize,
+    stageWidth: state.scratchGui.stageSize.width,
     // tw: replace showBranding
     isEmbedded: state.scratchGui.mode.isEmbedded,
     isFullScreen: state.scratchGui.mode.isFullScreen,
