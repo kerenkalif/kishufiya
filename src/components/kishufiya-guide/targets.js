@@ -264,6 +264,25 @@ const paletteScroller = (fws, area) => {
     const metrics = fws.getMetrics();
     return {id: 'palette', ...spanOf(area), scrollTop: Math.max(0, -fws.scrollY), maxScrollTop: metrics.contentHeight - metrics.viewHeight};
 };
+// A palette block's box on the screen. scratch-blocks does not draw a block that is wholly out of the palette's view (its
+// intersection_observer.js hides the block's group), and a group that is not drawn has no box: in a low window "קבע y" is under the
+// palette's edge, was "not there", and the arrow stayed on its category for ever (Keren, 2026-11-17, laptops). Its place then comes from
+// the block itself - where it is in the palette and its size, as the palette would draw it - so the base can ask for the scroll.
+// `area`: the palette's box; RTL: a block's x is its right edge.
+export const paletteBlockBox = ({area, scrollX, scrollY, scale, rtl, x, y, width, height}) => {
+    const left = area.left + scrollX + ((rtl ? x - width : x) * scale);
+    const top = area.top + scrollY + (y * scale);
+    return {left, top, width: width * scale, height: height * scale, right: left + (width * scale), bottom: top + (height * scale)};
+};
+const paletteBlockRect = (block, fws, area) => {
+    const drawn = rectOf(block.getSvgRoot());
+    if (drawn || !area || !block.getRelativeToSurfaceXY || !block.getHeightWidth) return drawn;
+    const at = block.getRelativeToSurfaceXY();
+    const size = block.getHeightWidth();
+    const box = paletteBlockBox({area, scrollX: fws.scrollX || 0, scrollY: fws.scrollY || 0, scale: fws.scale || 1, rtl: Boolean(fws.RTL),
+        x: at.x, y: at.y, width: size.width, height: size.height});
+    return shown(box) ? box : null;
+};
 // Whether the whole of a rect is within what the box shows: only to hold the mark back until the base has scrolled to it
 const within = (rect, scroller) => Boolean(rect && scroller) && rect.top >= scroller.top && rect.bottom <= scroller.bottom;
 
@@ -580,8 +599,9 @@ export const resolve = (target, vm) => {
         const ofIt = b => b.type === target.block &&
             (!target.variable || (b.getField('VARIABLE') && b.getField('VARIABLE').getText() === target.variable));
         const block = fws && fws.getTopBlocks(false).find(ofIt);
-        const rect = block && rectOf(block.getSvgRoot());
         const area = rectOf(flyoutSvg(ws));
+        // where the block is, drawn or not (paletteBlockRect): out of the palette's view it is told, never "not there"
+        const rect = block && paletteBlockRect(block, fws, area);
         // The palette's box goes to the base with the block's place (guide-at `scroller`): the base decides whether the block is
         // seen there and asks for the scroll (SPEC-editor-base 3.3 item 7; Keren, 2026-11-14: "קבע y" in the donuts, 1911x915)
         const scroller = area && fws ? paletteScroller(fws, area) : null;
