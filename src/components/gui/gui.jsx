@@ -245,8 +245,8 @@ const GUIComponent = props => {
                     // הכישופייה: a small stage frees half its width, so the editor fits beside the lesson
                     minWidth: nonStageWidth + stageDisplayWidth + Math.max(0, customStageSize.width - 480),
                     // the page was 640 tall at least, which cut the bottom off a low screen (2026-11-10). Down to this
-                    // the stage gives way to the window's height (lib/kishufiya-stage-auto.js stageWidthFor); it is
-                    // what the least stage and the sprites and backdrops pane need
+                    // the stage gives way to the window's height (lib/kishufiya-stage-auto.js stageWidthFor); then
+                    // the sprites and backdrops pane does, to the room of its two add buttons (PANE_LEAST)
                     minHeight: leastHeight(MIN_DRAGGED_STAGE_WIDTH) + Math.max(0, customStageSize.height - 360)
                 }}
                 {...componentProps}

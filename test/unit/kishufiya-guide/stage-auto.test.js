@@ -2,7 +2,7 @@
 //   npx jest test/unit/kishufiya-guide/stage-auto
 import {
     autoStage, choiceWidth, encodeChoice, parseChoice,
-    stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM
+    stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM, PANE_LEAST
 } from '../../../src/lib/kishufiya-stage-auto.js';
 
 describe('autoStage', () => {
@@ -82,15 +82,16 @@ describe('the stage gives way to the height of the window', () => {
         expect(fit(480, 900, 1000)).toBe(276); // 900 - 624: the small layout's own room
         expect(fit(240, 1366, 650)).toBe(240);
     });
-    test('never under the least stage; from leastHeight on, the least stage leaves the pane its room', () => {
+    test('never under the least stage; under its need the pane gives way, down to PANE_LEAST', () => {
         expect(fit(480, 1366, 300)).toBe(160);
-        expect(paneRoom(160, leastHeight(160))).toBe(PANE_ROOM);
-        expect(leastHeight(160)).toBe(462);
+        expect(paneRoom(160, leastHeight(160))).toBe(PANE_LEAST);
+        expect(leastHeight(160)).toBe(322);
+        expect(PANE_LEAST).toBeGreaterThanOrEqual(44 + 12); // an add button and its place above the pane's bottom
     });
     // "עמיד לשינוי": the pane's room is one number; the widest stage and the least height both follow it
-    test('PANE_ROOM is the one number: widestStageFor and leastHeight are worked out from it', () => {
+    test('PANE_ROOM is the one number: widestStageFor is worked out from it, leastHeight from PANE_LEAST', () => {
         const height = 700;
         expect(widestStageFor(height)).toBe(Math.floor((height - ABOVE_STAGE - UNDER_STAGE - PANE_ROOM) * 4 / 3));
-        expect(leastHeight(160) - PANE_ROOM).toBe(ABOVE_STAGE + 120 + UNDER_STAGE);
+        expect(leastHeight(160) - PANE_LEAST).toBe(ABOVE_STAGE + 120 + UNDER_STAGE);
     });
 });

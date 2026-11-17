@@ -27,8 +27,11 @@ const PANE_ROOM = 240; // the sprite info, a row of sprites and the two add butt
 const STAGE_RATIO = 4 / 3;
 // the widest stage a window this high has room for
 const widestStageFor = height => Math.floor((height - ABOVE_STAGE - UNDER_STAGE - PANE_ROOM) * STAGE_RATIO);
-// The height below which even the least stage leaves the pane less than PANE_ROOM (gui.jsx's page min-height)
-const leastHeight = leastStage => ABOVE_STAGE + Math.ceil(leastStage / STAGE_RATIO) + UNDER_STAGE + PANE_ROOM;
+// Under the least stage's own need the pane gives way, down to PANE_LEAST: its two add buttons and a strip of the
+// sprite info above them (a 1366x768 laptop at 150% leaves the editor under 400). Lower than this the page keeps
+// this height and is cut (gui.jsx's page min-height).
+const PANE_LEAST = 100;
+const leastHeight = leastStage => ABOVE_STAGE + Math.ceil(leastStage / STAGE_RATIO) + UNDER_STAGE + PANE_LEAST;
 
 // The stage's width in this window: the wanted one (the child's choice, or the automatic size), held by the
 // window's width (the rest of the editor keeps `nonStageFor(stage)`, more in the small layout) and by its height.
@@ -75,7 +78,7 @@ const saveChoice = (bucket, width) => {
 };
 
 export {
-    autoStage, stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM,
+    autoStage, stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM, PANE_LEAST,
     choiceWidth, encodeChoice, parseChoice, readChoice, saveChoice,
     SMALL_BELOW_HEIGHT, SMALL_BELOW_WIDTH, HYSTERESIS
 };
