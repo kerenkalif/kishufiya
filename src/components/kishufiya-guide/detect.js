@@ -434,3 +434,10 @@ export const softMarkColours = value => {
     const [r, g, b] = [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
     return {line: `#${full}`, glow: `rgba(${r}, ${g}, ${b}, 0.65)`, glowPoint: `rgba(${r}, ${g}, ${b}, 0.8)`};
 };
+
+// The lesson's 'tidy' (guide.js): 'now' when asked and no block is being dragged - blocks never move under the
+// child's hand -, 'wait' while one is (it is done at the drop), 'none' when nothing was asked. Pure.
+export const tidyWhen = (asked, dragging) => {
+    if (!asked) return 'none';
+    return dragging ? 'wait' : 'now';
+};

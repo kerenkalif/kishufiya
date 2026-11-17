@@ -1,11 +1,13 @@
 // כישופייה: the "Tidy up blocks" button of the menu bar (Keren, 2026-11-02), like "format code" in an editor.
-// Scripts move only when the child presses it - nothing tidies on its own. Where they go is
+// Scripts move when the child presses it, and once when the lesson asks ('tidy', guide.js: before it tells the child a
+// block is out of place, platform auto-tidy.ts, Keren 2026-11-17) - nothing else tidies on its own. Where they go is
 // kishufiya-tidy-layout.js: from the top right corner of the code area as it is seen now. "Wide" (the button, and
 // the one any tidy the child did not ask for must use) puts columns side by side so the view needs no scroll
 // afterwards; "long" (Keren, 2026-11-03) puts every script in one column and the child scrolls down. The workspace
 // right-click menu offers both (installTidyMenu), in place of Blockly's "Clean up Blocks". One undo step; nothing
 // is deleted. Written out here rather than calling workspace.cleanUp(): the editor-devtools addon may wrap that
 // method, and its version can ask to delete loose blocks, which this button must never do.
+// → whether the scripts were put in place (false: no workspace, a block is being dragged, nothing to tidy).
 import {codeArea} from '../components/kishufiya-guide/targets.js';
 import {layoutScripts, layoutScriptsLong} from './kishufiya-tidy-layout.js';
 
@@ -14,11 +16,11 @@ const layouts = {wide: layoutScripts, long: layoutScriptsLong};
 const tidyBlocks = (direction = 'wide') => {
     const SB = window.ScratchBlocks;
     const workspace = SB && SB.getMainWorkspace ? SB.getMainWorkspace() : null;
-    if (!workspace || (workspace.isDragging && workspace.isDragging())) return;
+    if (!workspace || (workspace.isDragging && workspace.isDragging())) return false;
     const tops = workspace.getTopBlocks(true);
     const area = codeArea();
     const ctm = workspace.getCanvas().getScreenCTM();
-    if (tops.length === 0 || !area || !ctm) return;
+    if (tops.length === 0 || !area || !ctm) return false;
     // screen px per workspace unit: the zoom AND any CSS scaling of the editor (workspace.scale alone misses the
     // latter, and the area's size is measured on screen), the same factor the corner below is converted with
     const scale = ctm.a;
@@ -47,6 +49,7 @@ const tidyBlocks = (direction = 'wide') => {
         SB.Events.setGroup(false);
         workspace.setResizesEnabled(true);
     }
+    return true;
 };
 
 // The labels of the two menu items; any language without one gets the English.

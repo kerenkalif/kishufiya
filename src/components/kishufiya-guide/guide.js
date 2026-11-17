@@ -58,6 +58,12 @@
 //                                      Other windows (a rename) and no 'names' at all: the window is as it was. A page
 //                                      from before this never sends it; an editor from before ignores it
 //   guide-clear  {}
+//   tidy         {}                    the base's decision (platform auto-tidy.ts, Keren 2026-11-17): the scripts of
+//                                      the code shown are put in order, as the menu bar's "ארגן בלוקים" does
+//                                      (kishufiya-tidy.js, 'wide'), once - never under a block being dragged (it
+//                                      waits for the drop). The guide then finds its target anew: the ring, the
+//                                      arrow and 'guide-at' follow the blocks, and the code scrolls to the target
+//                                      once more if the tidy left it out of view
 //   key-press    {key, code, keyCode, down}
 //                                      a key the child pressed while the focus was in the lesson, not here:
 //                                      given to the game, and told back as 'key' like one pressed here (K12)
@@ -133,12 +139,13 @@
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
 import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
-    missingStep, onTheWay, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
+    missingStep, onTheWay, tidyWhen, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
     scriptRan, scriptRing, softMarkColours, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
 import {SNAP_RADIUS} from '../../lib/kishufiya-tidy-layout.js';
+import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {setNameAsk} from './name-ask.js';
 import {openMenuRects} from './open-menus.js';
 
@@ -725,6 +732,21 @@ const drawGuide = () => {
 
 // One frame loop, only while something is on screen; nothing runs otherwise. It looks for its targets
 // ten times a second, not every frame: class PCs are slow, and a ring 0.1s late is not noticed.
+// The base's 'tidy': done at once, or when the block being dragged is let go (detect.js tidyWhen). What the guide
+// remembers of where its target was goes with it: the code may scroll to the target once more, and the base is told
+// its new place.
+let tidyAsked = false;
+const tidyIfAsked = () => {
+    const ws = workspace();
+    const when = tidyWhen(tidyAsked, Boolean(ws && ws.isDragging && ws.isDragging()));
+    if (when !== 'now') return;
+    tidyAsked = false;
+    if (!tidyBlocks('wide')) return;
+    scrolledTo = null;
+    lastAt = '';
+    lastGhost = '';
+};
+
 const EVERY_MS = 100;
 let frame = 0;
 let drawn = 0;
@@ -735,10 +757,11 @@ const tick = now => {
     if (urgent || now - drawn >= EVERY_MS) {
         urgent = false;
         drawn = now;
+        tidyIfAsked();
         drawVeil();
         drawGuide();
     }
-    if (state.guide || state.frozen) frame = requestAnimationFrame(tick);
+    if (state.guide || state.frozen || tidyAsked) frame = requestAnimationFrame(tick);
 };
 const wake = () => {
     urgent = true;
@@ -1029,6 +1052,10 @@ export const handleGuide = msg => {
         break;
     case 'pick':
         state.picking = Boolean(msg.on);
+        break;
+    case 'tidy':
+        tidyAsked = true;
+        tidyIfAsked();
         break;
     case 'key-press': {
         const key = forwardedKey(msg, Boolean(state.frozen));

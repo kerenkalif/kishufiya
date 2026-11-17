@@ -250,7 +250,7 @@ class MenuBar extends React.Component {
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
     }
-    // כישופייה: scripts move only when the child presses the button - nothing tidies on its own.
+    // כישופייה: the button tidies the scripts; the only other tidy is the one the lesson asks for (guide.js 'tidy').
     handleClickTidyBlocks () {
         tidyBlocks();
     }
