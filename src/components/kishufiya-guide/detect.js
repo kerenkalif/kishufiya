@@ -435,9 +435,13 @@ export const softMarkColours = value => {
     return {line: `#${full}`, glow: `rgba(${r}, ${g}, ${b}, 0.65)`, glowPoint: `rgba(${r}, ${g}, ${b}, 0.8)`};
 };
 
-// The lesson's 'tidy' (guide.js): 'now' when asked and no block is being dragged - blocks never move under the
-// child's hand -, 'wait' while one is (it is done at the drop), 'none' when nothing was asked. Pure.
-export const tidyWhen = (asked, dragging) => {
-    if (!asked) return 'none';
-    return dragging ? 'wait' : 'now';
+// The lesson's 'tidy' (guide.js), one look at it: `asked` - whether it is still asked for after this look, `done` -
+// whether the scripts were put in place now. Not while a block is being dragged - blocks never move under the child's
+// hand, it is done at the drop -, and a tidy that could not be done (`tidy` → false: no code area to tidy in, as on
+// the costumes tab) stays asked for until it can, never dropped. `tidy` is run at most once, and only when it may.
+export const tidyStep = (asked, dragging, tidy) => {
+    if (!asked) return {asked: false, done: false};
+    if (dragging) return {asked: true, done: false};
+    const done = Boolean(tidy());
+    return {asked: !done, done};
 };

@@ -61,7 +61,8 @@
 //   tidy         {}                    the base's decision (platform auto-tidy.ts, Keren 2026-11-17): the scripts of
 //                                      the code shown are put in order, as the menu bar's "ארגן בלוקים" does
 //                                      (kishufiya-tidy.js, 'wide'), once - never under a block being dragged (it
-//                                      waits for the drop). The guide then finds its target anew: the ring, the
+//                                      waits for the drop), and with no code area to tidy in (the costumes tab) it
+//                                      waits for one. The guide then finds its target anew: the ring, the
 //                                      arrow and 'guide-at' follow the blocks, and the code scrolls to the target
 //                                      once more if the tidy left it out of view
 //   key-press    {key, code, keyCode, down}
@@ -139,7 +140,7 @@
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
 import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
-    missingStep, onTheWay, tidyWhen, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
+    missingStep, onTheWay, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
     scriptRan, scriptRing, softMarkColours, tellsClick, typing}
     from './detect.js';
 import styles from './guide.css';
@@ -732,16 +733,15 @@ const drawGuide = () => {
 
 // One frame loop, only while something is on screen; nothing runs otherwise. It looks for its targets
 // ten times a second, not every frame: class PCs are slow, and a ring 0.1s late is not noticed.
-// The base's 'tidy': done at once, or when the block being dragged is let go (detect.js tidyWhen). What the guide
-// remembers of where its target was goes with it: the code may scroll to the target once more, and the base is told
-// its new place.
+// The base's 'tidy': done at once, or when the block being dragged is let go, or when there is a code area again
+// (detect.js tidyStep: asked for until done). What the guide remembers of where its target was goes with it: the code
+// may scroll to the target once more, and the base is told its new place.
 let tidyAsked = false;
 const tidyIfAsked = () => {
     const ws = workspace();
-    const when = tidyWhen(tidyAsked, Boolean(ws && ws.isDragging && ws.isDragging()));
-    if (when !== 'now') return;
-    tidyAsked = false;
-    if (!tidyBlocks('wide')) return;
+    const step = tidyStep(tidyAsked, Boolean(ws && ws.isDragging && ws.isDragging()), () => tidyBlocks('wide'));
+    tidyAsked = step.asked;
+    if (!step.done) return;
     scrolledTo = null;
     lastAt = '';
     lastGhost = '';

@@ -7,7 +7,8 @@
 // right-click menu offers both (installTidyMenu), in place of Blockly's "Clean up Blocks". One undo step; nothing
 // is deleted. Written out here rather than calling workspace.cleanUp(): the editor-devtools addon may wrap that
 // method, and its version can ask to delete loose blocks, which this button must never do.
-// → whether the scripts were put in place (false: no workspace, a block is being dragged, nothing to tidy).
+// → false when it could not be done now (no workspace, a block is being dragged, no code area on screen), true when
+// it was - also with no script at all, which is tidy as it is.
 import {codeArea} from '../components/kishufiya-guide/targets.js';
 import {layoutScripts, layoutScriptsLong} from './kishufiya-tidy-layout.js';
 
@@ -20,7 +21,8 @@ const tidyBlocks = (direction = 'wide') => {
     const tops = workspace.getTopBlocks(true);
     const area = codeArea();
     const ctm = workspace.getCanvas().getScreenCTM();
-    if (tops.length === 0 || !area || !ctm) return false;
+    if (!area || !ctm) return false;
+    if (tops.length === 0) return true;
     // screen px per workspace unit: the zoom AND any CSS scaling of the editor (workspace.scale alone misses the
     // latter, and the area's size is measured on screen), the same factor the corner below is converted with
     const scale = ctm.a;
