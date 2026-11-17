@@ -75,6 +75,7 @@ const saveChoice = (bucket, width) => {
 };
 
 export {
-    autoStage, stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM, choiceWidth, encodeChoice, parseChoice, readChoice, saveChoice,
+    autoStage, stageWidthFor, widestStageFor, leastHeight, ABOVE_STAGE, UNDER_STAGE, PANE_ROOM,
+    choiceWidth, encodeChoice, parseChoice, readChoice, saveChoice,
     SMALL_BELOW_HEIGHT, SMALL_BELOW_WIDTH, HYSTERESIS
 };
