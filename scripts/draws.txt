@@ -1,0 +1,4 @@
+# The signs of a mark (the platform's marks/mark-contract.ts MarkDrawn) that this editor draws, one a line.
+# scripts/build-txt.js writes them to public/kishufiya/BUILD.txt as `# draws: ...`; add a name here only with the code that draws it.
+# Same source as scratchjr-web scripts/draws.txt: the platform holds EditorPlatform.marks.draws to this line.
+value

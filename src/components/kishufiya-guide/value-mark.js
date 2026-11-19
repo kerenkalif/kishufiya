@@ -3,10 +3,12 @@
 // is drawn in a tag by the field; a value to PICK is ringed in the field's open menu. Pure, so jest tests it
 // (test/unit/kishufiya-guide/value-mark).
 
-// The value drawn by the ringed field: only for a value to type that the base sent. Words of the child's own come
-// with no value (an example by the field would be copied as the answer), and a choice of a menu is ringed in its menu.
+// The value drawn by the ringed field: whatever `value` the base sent, whatever the act - the base decides once when
+// there is a tag (it sends `value` only for a value to type). Words of the child's own come with no value (an
+// example by the field would be copied as the answer), a choice of a menu is ringed in its menu, and a key to
+// press comes as `key`.
 export const valueTagOf = signs => {
-    if (!signs || signs.act !== 'type' || typeof signs.value !== 'string' || signs.value === '') return null;
+    if (!signs || typeof signs.value !== 'string' || signs.value === '') return null;
     return signs.value;
 };
 

@@ -39,6 +39,8 @@
     position: fixed;
     display: none;
     min-width: 44px;
+    /* a long value (a variable's name) breaks onto lines, whole: an ellipsis would hide letters the child copies */
+    max-width: 260px;
     padding: 2px 12px;
     border: 3px solid #ffffff;
     border-radius: 14px;
@@ -46,7 +48,8 @@
     color: #ffffff;
     font: 700 30px/38px Heebo, Arial, sans-serif;
     text-align: center;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
     box-shadow: 0 0 0 3px #e53935, 0 2px 6px rgba(0, 0, 0, 0.3);
     box-sizing: border-box;
     unicode-bidi: plaintext;

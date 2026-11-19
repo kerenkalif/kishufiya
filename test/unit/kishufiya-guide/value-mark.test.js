@@ -16,11 +16,14 @@ describe('valueTagOf', () => {
         expect(valueTagOf({act: 'type', value: '-240'})).toBe('-240');
         expect(valueTagOf({act: 'type', value: 'חיים'})).toBe('חיים');
     });
+    test('every value sent is drawn, whatever the act: the base decides when there is one', () => {
+        expect(valueTagOf({value: '7'})).toBe('7');
+    });
     test('words of the child own, a choice, a key, a drag and no signs at all: no tag', () => {
         expect(valueTagOf({act: 'type'})).toBe(null);
         expect(valueTagOf({act: 'type', value: ''})).toBe(null);
         expect(valueTagOf({act: 'pick', choice: {label: 'חץ ימינה', raw: 'right arrow'}})).toBe(null);
-        expect(valueTagOf({act: 'press', value: 'space'})).toBe(null);
+        expect(valueTagOf({act: 'press', key: 'space'})).toBe(null);
         expect(valueTagOf({act: 'drag', ghost: true})).toBe(null);
         expect(valueTagOf(null)).toBe(null);
         expect(valueTagOf()).toBe(null);
