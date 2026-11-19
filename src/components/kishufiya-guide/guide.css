@@ -32,6 +32,38 @@
     white-space: nowrap;
 }
 
+/* The value to type, by the ringed field (guide.js drawValue; the base's sign `value`, platform decision 0055): the marks' own red
+   with the white line, the value white on it. A number is a sign, not a word: it is drawn for a child without words too.
+   The same numbers as the kishufonet guide's .kg-value (scratchjr-web web-overrides.css). */
+.value-tag {
+    position: fixed;
+    display: none;
+    min-width: 44px;
+    padding: 2px 12px;
+    border: 3px solid #ffffff;
+    border-radius: 14px;
+    background: #e53935;
+    color: #ffffff;
+    font: 700 30px/38px Heebo, Arial, sans-serif;
+    text-align: center;
+    white-space: nowrap;
+    box-shadow: 0 0 0 3px #e53935, 0 2px 6px rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+    unicode-bidi: plaintext;
+}
+
+/* ...and the choice to pick, in the menu the field opened: the ring, thinner on a row of a menu */
+.choice {
+    position: fixed;
+    display: none;
+    z-index: 100000; /* over the field's menu (scratch-blocks: 1000) and its number pad's box */
+    pointer-events: none;
+    border: 5px solid #e53935;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px #ffffff, inset 0 0 0 2px #ffffff;
+    box-sizing: border-box;
+}
+
 .ring,
 .flash {
     position: fixed;

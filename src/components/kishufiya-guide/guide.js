@@ -149,6 +149,7 @@ import {SNAP_RADIUS} from '../../lib/kishufiya-tidy-layout.js';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {setNameAsk} from './name-ask.js';
 import {openMenuRects} from './open-menus.js';
+import {valueTagOf, tagPlace, choiceOf, choiceIndex, openMenuItems} from './value-mark.js';
 
 let vm = null;
 let send = () => {};
@@ -173,6 +174,8 @@ let note = null;
 let flash = null;
 let pointer = null; // the bouncing arrow
 let ghost = null; // a dragged block's way to where it goes
+let valueTag = null; // the value to type, by the ringed field (value-mark.js)
+let choiceRing = null; // the choice to pick, in the field's open menu
 
 const div = className => {
     const el = document.createElement('div');
@@ -195,8 +198,13 @@ const build = () => {
     bubble.appendChild(div(styles.arrow));
     pointer = div(styles.pointer);
     ghost = div(styles.ghost);
-    for (const el of [note, ring, flash, ghost, pointer, bubble]) layer.appendChild(el);
+    valueTag = div(styles.valueTag);
+    choiceRing = div(styles.choice);
+    for (const el of [note, ring, flash, ghost, pointer, valueTag, bubble]) layer.appendChild(el);
     document.body.appendChild(layer);
+    // a field's menu is drawn over the guide's layer (the editor's own order), so the ring of its choice is its
+    // own, over the menu
+    document.body.appendChild(choiceRing);
 };
 
 const place = (el, r) => {
@@ -555,6 +563,38 @@ const hideGuide = () => {
     pointer.style.display = 'none';
     bubble.style.display = 'none';
     placeGhost(null, null);
+    valueTag.style.display = 'none';
+    place(choiceRing, null);
+};
+
+// What goes in the ringed field, as the base's signs say it (target.signs, value-mark.js): a value to type is drawn
+// in a tag by the field or the box (never on the way to it: a sprite's tile, a category), and a value to pick is
+// ringed in the menu the field opened, scrolled to once when the menu is long. → the tag's rectangle, for the page
+// to keep its bubble off it (guide-at `label`)
+let choiceShownFor = null;
+const drawValue = found => {
+    const signs = state.guide.target.signs;
+    const onIt = found.via === 'field' || Boolean(found.input);
+    const text = onIt ? valueTagOf(signs) : null;
+    let at = null;
+    valueTag.style.display = text === null ? 'none' : 'block';
+    if (text !== null) {
+        if (valueTag.textContent !== text) valueTag.textContent = text;
+        at = tagPlace(found.rect, {width: valueTag.offsetWidth, height: valueTag.offsetHeight},
+            {width: window.innerWidth, height: window.innerHeight}, Boolean(found.label));
+        valueTag.style.left = `${at.left}px`;
+        valueTag.style.top = `${at.top}px`;
+    }
+    const label = found.via === 'field' ? choiceOf(signs) : null;
+    const items = label === null ? [] : openMenuItems(document);
+    const item = items[choiceIndex(items.map(one => one.text), label)];
+    if (item && choiceShownFor !== state.guide.id) {
+        choiceShownFor = state.guide.id;
+        if (item.el.scrollIntoView) item.el.scrollIntoView({block: 'nearest'});
+    }
+    if (!item) choiceShownFor = null; // the menu closed: opened again, its choice is scrolled to again
+    place(choiceRing, item ? item.el.getBoundingClientRect() : null);
+    return at;
 };
 
 // The ring (red or soft) at a target, 4px out on every side - a whole script's cut to the code area, the sides it
@@ -698,6 +738,8 @@ const drawGuide = () => {
         pointer.style.display = 'none';
         bubble.style.display = 'none';
         placeGhost(null, null);
+        valueTag.style.display = 'none';
+        place(choiceRing, null);
         tellAt(r, found.via, null, found);
         return;
     }
@@ -713,6 +755,8 @@ const drawGuide = () => {
     louder(!state.frozen && now - louderSince >= LOUDER_AFTER_MS);
     sizeArrow(now - louderSince, state.guide.grow);
     placeGhost(r, found.drop);
+    const tagAt = drawValue(found);
+    if (tagAt && !found.label) found.label = tagAt;
     const target = state.guide.target;
     const ofCode = found.block && !found.drop && target.in !== 'palette' &&
         (found.via === 'block' || found.via === 'field');
