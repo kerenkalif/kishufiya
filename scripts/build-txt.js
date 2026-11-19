@@ -23,9 +23,7 @@ const stamp = date => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(d
 const buildTxt = (commit, date, draws) => {
     const lines = [`kishufiya ${commit}, built ${stamp(date)}`];
     if (draws.length) lines.push(`# draws: ${draws.join(', ')}`);
-    return `${lines.join('
-')}
-`;
+    return `${lines.join('\n')}\n`;
 };
 
 module.exports = {drawsOf, buildTxt, stamp};
