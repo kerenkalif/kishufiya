@@ -96,6 +96,7 @@
 //   guide-missing {id, target, reason, by}          the target is nowhere on the screen, or cannot be clicked
 //                                                   (for half a second): why - targets.js
 //   guide-frame {id, frame}             the frame to draw at the drop, as the base decided it (drop-frame.ts); null: nothing left to draw
+//   guide-at {typing?: {text, fresh, pad: false}} (a box being typed in: its text now, and whether nothing was typed since it took the focus)
 //   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?, dropRect?, accept?, dropKind?, label?}
 //                                                   where the guided target is now, in this frame's pixels,
 //                                                   and on which side of it the arrow is; a field's value as
@@ -141,7 +142,7 @@
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
 import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
-    scriptRan, scriptRing, softMarkColours, tellsClick, typing}
+    scriptRan, scriptRing, softMarkColours, tellsClick, typing, typingOf, endEdit}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -364,6 +365,7 @@ const keepClearOf = () => {
 
 // Where the page is told the target is: sent only when it changes.
 let lastAt = '';
+let touchedInput = false; // something typed in the focused box since it took the focus
 const tellAt = (rect, via, arrow, extra) => {
     const at = frameOf(rect);
     const more = extra || {};
@@ -394,11 +396,12 @@ const tellAt = (rect, via, arrow, extra) => {
     const ws = workspace();
     const snap = (typeof Blockly !== 'undefined' && Blockly.SNAP_RADIUS) || SNAP_RADIUS;
     const dropAttach = whole && !free && ws ? attachOf(whole, more.drop, snap, ws.scale || 1) : null;
-    const key = JSON.stringify([at, via, arrow, value, raw, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach]);
+    const typed = typingOf(more, document.activeElement, touchedInput);
+    const key = JSON.stringify([at, via, arrow, value, raw, typed, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, drop, clear, label: lab, scroller,
+    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller,
         ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})});
 };
 
@@ -1097,6 +1100,9 @@ export const handleGuide = msg => {
     case 'pick':
         state.picking = Boolean(msg.on);
         break;
+    case 'guide-typed':
+        endEdit(document.activeElement, msg.id, state.guide && state.guide.id);
+        return true;
     case 'tidy':
         tidyAsked = true;
         tidyIfAsked();
@@ -1259,6 +1265,8 @@ export const attachGuide = (theVm, sender) => {
     }
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('keyup', onKey, true);
+    window.addEventListener('input', e => { if (typing(e.target)) touchedInput = true; wake(); }, true);
+    window.addEventListener('focusin', () => { touchedInput = false; }, true);
     const inputs = [
         'pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click', 'contextmenu', 'dblclick'
     ];

@@ -22,6 +22,24 @@ export const gameHeard = (target, doc) => target === doc || Boolean(doc && targe
 // A box being typed into: its letters are not the game's keys, nor the lesson's.
 export const typing = el => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
 
+// What the page is told of a box the child is typing in (guide-at `typing`, platform SPEC-editor-base section 13): the box's own text as it is
+// now, and `fresh` - nothing typed since it took the focus. The sprite's boxes keep what is typed to themselves until blur or Enter
+// (BufferedInput), so the game does not hold it yet: the page says "the value is in" (guide-typed) and the guide ends the edit
+// (endEdit). `pad` false: the real keyboard, no key to ring. null: the guided target is no box, or the focus is not in it.
+export const typingOf = (found, active, touched) => {
+    if (!found || !found.input || typeof found.value !== 'string') return null;
+    if (!active || active.tagName !== 'INPUT' || active.value !== found.value) return null;
+    return {text: found.value, fresh: !touched, pad: false};
+};
+
+// The platform says the value asked for is in the box ('guide-typed'): the edit ends the way the child's own blur ends it, so the
+// box submits (BufferedInput handleFlush) and the game holds the value. Only a box of the guided id and only while the focus is in one.
+export const endEdit = (active, msgId, guideId) => {
+    if (msgId !== guideId || !active || active.tagName !== 'INPUT' || typeof active.blur !== 'function') return false;
+    active.blur();
+    return true;
+};
+
 // A key the lesson heard while the child's focus was in it, not in the editor (msg 'key-press'): what the game is
 // given, and what the lesson is told back. Nothing while frozen, a repeat, or without a key.
 // A keyup is given even while frozen: a key let go of must never stay held down in the game (K12 review).

@@ -1,7 +1,7 @@
 // K12 (2026-10-28): what the guide tells the lesson the child did - the pure parts (detect.js).
 //   npx jest test/unit/kishufiya-guide
 import {categoryOf} from '../../../src/components/kishufiya-guide/targets.js';
-import {coveredBy, forwardedKey, gameHeard, gameKey, libraryMissing, onTheWay, quietReports, samplePoints, spriteOnStage, typing} from '../../../src/components/kishufiya-guide/detect.js';
+import {coveredBy, forwardedKey, gameHeard, gameKey, libraryMissing, onTheWay, quietReports, samplePoints, spriteOnStage, typing, typingOf, endEdit} from '../../../src/components/kishufiya-guide/detect.js';
 
 describe('keys', () => {
     test('the game gets the key as scratch-gui gives it', () => {
@@ -248,5 +248,30 @@ describe('locate without marking: the way is ringed, the target is not', () => {
         expect(onTheWay({sprite: 'רקטה'}, 'sprite')).toBe(false);
         expect(onTheWay({library: 'Rocketship'}, 'search')).toBe(true);
         expect(onTheWay(null, 'category')).toBe(false);
+    });
+});
+
+// A sprite's box (name, x, y, size, direction) submits only on blur or Enter (BufferedInput): the guide reports its text as typed and,
+// when the platform says the value is in (guide-typed), ends the edit the way the child's own blur does.
+describe('a box typed in tells its text, and its edit ends when the platform says so', () => {
+    const box = value => ({tagName: 'INPUT', value, blurred: 0, blur () { this.blurred += 1; }});
+    test('typingOf: the focused box of the target, its text, fresh until something is typed', () => {
+        const el = box('12');
+        expect(typingOf({input: true, value: '12'}, el, true)).toEqual({text: '12', fresh: false, pad: false});
+        expect(typingOf({input: true, value: '12'}, el, false)).toEqual({text: '12', fresh: true, pad: false});
+        expect(typingOf({input: true, value: '12'}, box('13'), true)).toBe(null); // the focus is in another box
+        expect(typingOf({input: true, value: '12'}, {tagName: 'BUTTON'}, true)).toBe(null);
+        expect(typingOf({input: false, value: '12'}, el, true)).toBe(null); // the target is no box
+        expect(typingOf({input: true, value: null}, el, true)).toBe(null);
+        expect(typingOf(null, el, true)).toBe(null);
+    });
+    test('endEdit: blur, only for the guide that asked and only in a box', () => {
+        const el = box('12');
+        expect(endEdit(el, 3, 4)).toBe(false);
+        expect(endEdit(null, 3, 3)).toBe(false);
+        expect(endEdit({tagName: 'BUTTON', blur () {}}, 3, 3)).toBe(false);
+        expect(el.blurred).toBe(0);
+        expect(endEdit(el, 3, 3)).toBe(true);
+        expect(el.blurred).toBe(1);
     });
 });
