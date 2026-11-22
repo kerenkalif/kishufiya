@@ -1,6 +1,6 @@
 {
-  "contract": "guide-contract cases v1 - the editor half of session, request and locate (platform SPEC-lesson-layers section 3, stage A1). The same file, byte for byte, in kishufiya, kishufonet and the platform.",
-  "version": 1,
+  "contract": "guide-contract cases v2 - the editor half of session, request and locate (platform SPEC-lesson-layers section 3, stage A1). The same file, byte for byte, in kishufiya, kishufonet and the platform.",
+  "version": 2,
   "caps": [
     "session",
     "locate"
@@ -15,7 +15,7 @@
     "other": "any other word is the editor's own, finer reason for a target that is not here (with `by`, the thing covering it); the page reads an unknown reason as offscreen"
   },
   "steps": {
-    "hear": "heard(state, msg) -> expect {heard, orders, pass} and, when given, the session and the requests of the places held after it",
+    "hear": "heard(state, msg) -> expect {heard, orders, pass} and, when given, what it says back (say), the session and the requests of the places held after it",
     "look": "looked(state, request, see, at, after) -> expect {say, soft}",
     "stamp": "inSession(answer, asking(to), more) -> expect the answer",
     "id": "answerId(msg) -> expect the id",
@@ -23,6 +23,493 @@
     "reason": "reasonSaid(word, asking(to)) -> expect the word said in guide-missing"
   },
   "cases": [
+    {
+      "name": "opening: engine-hello before anything was heard is answered with session 0, and nothing changes",
+      "steps": [
+        {
+          "hear": {
+            "type": "engine-hello"
+          },
+          "expect": {
+            "heard": "hello",
+            "orders": [],
+            "pass": false,
+            "say": [
+              {
+                "type": "engine-welcome",
+                "caps": [
+                  "session",
+                  "locate"
+                ],
+                "session": 0
+              }
+            ],
+            "session": null,
+            "locates": []
+          }
+        },
+        {
+          "hear": {
+            "type": "guide",
+            "session": 1,
+            "request": 7,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 1,
+            "say": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "opening: answered with the highest session heard; the page starts at that + 1, which begins a session",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "engine-hello"
+          },
+          "expect": {
+            "heard": "hello",
+            "orders": [],
+            "pass": false,
+            "say": [
+              {
+                "type": "engine-welcome",
+                "caps": [
+                  "session",
+                  "locate"
+                ],
+                "session": 3
+              }
+            ],
+            "session": 3,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "freeze",
+            "on": true,
+            "session": 3
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": true,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "guide",
+            "session": 4,
+            "request": 1,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 4,
+            "locates": []
+          }
+        },
+        {
+          "hear": {
+            "type": "engine-hello"
+          },
+          "expect": {
+            "heard": "hello",
+            "orders": [],
+            "pass": false,
+            "say": [
+              {
+                "type": "engine-welcome",
+                "caps": [
+                  "session",
+                  "locate"
+                ],
+                "session": 4
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "opening: answered whatever the hello carries, also a number the editor would drop (a clock that moved back)",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 900
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 900
+          }
+        },
+        {
+          "hear": {
+            "type": "engine-hello",
+            "session": 2
+          },
+          "expect": {
+            "heard": "hello",
+            "orders": [],
+            "pass": false,
+            "say": [
+              {
+                "type": "engine-welcome",
+                "caps": [
+                  "session",
+                  "locate"
+                ],
+                "session": 900
+              }
+            ],
+            "session": 900
+          }
+        },
+        {
+          "hear": {
+            "type": "guide",
+            "session": 2,
+            "request": 1,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "stale",
+            "orders": [],
+            "pass": false,
+            "session": 900
+          }
+        },
+        {
+          "hear": {
+            "type": "guide",
+            "session": 901,
+            "request": 1,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 901
+          }
+        }
+      ]
+    },
+    {
+      "name": "after a guide: guide-scroll, guide-frame, guide-show, guide-key and guide-typed are messages of the session",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "guide",
+            "session": 3,
+            "request": 9,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": true
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-scroll",
+            "session": 3,
+            "id": 9,
+            "container": "palette"
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": true,
+            "say": []
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-frame",
+            "session": 3,
+            "id": 9,
+            "container": "palette"
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": true
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-show",
+            "session": 3,
+            "id": 9,
+            "container": "palette"
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": true
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-key",
+            "session": 3,
+            "id": 9,
+            "container": "palette"
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": true
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-typed",
+            "session": 3,
+            "id": 9,
+            "container": "palette"
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": true
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-scroll",
+            "session": 2,
+            "id": 9,
+            "container": "palette"
+          },
+          "expect": {
+            "heard": "stale",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-typed",
+            "session": 2,
+            "id": 9,
+            "container": "palette"
+          },
+          "expect": {
+            "heard": "stale",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "id": {
+            "type": "guide-scroll",
+            "session": 3,
+            "id": 9,
+            "container": "palette"
+          },
+          "expect": 9
+        },
+        {
+          "id": {
+            "type": "guide-typed",
+            "session": 3,
+            "request": 9
+          },
+          "expect": 9
+        },
+        {
+          "id": {
+            "type": "guide-frame",
+            "session": 3,
+            "request": 9,
+            "id": 2
+          },
+          "expect": 9
+        },
+        {
+          "stamp": {
+            "answer": {
+              "type": "guide-at",
+              "id": 9,
+              "rect": {
+                "left": 10,
+                "top": 90,
+                "width": 30,
+                "height": 40
+              }
+            },
+            "to": {
+              "type": "guide",
+              "session": 3,
+              "request": 9
+            },
+            "more": {
+              "found": true
+            }
+          },
+          "expect": {
+            "type": "guide-at",
+            "id": 9,
+            "rect": {
+              "left": 10,
+              "top": 90,
+              "width": 30,
+              "height": 40
+            },
+            "found": true,
+            "session": 3,
+            "request": 9
+          }
+        }
+      ]
+    },
     {
       "name": "old engine: a message with no session is handled as ever, voids nothing, and its answers are untouched",
       "steps": [

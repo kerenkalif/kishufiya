@@ -6,13 +6,13 @@ import {answerId, asking, hearWith, inSession, newContract} from '../../../src/c
 
 // An editor that only writes down what its handler was given
 const editor = () => {
-    const it = {state: newContract(), done: []};
+    const it = {state: newContract(), done: [], said: []};
     it.hear = msg => hearWith(it.state, msg, next => {
         it.state = next;
     }, said => {
         it.done.push(said);
         return said.type !== 'not-the-guides';
-    });
+    }, answer => it.said.push(answer));
     return it;
 };
 const place = (session, request) => ({type: 'locate', session, request, want: {key: 'k', point: {ui: 'flag'}}});
@@ -42,6 +42,24 @@ describe('a session begins', () => {
         const freeze = {type: 'freeze', on: true, session: 1};
         it.hear(freeze);
         expect(it.done).toEqual([freeze]);
+    });
+});
+
+describe('the opening', () => {
+    test('engine-hello is answered with the highest session heard, and nothing else happens', () => {
+        const it = editor();
+        expect(it.hear({type: 'engine-hello'})).toBe(true);
+        it.hear({type: 'guide-clear', session: 6});
+        it.hear(place(6, 5));
+        const held = it.state;
+        it.done.length = 0;
+        it.hear({type: 'engine-hello'});
+        expect(it.said).toEqual([
+            {type: 'engine-welcome', caps: ['session', 'locate'], session: 0},
+            {type: 'engine-welcome', caps: ['session', 'locate'], session: 6}
+        ]);
+        expect(it.done).toEqual([]);
+        expect(it.state).toBe(held);
     });
 });
 
@@ -100,6 +118,7 @@ describe('the engine before the layers (the children use it now): exactly as it 
         const it = editor();
         for (const msg of before) it.hear(msg);
         expect(it.done.length).toBe(before.length);
+        expect(it.said).toEqual([]);
         it.done.forEach((said, at) => expect(said).toBe(before[at]));
         expect(it.state).toEqual(newContract());
     });

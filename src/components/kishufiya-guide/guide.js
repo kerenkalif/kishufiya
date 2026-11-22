@@ -66,6 +66,12 @@
 //   highest heard is dropped. Every answer about a message of a session says {session, request}, and its id is the
 //   request (the guide's `request`, else its id); guide-at then also says `found`, and guide-missing says 'offscreen'
 //   for no reason of its own. A page that says no session: all as it was)
+//   engine-hello {}                    the opening of a page that loaded beside an editor already up (it heard no
+//                                      'editor-ready'): answered with 'engine-welcome' {caps, session} - session: the
+//                                      highest heard, 0 for none; the page starts at that + 1. Answered at any time, also
+//                                      with no game open, and nothing changes by it. An older page never says it
+//   (what the page says after a guide - guide-scroll, guide-frame, guide-typed - is gated by its session like any
+//   message, and is for the guide of its request: its `request`, else its id)
 //   locate       {session, request, want: {key, point, highlight}}
 //                                      where is this target (point: a guide's target) - asked apart from the guide, only in
 //                                      a session, several at once, and answered with
@@ -1131,11 +1137,11 @@ const handleSaid = msg => {
         break;
     case 'guide-scroll':
         // the base's decision, done: a box scrolled to a target (targets.js scrollContainer)
-        if ((state.guide && msg.id === state.guide.id) || locateOf(state.contract, msg.id)) scrollContainer(msg.container, msg.top, msg.left);
+        if ((state.guide && answerId(msg) === state.guide.id) || locateOf(state.contract, answerId(msg))) scrollContainer(msg.container, msg.top, msg.left);
         break;
     case 'guide-frame':
         // the base's decision for the frame at the drop (platform drop-frame.ts): drawn exactly, nothing on null
-        if (state.guide && msg.id === state.guide.id) {
+        if (state.guide && answerId(msg) === state.guide.id) {
             toldFrame = msg.frame || null;
             lastGhost = '';
         }
@@ -1166,7 +1172,7 @@ const handleSaid = msg => {
         state.picking = Boolean(msg.on);
         break;
     case 'guide-typed':
-        endEdit(document.activeElement, msg.id, state.guide && state.guide.id);
+        endEdit(document.activeElement, answerId(msg), state.guide && state.guide.id);
         return true;
     case 'tidy':
         tidyAsked = true;
@@ -1201,15 +1207,16 @@ const handleSaid = msg => {
 
 // → true when msg was the guide's. The contract hears it first (session.js hearWith): a message of a session that is over
 // is dropped, a session that begins first drops what was told before (the orders, done as the page's own messages), and
-// a place asked or cleared is kept there and drawn by the loop.
-export const handleGuide = msg => {
-    if (!msg || !layer) return false;
+// a place asked or cleared is kept there and drawn by the loop. The opening ('engine-hello') is answered through `say`
+// at any time, also before the editor has a game or its guide's layer.
+export const handleGuide = (msg, say = send) => {
+    if (!msg || (!layer && msg.type !== 'engine-hello')) return false;
     if (document.body.hasAttribute('data-kishufiya-library-step')) {
         document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
     }
     const said = hearWith(state.contract, msg, next => {
         state.contract = next;
-    }, handleSaid);
+    }, handleSaid, say);
     if (msg.type === 'locate' || msg.type === 'locate-clear') wake(); // a place asked or gone: the loop draws it
     return said;
 };

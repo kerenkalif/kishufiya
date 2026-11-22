@@ -14,6 +14,7 @@ const run = (state, step) => {
     if (step.hear) {
         const out = heard(state, step.hear);
         const got = {heard: out.heard, orders: out.orders, pass: out.pass};
+        if ('say' in step.expect) got.say = out.say;
         if ('session' in step.expect) got.session = out.state.session;
         if ('locates' in step.expect) got.locates = out.state.locates.map(one => one.request);
         return [out.state, got];

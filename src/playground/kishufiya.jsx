@@ -125,7 +125,7 @@ const sendProject = (again = false) => {
 // What the lesson asks of the editor.
 const fromLesson = msg => {
     if (msg.type === 'project-please') sendProject(true);
-    else handleGuide(msg);
+    else handleGuide(msg, answer => post({kishufiya: 'to-lesson', msg: answer}));
 };
 
 // The sprites' stage order as the last load or save had it: a click on "העבר לשכבה ה" changes it without the VM

@@ -12,8 +12,14 @@
 //   starts from nothing: the mark, the places asked, the freeze, the pick and the name asked of before are gone.
 // - A message with no `session` is the engine before the layers: handled exactly as it always was, nothing voided, nothing
 //   added to its answers. It cannot ask for a place.
+// - The opening: a page that loads beside an editor already up hears no 'editor-ready', so it says 'engine-hello' {} and
+//   the editor answers 'engine-welcome' {caps, session} - session: the highest it has heard, 0 for none. The page starts
+//   at that + 1, so its number is never one the editor would drop. Answered at any time, whatever the hello carries, and
+//   nothing changes by it. The engine before the layers never says it.
 // - A request ties an answer to what was asked: `request` of a 'guide' or a 'locate' (a guide with none: its `id`). Every
 //   answer about a message of a session says {session, request}, and its `id` IS the request (id === request).
+//   What the page says after a guide about it ('guide-scroll', 'guide-frame', 'guide-show', 'guide-key', 'guide-typed')
+//   is a message of the session like any other - gated by its session, and for the guide of its request (answerId).
 // - 'locate' {session, request, want: {key, point, highlight}} asks where a target is (`point`: a guide's target), apart
 //   from the mark; several at once. 'locate-clear' {session, request} ends one, with no request all of them.
 // - 'located' {type, id, key, session, request, found, via, rect, drop, scroller, reason?, by?} answers it:
@@ -25,7 +31,7 @@
 //   `via` the way's kind, no rect.
 // - The soft mark (`highlight`) is drawn at a found target only: never on the way, never while it is out of its box's view.
 
-export const CONTRACT_VERSION = 1;
+export const CONTRACT_VERSION = 2;
 
 // What this build knows of the protocol, said on 'editor-ready' {caps}. A page says a session and 'locate' only to an
 // editor that said so.
@@ -83,15 +89,21 @@ const cleared = (locates, msg) => {
     return request === null ? [] : locates.filter(one => one.request !== request);
 };
 
-// A message of the page, heard. -> {state, heard, orders, pass}:
-//   heard  - 'old' (no session), 'stale' (a session that is over), 'new' (a session begins), 'same';
+// A message of the page, heard. -> {state, heard, orders, pass, say}:
+//   heard  - 'hello' (the opening), 'old' (no session), 'stale' (a session that is over), 'new' (a session begins), 'same';
 //   orders - what the editor does first, as messages to its own handler (a session that begins: the mark, the freeze and
 //            the pick go; the places are already gone from `state`);
-//   pass   - whether the editor then handles the message itself (false: it was dropped, or it was a place's and is in `state`).
+//   pass   - whether the editor then handles the message itself (false: it was dropped, or it was the contract's own - the
+//            opening, a place - and is answered or kept here);
+//   say    - what the editor says back at once (the answer to the opening).
 export const heard = (state, msg) => {
+    if (msg && msg.type === 'engine-hello') {
+        const welcome = {type: 'engine-welcome', caps: [...CAPS], session: state.session === null ? 0 : state.session};
+        return {state, heard: 'hello', orders: [], pass: false, say: [welcome]};
+    }
     const places = Boolean(msg) && PLACES.includes(msg.type);
-    if (!msg || !numbered(msg.session)) return {state, heard: 'old', orders: [], pass: Boolean(msg) && !places};
-    if (state.session !== null && msg.session < state.session) return {state, heard: 'stale', orders: [], pass: false};
+    if (!msg || !numbered(msg.session)) return {state, heard: 'old', orders: [], pass: Boolean(msg) && !places, say: []};
+    if (state.session !== null && msg.session < state.session) return {state, heard: 'stale', orders: [], pass: false, say: []};
     const begins = state.session === null || msg.session > state.session;
     const from = begins ? {session: msg.session, locates: []} : state;
     let locates = from.locates;
@@ -101,16 +113,19 @@ export const heard = (state, msg) => {
         state: locates === from.locates ? from : {...from, locates},
         heard: begins ? 'new' : 'same',
         orders: begins ? sessionStarts() : [],
-        pass: !places
+        pass: !places,
+        say: []
     };
 };
 
-// The editor's one way in for a message of the page: the contract hears it, `keep` takes the state after it, the orders
-// are done by the editor's own handler, and then the message itself when it is the editor's to handle.
-// -> what the handler said of the message, true for one the contract dropped or kept.
-export const hearWith = (state, msg, keep, handle) => {
+// The editor's one way in for a message of the page: the contract hears it, `keep` takes the state after it, `say` sends
+// what the contract answers by itself, the orders are done by the editor's own handler, and then the message itself when
+// it is the editor's to handle.
+// -> what the handler said of the message, true for one the contract dropped, kept or answered.
+export const hearWith = (state, msg, keep, handle, say) => {
     const step = heard(state, msg);
     keep(step.state);
+    step.say.forEach(answer => say(answer));
     step.orders.forEach(order => handle(order));
     return step.pass ? handle(msg) : true;
 };
