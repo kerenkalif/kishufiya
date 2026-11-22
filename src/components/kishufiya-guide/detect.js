@@ -193,8 +193,9 @@ export const quietReports = reason => QUIET_REPORTS.has(reason);
 // 2026-10-29: a category click and two scrolls run past half a second). It is never told, and the count starts
 // over after it. -> {since, reported, tell}: the new count and last told reason, and whether to tell it now.
 const PASSING = new Set(['scrolling']);
+export const passingBy = reason => PASSING.has(reason);
 export const missingStep = ({reason, by, since, reported, now, after}) => {
-    if (PASSING.has(reason)) return {since: 0, reported, tell: false};
+    if (passingBy(reason)) return {since: 0, reported, tell: false};
     const from = since || now;
     const why = `${reason}|${by || ''}`;
     const tell = now - from >= after && reported !== why;

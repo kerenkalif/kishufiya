@@ -58,20 +58,26 @@
 //                                      Other windows (a rename) and no 'names' at all: the window is as it was. A page
 //                                      from before this never sends it; an editor from before ignores it
 //   guide-clear  {}
-//   (session, platform SPEC-lesson-layers section 3, stage A1 - session.js: a page of the layered engine says {session} in
-//   every message, after this build said `caps` on 'editor-ready'. A new session starts from nothing - the mark, the places
-//   asked, the freeze and the name asked of the one before are dropped -, a message of a session that is over is dropped,
-//   and guide-at, guide-missing and guide-clicked say the {session, request} of the guide they are about (request: the
-//   guide's `request`, else its id); guide-at then also says `found` (a rect is there). A page that says no session: all as it was)
+//   (session, platform SPEC-lesson-layers section 3, stage A1. The contract is session.js and its cases,
+//   test/unit/kishufiya-guide/guide-contract.cases.json - the same two files in כישופונת, so read them, not a copy of
+//   them here. In short: a page of the layered engine says {session} in every message, after this build said `caps` on
+//   'editor-ready'. A session that begins - the first heard, or a higher number - starts from nothing: the mark, the
+//   places asked, the freeze, the pick and the name asked of before are dropped. A message of a lower number than the
+//   highest heard is dropped. Every answer about a message of a session says {session, request}, and its id is the
+//   request (the guide's `request`, else its id); guide-at then also says `found`, and guide-missing says 'offscreen'
+//   for no reason of its own. A page that says no session: all as it was)
 //   locate       {session, request, want: {key, point, highlight}}
-//                                      where is this target (point: a guide's target, or its fields {target, markColour?}) -
-//                                      asked apart from the guide, several at once, and answered with
-//                                      'located' {id: request, key, session, request, found, via, rect, drop, scroller?, reason?, by?}:
-//                                      when it is found and on every change; found false at once when a found one is
-//                                      lost, else once it stays missing. It never touches the mark: nothing is ringed, no
+//                                      where is this target (point: a guide's target) - asked apart from the guide, only in
+//                                      a session, several at once, and answered with
+//                                      'located' {id: request, key, session, request, found, via, rect, drop, scroller, reason?, by?}:
+//                                      found true when the target itself is there, and on every change; found false with
+//                                      a reason at once when a found one is lost, else once it stays missing. Only the
+//                                      way to it on screen (a closed category, its sprite's tile): found false, reason
+//                                      'on-the-way', `via` the way. It never touches the mark: nothing is ringed, no
 //                                      arrow, the code is not scrolled, a press on it is never guide-clicked; with
-//                                      highlight, the soft mark of a why window at it (in a scrolling box out of its view:
-//                                      told with its `scroller`, and the base's 'guide-scroll' {id: request} is done as for the guide's)
+//                                      highlight, the soft mark at the target itself (never on the way; in a scrolling
+//                                      box out of its view: told with its `scroller`, no mark, and the base's
+//                                      'guide-scroll' {id: request} is done as for the guide's)
 //   locate-clear {session, request}    that place is no longer asked for (no request: none of them is)
 //   tidy         {}                    the base's decision (platform auto-tidy.ts, Keren 2026-11-17): the scripts of
 //                                      the code shown are put in order, as the menu bar's "ארגן בלוקים" does
@@ -156,7 +162,7 @@
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
 import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
-    missingStep, onTheWay, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
+    missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
     scriptRan, scriptRing, softMarkColours, tellsClick, typing, typingOf, endEdit}
     from './detect.js';
 import styles from './guide.css';
@@ -164,7 +170,7 @@ import {watchPicks} from './picks.js';
 import {SNAP_RADIUS} from '../../lib/kishufiya-tidy-layout.js';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {setNameAsk} from './name-ask.js';
-import {inSession, locateAsked, locateCleared, locateOf, locateTold, requestOf, sessionStep} from './session.js';
+import {answerId, asking, hearWith, inSession, locateOf, looked, newContract, reasonSaid, toldAnew} from './session.js';
 import {openMenuRects} from './open-menus.js';
 import {valueTagOf, tagPlace, choiceOf, choiceIndex, openMenuItems} from './value-mark.js';
 
@@ -176,8 +182,7 @@ export const tellMultiAdd = on => send({type: 'multi-add', on});
 
 const state = {
     guide: null, // {target, text}
-    session: null, // the page's session, once it said one (session.js)
-    locates: [], // the places the page asks for, apart from the guide ('locate')
+    contract: newContract(), // the page's session and the places it asks for, apart from the guide (session.js)
     frozen: null, // the freeze message while on
     picking: false
 };
@@ -420,7 +425,7 @@ const tellAt = (rect, via, arrow, extra) => {
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
     send(inSession({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller,
-        ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})}, state.guide, {found: Boolean(at)}));
+        ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})}, state.guide && state.guide.ask, {found: Boolean(at)}));
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
@@ -651,8 +656,8 @@ const tellMissing = found => {
     missingSince = step.since;
     reported = step.reported;
     if (step.tell) {
-        const {id, target} = state.guide;
-        send(inSession({type: 'guide-missing', id, target, reason: found.missing, by: found.by || null}, state.guide));
+        const {id, target, ask} = state.guide;
+        send(inSession({type: 'guide-missing', id, target, reason: reasonSaid(found.missing, ask), by: found.by || null}, ask));
     }
 };
 
@@ -799,7 +804,7 @@ const drawGuide = () => {
 // The places the page asks for ('locate', session.js): each told where it is when that changes, apart from the guide - none
 // of its ring, arrow, bubble or scroll. With highlight, the soft mark of a why window at it, one of its own for each.
 const softMarks = new Map(); // a place's request → its soft mark
-const softMark = (request, found, colour) => {
+const softMark = (request, found) => {
     let el = softMarks.get(request);
     if (!found) {
         if (el) el.remove();
@@ -813,27 +818,28 @@ const softMark = (request, found, colour) => {
     }
     placeRing(found, el);
     el.classList.toggle(styles.point, found.via === 'stage-point');
-    const colours = softMarkColours(colour) || {};
-    for (const [name, value] of [['--mark-line', colours.line], ['--mark-glow', colours.glow], ['--mark-glow-point', colours.glowPoint]]) {
-        if (value) el.style.setProperty(name, value);
-        else el.style.removeProperty(name);
-    }
+};
+// What the contract is told of one look at a place's target (session.js looked): the target itself, the way to it, or why
+// it is not here
+const lookOf = (target, found) => {
+    if (found.offscreen) return {missing: 'offscreen'};
+    if (found.missing) return {missing: found.missing, by: found.by, passing: passingBy(found.missing)};
+    if (!found.rect) return {};
+    if (onTheWay(target, found.via)) return {missing: 'on-the-way', via: found.via};
+    return {rect: frameOf(found.rect), via: found.via, drop: found.drop, scroller: found.scroller, scrolling: Boolean(found.scrolling)};
 };
 const drawLocates = () => {
-    for (const request of [...softMarks.keys()]) if (!locateOf(state.locates, request)) softMark(request, null);
-    if (!state.locates.length) return;
+    for (const request of [...softMarks.keys()]) if (!locateOf(state.contract, request)) softMark(request, null);
+    if (!state.contract.locates.length) return;
     const area = codeArea();
     const now = performance.now();
-    state.locates = state.locates.map(one => {
-        const found = seenPart(resolve(one.target, vm), area);
-        if (found.offscreen) found.missing = 'offscreen';
-        const seen = Boolean(found.rect) && !found.missing;
-        const where = seen ? {rect: frameOf(found.rect), via: found.via, scroller: found.scroller} : found;
-        const step = locateTold(one, where, now, MISSING_AFTER_MS, missingStep);
+    for (const {request, target} of state.contract.locates) {
+        const found = seenPart(resolve(target, vm), area);
+        const step = looked(state.contract, request, lookOf(target, found), now, MISSING_AFTER_MS);
+        state.contract = step.state;
         for (const msg of step.say) send(msg);
-        softMark(one.request, seen && !found.scrolling && one.highlight ? found : null, one.markColour);
-        return step.locate;
-    });
+        softMark(request, step.soft ? found : null);
+    }
 };
 
 // One frame loop, only while something is on screen; nothing runs otherwise. It looks for its targets
@@ -848,7 +854,7 @@ const tidyIfAsked = () => {
     tidyAsked = step.asked;
     if (!step.done) return;
     scrolledTo = null;
-    state.locates = state.locates.map(one => ({...one, told: ''}));
+    state.contract = toldAnew(state.contract);
     lastAt = '';
     lastGhost = '';
 };
@@ -868,7 +874,7 @@ const tick = now => {
         drawGuide();
         drawLocates();
     }
-    if (state.guide || state.frozen || tidyAsked || state.locates.length || softMarks.size) frame = requestAnimationFrame(tick);
+    if (state.guide || state.frozen || tidyAsked || state.contract.locates.length || softMarks.size) frame = requestAnimationFrame(tick);
 };
 const wake = () => {
     urgent = true;
@@ -927,7 +933,7 @@ const onPointer = e => {
         const {rect} = shown;
         if (point.clientX >= rect.left - 4 && point.clientX <= rect.right + 4 &&
             point.clientY >= rect.top - 4 && point.clientY <= rect.bottom + 4) {
-            send(inSession({type: 'guide-clicked', id: state.guide ? state.guide.id : null, via: shown.via}, state.guide));
+            send(inSession({type: 'guide-clicked', id: state.guide ? state.guide.id : null, via: shown.via}, state.guide && state.guide.ask));
         }
     }
     if (!state.picking) return;
@@ -1089,35 +1095,15 @@ const stopGame = () => {
     } catch (e) { /* no project yet */ }
 };
 
-// A session of the page begins (session.js sessionStep): what the one before told is gone - its mark and the name it asked
-// for (guide-clear), the places it asked for and its freeze. The page says what it wants now in the messages that follow.
-const startSession = handle => {
-    state.locates = [];
-    handle({type: 'guide-clear'});
-    handle({type: 'freeze', on: false});
-};
-
-// The {session, request} an answer to this message says (session.js inSession)
-const asking = msg => ({session: msg.session, request: requestOf(msg)});
-
-// → true when msg was the guide's
-export const handleGuide = msg => {
-    if (!msg || !layer) return false;
-    if (document.body.hasAttribute('data-kishufiya-library-step')) {
-        document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
-    }
-    // the page's session (session.js): a message of one that is over is dropped, and a new one starts from nothing
-    const session = sessionStep(state.session, msg);
-    if (session.stale) return true;
-    state.session = session.session;
-    if (session.start) startSession(handleGuide);
+// What a message of the page does here, once the contract let it through (handleGuide). → true when msg was the guide's
+const handleSaid = msg => {
     switch (msg.type) {
-    case 'guide':
-        if (!state.guide || state.guide.id !== msg.id) closeFieldEditors();
+    case 'guide': {
+        const id = answerId(msg);
+        if (!state.guide || state.guide.id !== id) closeFieldEditors();
         state.guide = {
-            id: msg.id,
-            session: msg.session,
-            request: requestOf(msg),
+            id,
+            ask: asking(msg), // the {session, request} its answers say (session.js), null for a page that says no session
             target: msg.target,
             text: msg.text || '',
             textCategory: msg.textCategory,
@@ -1139,12 +1125,13 @@ export const handleGuide = msg => {
         lastAt = ''; // a new guide is told where its target is even when it is where the last one was
         tellWindow(true); // ...and whether a window is open: the page may have been loaded since
         break;
+    }
     case 'names':
         setNameAsk(msg);
         break;
     case 'guide-scroll':
         // the base's decision, done: a box scrolled to a target (targets.js scrollContainer)
-        if ((state.guide && msg.id === state.guide.id) || locateOf(state.locates, msg.id)) scrollContainer(msg.container, msg.top, msg.left);
+        if ((state.guide && msg.id === state.guide.id) || locateOf(state.contract, msg.id)) scrollContainer(msg.container, msg.top, msg.left);
         break;
     case 'guide-frame':
         // the base's decision for the frame at the drop (platform drop-frame.ts): drawn exactly, nothing on null
@@ -1158,12 +1145,6 @@ export const handleGuide = msg => {
         setNameAsk({clear: true});
         state.guide = null;
         setLibraryStep(false);
-        break;
-    case 'locate':
-        state.locates = locateAsked(state.locates, msg);
-        break;
-    case 'locate-clear':
-        state.locates = locateCleared(state.locates, msg);
         break;
     case 'freeze':
         if (msg.on) {
@@ -1216,6 +1197,21 @@ export const handleGuide = msg => {
     document.body.classList.toggle(styles.picking, state.picking);
     wake();
     return true;
+};
+
+// → true when msg was the guide's. The contract hears it first (session.js hearWith): a message of a session that is over
+// is dropped, a session that begins first drops what was told before (the orders, done as the page's own messages), and
+// a place asked or cleared is kept there and drawn by the loop.
+export const handleGuide = msg => {
+    if (!msg || !layer) return false;
+    if (document.body.hasAttribute('data-kishufiya-library-step')) {
+        document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
+    }
+    const said = hearWith(state.contract, msg, next => {
+        state.contract = next;
+    }, handleSaid);
+    if (msg.type === 'locate' || msg.type === 'locate-clear') wake(); // a place asked or gone: the loop draws it
+    return said;
 };
 
 // The code area's place, told when it changes: the page keeps ניצוצי off the sprite tiles and the zoom

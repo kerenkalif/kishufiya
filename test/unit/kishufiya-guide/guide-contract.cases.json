@@ -1,0 +1,2458 @@
+{
+  "contract": "guide-contract cases v1 - the editor half of session, request and locate (platform SPEC-lesson-layers section 3, stage A1). The same file, byte for byte, in kishufiya, kishufonet and the platform.",
+  "version": 1,
+  "caps": [
+    "session",
+    "locate"
+  ],
+  "after": 500,
+  "reasons": {
+    "offscreen": "the target is not on the screen (also a block of the code outside the code area's view)",
+    "on-the-way": "only the way to it is on screen (a closed category, another sprite's tile); `via` says which",
+    "no-game": "no game is open",
+    "unsupported:<what>": "this editor has no such thing",
+    "scrolling": "a found target went out of view while the editor itself scrolls to it",
+    "other": "any other word is the editor's own, finer reason for a target that is not here (with `by`, the thing covering it); the page reads an unknown reason as offscreen"
+  },
+  "steps": {
+    "hear": "heard(state, msg) -> expect {heard, orders, pass} and, when given, the session and the requests of the places held after it",
+    "look": "looked(state, request, see, at, after) -> expect {say, soft}",
+    "stamp": "inSession(answer, asking(to), more) -> expect the answer",
+    "id": "answerId(msg) -> expect the id",
+    "alive": "Boolean(locateOf(state, request)) -> expect (a guide-scroll {id: request} is done only for a place alive)",
+    "reason": "reasonSaid(word, asking(to)) -> expect the word said in guide-missing"
+  },
+  "cases": [
+    {
+      "name": "old engine: a message with no session is handled as ever, voids nothing, and its answers are untouched",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide",
+            "id": 4,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": true,
+            "session": null,
+            "locates": []
+          }
+        },
+        {
+          "hear": {
+            "type": "freeze",
+            "on": true
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": true,
+            "session": null
+          }
+        },
+        {
+          "stamp": {
+            "answer": {
+              "type": "guide-at",
+              "id": 4,
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              }
+            },
+            "to": {
+              "type": "guide",
+              "id": 4,
+              "target": {
+                "ui": "flag"
+              }
+            },
+            "more": {
+              "found": true
+            }
+          },
+          "expect": {
+            "type": "guide-at",
+            "id": 4,
+            "rect": {
+              "left": 10,
+              "top": 20,
+              "width": 30,
+              "height": 40
+            }
+          }
+        },
+        {
+          "id": {
+            "type": "guide",
+            "id": 4
+          },
+          "expect": 4
+        },
+        {
+          "reason": {
+            "word": "not-on-screen",
+            "to": {
+              "type": "guide",
+              "id": 4
+            }
+          },
+          "expect": "not-on-screen"
+        }
+      ]
+    },
+    {
+      "name": "session: the first one heard begins from nothing (the mark, the freeze, the pick and the places go)",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide",
+            "session": 1,
+            "request": 7,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 1,
+            "locates": []
+          }
+        },
+        {
+          "hear": {
+            "type": "freeze",
+            "on": true,
+            "session": 1
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": true,
+            "session": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "session: a higher one begins from nothing, and the places of the one before are gone",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "guide",
+            "session": 4,
+            "request": 8,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 4,
+            "locates": []
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "session: a message of a lower number than the highest heard is stale and dropped, whatever it is",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 2
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 2
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 2,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "freeze",
+            "on": true,
+            "session": 1
+          },
+          "expect": {
+            "heard": "stale",
+            "orders": [],
+            "pass": false,
+            "session": 2,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "pan",
+            "session": 1
+          },
+          "expect": {
+            "heard": "stale",
+            "orders": [],
+            "pass": false,
+            "session": 2
+          }
+        },
+        {
+          "hear": {
+            "type": "guide",
+            "session": 1,
+            "request": 3,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": {
+            "heard": "stale",
+            "orders": [],
+            "pass": false,
+            "session": 2
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 1,
+            "request": 6,
+            "want": {
+              "key": "k6",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "stale",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate-clear",
+            "session": 1
+          },
+          "expect": {
+            "heard": "stale",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "session: a message with no session after a session voids nothing",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 2
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 2
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 2,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "freeze",
+            "on": true
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": true,
+            "session": 2,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-clear"
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": true,
+            "session": 2,
+            "locates": [
+              5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "locate: with no session it is ignored (a place is asked only in a session)",
+      "steps": [
+        {
+          "hear": {
+            "type": "locate",
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              }
+            }
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": false,
+            "session": null,
+            "locates": []
+          }
+        },
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              }
+            }
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": false,
+            "locates": []
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate-clear",
+            "request": 5
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate-clear"
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "locate: several at once; the same request again replaces; one with no point or no request is not kept",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 6,
+            "want": {
+              "key": "k6",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5,
+              6
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              6,
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 7,
+            "want": {
+              "key": "k7"
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              6,
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "want": {
+              "key": "k",
+              "point": {
+                "ui": "flag"
+              }
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              6,
+              5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "locate-clear: with a request that place ends, with no request all of them",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 6,
+            "want": {
+              "key": "k6",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5,
+              6
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 7,
+            "want": {
+              "key": "k7",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5,
+              6,
+              7
+            ]
+          }
+        },
+        {
+          "hear": {
+            "type": "locate-clear",
+            "session": 3,
+            "request": 6
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              5,
+              7
+            ]
+          }
+        },
+        {
+          "look": {
+            "request": 6,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "hear": {
+            "type": "locate-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: found true, said once and on every change of where it is",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "ui",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 100,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 200,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 90,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "ui",
+                "rect": {
+                  "left": 10,
+                  "top": 90,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: found false offscreen, once, after the wait; nothing before it",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 1000,
+            "see": {}
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 1499,
+            "see": null
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 1500,
+            "see": {}
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": null,
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "offscreen"
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 2500,
+            "see": {}
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: a found one that is lost is said at once",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "ui",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 100,
+            "see": {}
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": null,
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "offscreen"
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 200,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "ui",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: no game open and a target this editor has none of are said at once",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "missing": "no-game"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": null,
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "no-game"
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 6,
+            "want": {
+              "key": "k6",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 6,
+            "at": 0,
+            "see": {
+              "missing": "unsupported:variable"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 6,
+                "key": "k6",
+                "session": 3,
+                "request": 6,
+                "found": false,
+                "via": null,
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "unsupported:variable"
+              }
+            ],
+            "soft": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: only the way is on screen - found false, on-the-way, via set, no rect, no soft mark",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "block": "motion_movesteps"
+              },
+              "highlight": true
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "missing": "on-the-way",
+              "via": "category"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": "category",
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "on-the-way"
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 100,
+            "see": {
+              "missing": "on-the-way",
+              "via": "category"
+            }
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 200,
+            "see": {
+              "missing": "on-the-way",
+              "via": "sprite"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": "sprite",
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "on-the-way"
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 300,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "block"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "block",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: in a scrolling box - told with its scroller, no soft mark while out of view, guide-scroll by its request",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "block": "motion_movesteps"
+              },
+              "highlight": true
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 90,
+                "width": 30,
+                "height": 40
+              },
+              "via": "block",
+              "scroller": {
+                "id": "palette",
+                "top": 100,
+                "bottom": 500,
+                "scrollTop": 0,
+                "maxScrollTop": 900
+              },
+              "scrolling": true
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "block",
+                "rect": {
+                  "left": 10,
+                  "top": 90,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": {
+                  "id": "palette",
+                  "top": 100,
+                  "bottom": 500,
+                  "scrollTop": 0,
+                  "maxScrollTop": 900
+                }
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "alive": 5,
+          "expect": true
+        },
+        {
+          "alive": 6,
+          "expect": false
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 100,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "block",
+              "scroller": {
+                "id": "palette",
+                "top": 100,
+                "bottom": 500,
+                "scrollTop": 70,
+                "maxScrollTop": 900
+              },
+              "scrolling": false
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "block",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": {
+                  "id": "palette",
+                  "top": 100,
+                  "bottom": 500,
+                  "scrollTop": 70,
+                  "maxScrollTop": 900
+                }
+              }
+            ],
+            "soft": true
+          }
+        },
+        {
+          "hear": {
+            "type": "locate-clear",
+            "session": 3,
+            "request": 5
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": []
+          }
+        },
+        {
+          "alive": 5,
+          "expect": false
+        }
+      ]
+    },
+    {
+      "name": "located: the soft mark only with highlight",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "ui",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 6,
+            "want": {
+              "key": "k6",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": true
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 6,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 6,
+                "key": "k6",
+                "session": 3,
+                "request": 6,
+                "found": true,
+                "via": "ui",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: drop is said when the editor knows it",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "block": "motion_movesteps"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "block",
+              "drop": {
+                "x": 200,
+                "y": 300
+              }
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "block",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": {
+                  "x": 200,
+                  "y": 300
+                },
+                "scroller": null
+              }
+            ],
+            "soft": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: a target on its way by itself is not counted missing; lost after found it is said at once",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "block": "motion_movesteps"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {
+              "missing": "scrolling",
+              "passing": true
+            }
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 600,
+            "see": {
+              "missing": "scrolling",
+              "passing": true
+            }
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 700,
+            "see": {}
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 1199,
+            "see": {}
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 1200,
+            "see": {}
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": null,
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "offscreen"
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 1300,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "block"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": true,
+                "via": "block",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 1400,
+            "see": {
+              "missing": "scrolling",
+              "passing": true
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": null,
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "scrolling"
+              }
+            ],
+            "soft": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "located: said again when the reason changes; an editor's own reason and `by` pass as they are",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 5,
+            "want": {
+              "key": "k5",
+              "point": {
+                "ui": "flag"
+              },
+              "highlight": false
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 0,
+            "see": {}
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 500,
+            "see": {}
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": null,
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "offscreen"
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 600,
+            "see": {
+              "missing": "covered",
+              "by": "Dog"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 5,
+                "key": "k5",
+                "session": 3,
+                "request": 5,
+                "found": false,
+                "via": null,
+                "rect": null,
+                "drop": null,
+                "scroller": null,
+                "reason": "covered",
+                "by": "Dog"
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "look": {
+            "request": 5,
+            "at": 700,
+            "see": {
+              "missing": "covered",
+              "by": "Dog"
+            }
+          },
+          "expect": {
+            "say": [],
+            "soft": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "id === request: every answer in a session carries the request as its id",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide-clear",
+            "session": 3
+          },
+          "expect": {
+            "heard": "new",
+            "orders": [
+              {
+                "type": "guide-clear"
+              },
+              {
+                "type": "freeze",
+                "on": false
+              },
+              {
+                "type": "pick",
+                "on": false
+              }
+            ],
+            "pass": true,
+            "session": 3
+          }
+        },
+        {
+          "hear": {
+            "type": "locate",
+            "session": 3,
+            "request": 9,
+            "id": 2,
+            "want": {
+              "key": "k9",
+              "point": {
+                "ui": "flag"
+              }
+            }
+          },
+          "expect": {
+            "heard": "same",
+            "orders": [],
+            "pass": false,
+            "locates": [
+              9
+            ]
+          }
+        },
+        {
+          "look": {
+            "request": 9,
+            "at": 0,
+            "see": {
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              },
+              "via": "ui"
+            }
+          },
+          "expect": {
+            "say": [
+              {
+                "type": "located",
+                "id": 9,
+                "key": "k9",
+                "session": 3,
+                "request": 9,
+                "found": true,
+                "via": "ui",
+                "rect": {
+                  "left": 10,
+                  "top": 20,
+                  "width": 30,
+                  "height": 40
+                },
+                "drop": null,
+                "scroller": null
+              }
+            ],
+            "soft": false
+          }
+        },
+        {
+          "stamp": {
+            "answer": {
+              "type": "guide-at",
+              "id": 2,
+              "rect": {
+                "left": 10,
+                "top": 20,
+                "width": 30,
+                "height": 40
+              }
+            },
+            "to": {
+              "type": "guide",
+              "id": 2,
+              "request": 9,
+              "session": 3
+            },
+            "more": {
+              "found": true
+            }
+          },
+          "expect": {
+            "type": "guide-at",
+            "id": 9,
+            "rect": {
+              "left": 10,
+              "top": 20,
+              "width": 30,
+              "height": 40
+            },
+            "found": true,
+            "session": 3,
+            "request": 9
+          }
+        },
+        {
+          "stamp": {
+            "answer": {
+              "type": "found",
+              "id": 2,
+              "sprites": []
+            },
+            "to": {
+              "type": "find",
+              "id": 2,
+              "session": 3
+            }
+          },
+          "expect": {
+            "type": "found",
+            "id": 2,
+            "sprites": [],
+            "session": 3,
+            "request": 2
+          }
+        },
+        {
+          "id": {
+            "type": "guide",
+            "id": 2,
+            "request": 9,
+            "session": 3
+          },
+          "expect": 9
+        },
+        {
+          "id": {
+            "type": "guide",
+            "id": 2,
+            "session": 3
+          },
+          "expect": 2
+        }
+      ]
+    },
+    {
+      "name": "reason: in a session \"not on the screen\" is offscreen in both editors",
+      "steps": [
+        {
+          "reason": {
+            "word": "not-on-screen",
+            "to": {
+              "type": "guide",
+              "id": 4,
+              "session": 3
+            }
+          },
+          "expect": "offscreen"
+        },
+        {
+          "reason": {
+            "word": "offscreen",
+            "to": {
+              "type": "guide",
+              "id": 4,
+              "session": 3
+            }
+          },
+          "expect": "offscreen"
+        },
+        {
+          "reason": {
+            "word": "no-game",
+            "to": {
+              "type": "guide",
+              "id": 4,
+              "session": 3
+            }
+          },
+          "expect": "no-game"
+        }
+      ]
+    }
+  ]
+}
