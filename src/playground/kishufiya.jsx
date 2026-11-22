@@ -167,7 +167,7 @@ const load = async (url, title, lesson, id) => {
         markSaved();
         post({kishufiya: 'loaded'});
         // and to the page beside it: what it sent before the game was in never arrived (the guide, a freeze)
-        // caps: what this build knows of the layered engine's protocol (session.js) - a page says a session and 'locate' only to it
+        // caps: what this build knows of the layered engine's protocol (session.js)
         post({kishufiya: 'to-lesson', msg: {type: 'editor-ready', runs: true, caps: CAPS}});
         sendProject(true);
     } catch (e) {
