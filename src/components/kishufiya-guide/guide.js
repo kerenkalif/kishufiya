@@ -58,6 +58,21 @@
 //                                      Other windows (a rename) and no 'names' at all: the window is as it was. A page
 //                                      from before this never sends it; an editor from before ignores it
 //   guide-clear  {}
+//   (session, platform SPEC-lesson-layers section 3, stage A1 - session.js: a page of the layered engine says {session} in
+//   every message, after this build said `caps` on 'editor-ready'. A new session starts from nothing - the mark, the places
+//   asked, the freeze and the name asked of the one before are dropped -, a message of a session that is over is dropped,
+//   and guide-at, guide-missing and guide-clicked say the {session, request} of the guide they are about (request: the
+//   guide's `request`, else its id); guide-at then also says `found` (a rect is there). A page that says no session: all as it was)
+//   locate       {session, request, want: {key, point, highlight}}
+//                                      where is this target (point: a guide's target, or its fields {target, markColour?}) -
+//                                      asked apart from the guide, several at once, and answered with
+//                                      'located' {id: request, key, session, request, found, via, rect, drop, scroller?, reason?, by?}:
+//                                      when it is found and on every change; found false at once when a found one is
+//                                      lost, else once it stays missing. It never touches the mark: nothing is ringed, no
+//                                      arrow, the code is not scrolled, a press on it is never guide-clicked; with
+//                                      highlight, the soft mark of a why window at it (in a scrolling box out of its view:
+//                                      told with its `scroller`, and the base's 'guide-scroll' {id: request} is done as for the guide's)
+//   locate-clear {session, request}    that place is no longer asked for (no request: none of them is)
 //   tidy         {}                    the base's decision (platform auto-tidy.ts, Keren 2026-11-17): the scripts of
 //                                      the code shown are put in order, as the menu bar's "ארגן בלוקים" does
 //                                      (kishufiya-tidy.js, 'wide'), once - never under a block being dragged (it
@@ -149,6 +164,7 @@ import {watchPicks} from './picks.js';
 import {SNAP_RADIUS} from '../../lib/kishufiya-tidy-layout.js';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {setNameAsk} from './name-ask.js';
+import {inSession, locateAsked, locateCleared, locateOf, locateTold, requestOf, sessionStep} from './session.js';
 import {openMenuRects} from './open-menus.js';
 import {valueTagOf, tagPlace, choiceOf, choiceIndex, openMenuItems} from './value-mark.js';
 
@@ -160,6 +176,8 @@ export const tellMultiAdd = on => send({type: 'multi-add', on});
 
 const state = {
     guide: null, // {target, text}
+    session: null, // the page's session, once it said one (session.js)
+    locates: [], // the places the page asks for, apart from the guide ('locate')
     frozen: null, // the freeze message while on
     picking: false
 };
@@ -401,8 +419,8 @@ const tellAt = (rect, via, arrow, extra) => {
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller,
-        ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})});
+    send(inSession({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller,
+        ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})}, state.guide, {found: Boolean(at)}));
 };
 
 // Where a dragged block goes: an outline of its first row, still, at its drop point, softly pulsing (Keren,
@@ -603,14 +621,14 @@ const drawValue = found => {
 // The ring (red or soft) at a target, 4px out on every side - a whole script's cut to the code area, the sides it
 // goes on past open and every side cut at the area's edge said, for its pulse and glow to stay inside (seenPart,
 // guide.css data-open and data-edge)
-const placeRing = found => {
+const placeRing = (found, el = ring) => {
     const r = found.rect;
     // a target on the screen's edge: the ring is kept inside it, its pulse and glow too (data-edge)
     const inside = ringInScreen(r, {width: window.innerWidth, height: window.innerHeight}, 4);
-    place(ring, found.cut ? found.cut.ring : inside.ring); // no ring: place hides it
+    place(el, found.cut ? found.cut.ring : inside.ring); // no ring: place hides it
     const sides = (name, list) => {
-        if (list && list.length) ring.setAttribute(name, list.join(' '));
-        else ring.removeAttribute(name);
+        if (list && list.length) el.setAttribute(name, list.join(' '));
+        else el.removeAttribute(name);
     };
     sides('data-open', found.cut && found.cut.open);
     sides('data-edge', found.cut ? found.cut.edge : inside.edge);
@@ -634,7 +652,7 @@ const tellMissing = found => {
     reported = step.reported;
     if (step.tell) {
         const {id, target} = state.guide;
-        send({type: 'guide-missing', id, target, reason: found.missing, by: found.by || null});
+        send(inSession({type: 'guide-missing', id, target, reason: found.missing, by: found.by || null}, state.guide));
     }
 };
 
@@ -778,6 +796,46 @@ const drawGuide = () => {
     else bubble.style.display = 'none';
 };
 
+// The places the page asks for ('locate', session.js): each told where it is when that changes, apart from the guide - none
+// of its ring, arrow, bubble or scroll. With highlight, the soft mark of a why window at it, one of its own for each.
+const softMarks = new Map(); // a place's request → its soft mark
+const softMark = (request, found, colour) => {
+    let el = softMarks.get(request);
+    if (!found) {
+        if (el) el.remove();
+        softMarks.delete(request);
+        return;
+    }
+    if (!el) {
+        el = div(`${styles.ring} ${styles.soft}`);
+        layer.appendChild(el);
+        softMarks.set(request, el);
+    }
+    placeRing(found, el);
+    el.classList.toggle(styles.point, found.via === 'stage-point');
+    const colours = softMarkColours(colour) || {};
+    for (const [name, value] of [['--mark-line', colours.line], ['--mark-glow', colours.glow], ['--mark-glow-point', colours.glowPoint]]) {
+        if (value) el.style.setProperty(name, value);
+        else el.style.removeProperty(name);
+    }
+};
+const drawLocates = () => {
+    for (const request of [...softMarks.keys()]) if (!locateOf(state.locates, request)) softMark(request, null);
+    if (!state.locates.length) return;
+    const area = codeArea();
+    const now = performance.now();
+    state.locates = state.locates.map(one => {
+        const found = seenPart(resolve(one.target, vm), area);
+        if (found.offscreen) found.missing = 'offscreen';
+        const seen = Boolean(found.rect) && !found.missing;
+        const where = seen ? {rect: frameOf(found.rect), via: found.via, scroller: found.scroller} : found;
+        const step = locateTold(one, where, now, MISSING_AFTER_MS, missingStep);
+        for (const msg of step.say) send(msg);
+        softMark(one.request, seen && !found.scrolling && one.highlight ? found : null, one.markColour);
+        return step.locate;
+    });
+};
+
 // One frame loop, only while something is on screen; nothing runs otherwise. It looks for its targets
 // ten times a second, not every frame: class PCs are slow, and a ring 0.1s late is not noticed.
 // The base's 'tidy': done at once, or when the block being dragged is let go, or when there is a code area again
@@ -790,6 +848,7 @@ const tidyIfAsked = () => {
     tidyAsked = step.asked;
     if (!step.done) return;
     scrolledTo = null;
+    state.locates = state.locates.map(one => ({...one, told: ''}));
     lastAt = '';
     lastGhost = '';
 };
@@ -807,8 +866,9 @@ const tick = now => {
         tidyIfAsked();
         drawVeil();
         drawGuide();
+        drawLocates();
     }
-    if (state.guide || state.frozen || tidyAsked) frame = requestAnimationFrame(tick);
+    if (state.guide || state.frozen || tidyAsked || state.locates.length || softMarks.size) frame = requestAnimationFrame(tick);
 };
 const wake = () => {
     urgent = true;
@@ -867,7 +927,7 @@ const onPointer = e => {
         const {rect} = shown;
         if (point.clientX >= rect.left - 4 && point.clientX <= rect.right + 4 &&
             point.clientY >= rect.top - 4 && point.clientY <= rect.bottom + 4) {
-            send({type: 'guide-clicked', id: state.guide ? state.guide.id : null, via: shown.via});
+            send(inSession({type: 'guide-clicked', id: state.guide ? state.guide.id : null, via: shown.via}, state.guide));
         }
     }
     if (!state.picking) return;
@@ -1029,17 +1089,35 @@ const stopGame = () => {
     } catch (e) { /* no project yet */ }
 };
 
+// A session of the page begins (session.js sessionStep): what the one before told is gone - its mark and the name it asked
+// for (guide-clear), the places it asked for and its freeze. The page says what it wants now in the messages that follow.
+const startSession = handle => {
+    state.locates = [];
+    handle({type: 'guide-clear'});
+    handle({type: 'freeze', on: false});
+};
+
+// The {session, request} an answer to this message says (session.js inSession)
+const asking = msg => ({session: msg.session, request: requestOf(msg)});
+
 // → true when msg was the guide's
 export const handleGuide = msg => {
     if (!msg || !layer) return false;
     if (document.body.hasAttribute('data-kishufiya-library-step')) {
         document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
     }
+    // the page's session (session.js): a message of one that is over is dropped, and a new one starts from nothing
+    const session = sessionStep(state.session, msg);
+    if (session.stale) return true;
+    state.session = session.session;
+    if (session.start) startSession(handleGuide);
     switch (msg.type) {
     case 'guide':
         if (!state.guide || state.guide.id !== msg.id) closeFieldEditors();
         state.guide = {
             id: msg.id,
+            session: msg.session,
+            request: requestOf(msg),
             target: msg.target,
             text: msg.text || '',
             textCategory: msg.textCategory,
@@ -1066,7 +1144,7 @@ export const handleGuide = msg => {
         break;
     case 'guide-scroll':
         // the base's decision, done: a box scrolled to a target (targets.js scrollContainer)
-        if (state.guide && msg.id === state.guide.id) scrollContainer(msg.container, msg.top, msg.left);
+        if ((state.guide && msg.id === state.guide.id) || locateOf(state.locates, msg.id)) scrollContainer(msg.container, msg.top, msg.left);
         break;
     case 'guide-frame':
         // the base's decision for the frame at the drop (platform drop-frame.ts): drawn exactly, nothing on null
@@ -1080,6 +1158,12 @@ export const handleGuide = msg => {
         setNameAsk({clear: true});
         state.guide = null;
         setLibraryStep(false);
+        break;
+    case 'locate':
+        state.locates = locateAsked(state.locates, msg);
+        break;
+    case 'locate-clear':
+        state.locates = locateCleared(state.locates, msg);
         break;
     case 'freeze':
         if (msg.on) {
@@ -1116,14 +1200,14 @@ export const handleGuide = msg => {
         return true;
     }
     case 'find':
-        send({type: 'found', id: msg.id, sprites: vm ? find(msg) : []});
+        send(inSession({type: 'found', id: msg.id, sprites: vm ? find(msg) : []}, asking(msg)));
         return true;
     case 'snapshot':
         // the stage as it is, for the lesson's finish screen: the child's own game, not a gamepad
         try {
-            vm.renderer.requestSnapshot(url => send({type: 'snapshot', id: msg.id, url}));
+            vm.renderer.requestSnapshot(url => send(inSession({type: 'snapshot', id: msg.id, url}, asking(msg))));
         } catch (e) {
-            send({type: 'snapshot', id: msg.id, url: null});
+            send(inSession({type: 'snapshot', id: msg.id, url: null}, asking(msg)));
         }
         return true;
     default:

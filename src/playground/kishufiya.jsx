@@ -65,6 +65,7 @@ import MyGames from '../components/kishufiya-my-games/my-games.jsx';
 import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.jsx';
 import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
+import {CAPS} from '../components/kishufiya-guide/session.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
 import {
@@ -166,7 +167,8 @@ const load = async (url, title, lesson, id) => {
         markSaved();
         post({kishufiya: 'loaded'});
         // and to the page beside it: what it sent before the game was in never arrived (the guide, a freeze)
-        post({kishufiya: 'to-lesson', msg: {type: 'editor-ready', runs: true}});
+        // caps: what this build knows of the layered engine's protocol (session.js) - a page says a session and 'locate' only to it
+        post({kishufiya: 'to-lesson', msg: {type: 'editor-ready', runs: true, caps: CAPS}});
         sendProject(true);
     } catch (e) {
         post({kishufiya: 'error', message: String((e && e.message) || e)});
