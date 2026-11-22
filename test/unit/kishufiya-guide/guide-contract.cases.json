@@ -1,6 +1,6 @@
 {
-  "contract": "guide-contract cases v2 - the editor half of session, request and locate (platform SPEC-lesson-layers section 3, stage A1). The same file, byte for byte, in kishufiya, kishufonet and the platform.",
-  "version": 2,
+  "contract": "guide-contract cases v3 - the editor half of session, request and locate (platform SPEC-lesson-layers section 3, stage A1). The same file, byte for byte, in kishufiya, kishufonet and the platform.",
+  "version": 3,
   "caps": [
     "session",
     "locate"
@@ -19,6 +19,7 @@
     "look": "looked(state, request, see, at, after) -> expect {say, soft}",
     "stamp": "inSession(answer, asking(to), more) -> expect the answer",
     "id": "answerId(msg) -> expect the id",
+    "opens": "opens(msg) -> expect whether the editor answers it before it is up",
     "alive": "Boolean(locateOf(state, request)) -> expect (a guide-scroll {id: request} is done only for a place alive)",
     "reason": "reasonSaid(word, asking(to)) -> expect the word said in guide-missing"
   },
@@ -214,6 +215,104 @@
                 "session": 4
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "opening: engine-hello is the one message answered from the moment the editor page loads, before it is up",
+      "steps": [
+        {
+          "opens": {
+            "type": "engine-hello"
+          },
+          "expect": true
+        },
+        {
+          "opens": {
+            "type": "guide",
+            "session": 1,
+            "request": 1,
+            "target": {
+              "ui": "flag"
+            }
+          },
+          "expect": false
+        },
+        {
+          "opens": {
+            "type": "locate",
+            "session": 1,
+            "request": 1
+          },
+          "expect": false
+        },
+        {
+          "opens": null,
+          "expect": false
+        },
+        {
+          "hear": {
+            "type": "engine-hello"
+          },
+          "expect": {
+            "heard": "hello",
+            "orders": [],
+            "pass": false,
+            "say": [
+              {
+                "type": "engine-welcome",
+                "caps": [
+                  "session",
+                  "locate"
+                ],
+                "session": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "save: project-saved that answers a save of a session carries the session and the request",
+      "steps": [
+        {
+          "stamp": {
+            "answer": {
+              "type": "project-saved",
+              "id": 6,
+              "asked": true
+            },
+            "to": {
+              "type": "save",
+              "id": 6,
+              "session": 3
+            }
+          },
+          "expect": {
+            "type": "project-saved",
+            "id": 6,
+            "asked": true,
+            "session": 3,
+            "request": 6
+          }
+        },
+        {
+          "stamp": {
+            "answer": {
+              "type": "project-saved",
+              "id": 6,
+              "asked": true
+            },
+            "to": {
+              "type": "save",
+              "id": 6
+            }
+          },
+          "expect": {
+            "type": "project-saved",
+            "id": 6,
+            "asked": true
           }
         }
       ]

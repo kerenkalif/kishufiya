@@ -65,7 +65,7 @@ import MyGames from '../components/kishufiya-my-games/my-games.jsx';
 import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.jsx';
 import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
-import {CAPS} from '../components/kishufiya-guide/session.js';
+import {CAPS, opens} from '../components/kishufiya-guide/session.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
 import {
@@ -245,7 +245,9 @@ const save = async (id, withThumbnail) => {
 };
 
 window.addEventListener('message', e => {
-    if (e.origin !== location.origin || e.source !== parent || !e.data || !up) return;
+    if (e.origin !== location.origin || e.source !== parent || !e.data) return;
+    // the lesson's opening is answered from the moment this page loads, as כישופונת does: everything else waits for the editor
+    if (!up && !(e.data.kishufiya === 'to-editor' && opens(e.data.msg))) return;
     if (e.data.kishufiya === 'hello') post({kishufiya: 'ready'});
     else if (e.data.kishufiya === 'load') load(e.data.url, e.data.title, e.data.lesson, e.data.gameId);
     else if (e.data.kishufiya === 'save') save(e.data.id, e.data.thumbnail);

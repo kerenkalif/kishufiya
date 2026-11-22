@@ -176,7 +176,7 @@ import {watchPicks} from './picks.js';
 import {SNAP_RADIUS} from '../../lib/kishufiya-tidy-layout.js';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {setNameAsk} from './name-ask.js';
-import {answerId, asking, hearWith, inSession, locateOf, looked, newContract, reasonSaid, toldAnew} from './session.js';
+import {answerId, asking, hearWith, inSession, opens, locateOf, looked, newContract, reasonSaid, toldAnew} from './session.js';
 import {openMenuRects} from './open-menus.js';
 import {valueTagOf, tagPlace, choiceOf, choiceIndex, openMenuItems} from './value-mark.js';
 
@@ -1207,10 +1207,11 @@ const handleSaid = msg => {
 
 // → true when msg was the guide's. The contract hears it first (session.js hearWith): a message of a session that is over
 // is dropped, a session that begins first drops what was told before (the orders, done as the page's own messages), and
-// a place asked or cleared is kept there and drawn by the loop. The opening ('engine-hello') is answered through `say`
-// at any time, also before the editor has a game or its guide's layer.
+// a place asked or cleared is kept there and drawn by the loop. The opening (session.js opens) is answered through `say`
+// from the moment the page loads: before the editor is up there is no layer here and no sender of the guide's
+// (kishufiya.jsx hears it then, and hands in its own way to answer).
 export const handleGuide = (msg, say = send) => {
-    if (!msg || (!layer && msg.type !== 'engine-hello')) return false;
+    if (!msg || (!layer && !opens(msg))) return false;
     if (document.body.hasAttribute('data-kishufiya-library-step')) {
         document.body.setAttribute('data-kishufiya-library-step', String(Date.now()));
     }

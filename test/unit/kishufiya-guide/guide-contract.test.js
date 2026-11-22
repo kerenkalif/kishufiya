@@ -4,7 +4,7 @@
 //   npx jest test/unit/kishufiya-guide/guide-contract
 import {readFileSync} from 'fs';
 import {join} from 'path';
-import {CAPS, CONTRACT_VERSION, answerId, asking, heard, inSession, locateOf, looked, newContract, reasonSaid}
+import {CAPS, CONTRACT_VERSION, opens, answerId, asking, heard, inSession, locateOf, looked, newContract, reasonSaid}
     from '../../../src/components/kishufiya-guide/session.js';
 
 const contract = JSON.parse(readFileSync(join(__dirname, 'guide-contract.cases.json'), 'utf8'));
@@ -25,6 +25,7 @@ const run = (state, step) => {
     }
     if (step.stamp) return [state, inSession(step.stamp.answer, asking(step.stamp.to), step.stamp.more)];
     if ('id' in step) return [state, answerId(step.id)];
+    if ('opens' in step) return [state, opens(step.opens)];
     if ('alive' in step) return [state, Boolean(locateOf(state, step.alive))];
     if (step.reason) return [state, reasonSaid(step.reason.word, asking(step.reason.to))];
     throw new Error(`a step this editor's test cannot read: ${JSON.stringify(step)}`);

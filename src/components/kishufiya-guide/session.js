@@ -31,7 +31,7 @@
 //   `via` the way's kind, no rect.
 // - The soft mark (`highlight`) is drawn at a found target only: never on the way, never while it is out of its box's view.
 
-export const CONTRACT_VERSION = 2;
+export const CONTRACT_VERSION = 3;
 
 // What this build knows of the protocol, said on 'editor-ready' {caps}. A page says a session and 'locate' only to an
 // editor that said so.
@@ -44,10 +44,13 @@ const PLACES = ['locate', 'locate-clear'];
 export const newContract = () => ({session: null, locates: []});
 
 // The request of a message: its `request`, or the `id` a guide has always had
-export const requestOf = msg => {
+const requestOf = msg => {
     if (msg && numbered(msg.request)) return msg.request;
     return msg && numbered(msg.id) ? msg.id : null;
 };
+
+// The opening: the one message of the page an editor answers from the moment it loads, before it has a game or a guide
+export const opens = msg => Boolean(msg) && msg.type === 'engine-hello';
 
 // What an answer about `msg` says of the session: {session, request}, or null for a message with no session
 export const asking = msg => (msg && numbered(msg.session) ? {session: msg.session, request: requestOf(msg)} : null);
@@ -97,7 +100,7 @@ const cleared = (locates, msg) => {
 //            opening, a place - and is answered or kept here);
 //   say    - what the editor says back at once (the answer to the opening).
 export const heard = (state, msg) => {
-    if (msg && msg.type === 'engine-hello') {
+    if (opens(msg)) {
         const welcome = {type: 'engine-welcome', caps: [...CAPS], session: state.session === null ? 0 : state.session};
         return {state, heard: 'hello', orders: [], pass: false, say: [welcome]};
     }
