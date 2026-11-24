@@ -7,7 +7,7 @@ const {drawsOf, buildTxt} = require('../../../scripts/build-txt.js');
 describe('build-txt', () => {
     test('the draws are the names of draws.txt, comments and blank lines skipped', () => {
         expect(drawsOf('# a comment\n\nvalue\r\n  key  \n')).toEqual(['value', 'key']);
-        expect(drawsOf(fs.readFileSync(path.join(__dirname, '../../../scripts/draws.txt'), 'utf8'))).toEqual(['value']);
+        expect(drawsOf(fs.readFileSync(path.join(__dirname, '../../../scripts/draws.txt'), 'utf8'))).toEqual(['value', 'key', 'pick']);
     });
     test('the file: the commit and the time, then the draws', () => {
         const date = new Date(2026, 10, 19, 7, 5);

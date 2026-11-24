@@ -178,7 +178,7 @@ import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {setNameAsk} from './name-ask.js';
 import {answerId, asking, hearWith, inSession, opens, locateOf, looked, newContract, reasonSaid, toldAnew} from './session.js';
 import {openMenuRects} from './open-menus.js';
-import {valueTagOf, tagPlace, choiceOf, choiceIndex, openMenuItems} from './value-mark.js';
+import {signTagOf, tagPlace, choiceOf, choiceIndex, openMenuItems} from './value-mark.js';
 
 let vm = null;
 let send = () => {};
@@ -607,7 +607,11 @@ let choiceShownFor = null;
 const drawValue = found => {
     const signs = state.guide.target.signs;
     const onIt = found.via === 'field' || Boolean(found.input);
-    const text = onIt ? valueTagOf(signs) : null;
+    // the sign of the target: a value by a field or a box, a choice by its field, a key by whatever is pressed (the stage)
+    const sign = signTagOf(signs);
+    const shown = sign && (sign.kind === 'key' || (sign.kind === 'pick' ? found.via === 'field' : onIt)) ? sign : null;
+    const text = shown ? shown.text : null;
+    valueTag.setAttribute('data-kind', shown ? shown.kind : '');
     let at = null;
     valueTag.style.display = text === null ? 'none' : 'block';
     if (text !== null) {

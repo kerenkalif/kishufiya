@@ -2,3 +2,5 @@
 # scripts/build-txt.js writes them to public/kishufiya/BUILD.txt as `# draws: ...`; add a name here only with the code that draws it.
 # Same source as scratchjr-web scripts/draws.txt: the platform holds EditorPlatform.marks.draws to this line.
 value
+key
+pick

@@ -12,6 +12,37 @@ export const valueTagOf = signs => {
     return signs.value;
 };
 
+// The key to press, as the key menu names it in Hebrew (the base sends `key` as the game keeps it: 'right arrow', 'space',
+// a letter or a digit). A letter or a digit is drawn as itself, in capitals; a name this table does not know is drawn as sent.
+export const KEY_WORDS = {
+    space: 'רווח',
+    enter: 'אנטר',
+    'up arrow': 'חץ מעלה',
+    'down arrow': 'חץ מטה',
+    'left arrow': 'חץ שמאלה',
+    'right arrow': 'חץ ימינה',
+    any: 'כל מקש'
+};
+export const keyLabelOf = key => {
+    if (typeof key !== 'string' || key.trim() === '') return null;
+    const own = Object.prototype.hasOwnProperty.call(KEY_WORDS, key) ? KEY_WORDS[key] : null;
+    if (own) return own;
+    return key.length === 1 ? key.toUpperCase() : key;
+};
+
+// The one tag of a ringed target, by the base's signs: a value to type, else a key to press, else a choice to pick (the
+// closed field says it too; its open menu rings it besides). `kind` is the look of the tag: a key is drawn as a key cap.
+// → {text, kind: 'value' | 'key' | 'pick'} or null
+export const signTagOf = signs => {
+    const value = valueTagOf(signs);
+    if (value !== null) return {text: value, kind: 'value'};
+    const key = signs && signs.act !== 'type' ? keyLabelOf(signs.key) : null;
+    if (key !== null) return {text: key, kind: 'key'};
+    const choice = choiceOf(signs);
+    if (choice !== null) return {text: choice, kind: 'pick'};
+    return null;
+};
+
 // Where the tag goes, by the field's rectangle ({left, top, right, bottom}): over the field, centred on it - a
 // field's own editor (the number pad, a menu) opens under it, and the tag is never INSIDE the field, which shows what
 // the child typed. No room over it: under it. `under`: a box with its own words over it (the "y" of a sprite's

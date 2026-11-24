@@ -3,7 +3,7 @@
 //   npx jest test/unit/kishufiya-guide/value-mark
 import fs from 'fs';
 import path from 'path';
-import {valueTagOf, tagPlace, TAG_GAP, choiceOf, choiceIndex, openMenuItems, MENU_ITEM} from
+import {signTagOf, keyLabelOf, KEY_WORDS, valueTagOf, tagPlace, TAG_GAP, choiceOf, choiceIndex, openMenuItems, MENU_ITEM} from
     '../../../src/components/kishufiya-guide/value-mark.js';
 
 const rect = (left, top, right, bottom) => ({left, top, right, bottom, width: right - left, height: bottom - top});
@@ -27,6 +27,39 @@ describe('valueTagOf', () => {
         expect(valueTagOf({act: 'drag', ghost: true})).toBe(null);
         expect(valueTagOf(null)).toBe(null);
         expect(valueTagOf()).toBe(null);
+    });
+});
+
+describe('signTagOf: one tag for a value, a key and a choice', () => {
+    test('a value to type', () => {
+        expect(signTagOf({act: 'type', value: '10'})).toEqual({text: '10', kind: 'value'});
+    });
+    test('a key to press is drawn by its name in Hebrew', () => {
+        expect(signTagOf({act: 'press', key: 'space'})).toEqual({text: 'רווח', kind: 'key'});
+        expect(signTagOf({act: 'press', key: 'up arrow'})).toEqual({text: 'חץ מעלה', kind: 'key'});
+        expect(signTagOf({act: 'press', key: 'a'})).toEqual({text: 'A', kind: 'key'});
+        expect(signTagOf({act: 'press', key: '5'})).toEqual({text: '5', kind: 'key'});
+    });
+    test('a choice from a menu is drawn by the menu text', () => {
+        expect(signTagOf({act: 'pick', choice: {label: 'חץ ימינה', raw: 'right arrow'}})).toEqual({text: 'חץ ימינה', kind: 'pick'});
+    });
+    test('a value wins over a key, a key over a choice; nothing to say: no tag', () => {
+        expect(signTagOf({value: '3', key: 'space'}).kind).toBe('value');
+        expect(signTagOf({key: 'space', choice: {label: 'x'}}).kind).toBe('key');
+        for (const none of [null, undefined, {}, {act: 'drag', ghost: true}, {act: 'press'}, {act: 'press', key: ''},
+            {act: 'pick', choice: {label: ''}}, {act: 'type', key: 'space'}]) {
+            expect(signTagOf(none)).toBe(null);
+        }
+    });
+    test('every key the base can send has a name; a word of the table never reads as inherited', () => {
+        for (const key of ['space', 'enter', 'up arrow', 'down arrow', 'left arrow', 'right arrow', 'any']) {
+            expect(keyLabelOf(key)).toBe(KEY_WORDS[key]);
+        }
+        expect(keyLabelOf('constructor')).toBe('constructor');
+        expect(keyLabelOf(5)).toBe(null);
+    });
+    test('the words for a child hold no Scratch word, no long dash and no angle bracket', () => {
+        for (const word of Object.values(KEY_WORDS)) expect(word).not.toMatch(/scratch|סקראץ|[<>–—]/i);
     });
 });
 
@@ -104,7 +137,7 @@ describe('openMenuItems', () => {
 describe('the guide draws from the signs and decides nothing', () => {
     const guide = fs.readFileSync(path.join(__dirname, '../../../src/components/kishufiya-guide/guide.js'), 'utf8');
     test('guide.js asks value-mark.js for the tag and the choice', () => {
-        for (const name of ['valueTagOf', 'tagPlace', 'choiceOf', 'choiceIndex', 'openMenuItems']) {
+        for (const name of ['signTagOf', 'tagPlace', 'choiceOf', 'choiceIndex', 'openMenuItems']) {
             expect(guide).toContain(`${name}(`);
         }
         expect(guide).toContain('state.guide.target.signs');
