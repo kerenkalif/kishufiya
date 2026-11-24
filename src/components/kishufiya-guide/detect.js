@@ -22,7 +22,7 @@ export const gameHeard = (target, doc) => target === doc || Boolean(doc && targe
 // A box being typed into: its letters are not the game's keys, nor the lesson's.
 export const typing = el => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
 
-// What the page is told of a box the child is typing in (guide-at `typing`, platform SPEC-editor-base section 13): the box's own text as it is
+// What the page is told of a box the child is typing in (guide-at `typing`, platform SPEC-editor-base section 3.3): the box's own text as it is
 // now, and `fresh` - nothing typed since it took the focus. The sprite's boxes keep what is typed to themselves until blur or Enter
 // (BufferedInput), so the game does not hold it yet: the page says "the value is in" (guide-typed) and the guide ends the edit
 // (endEdit). `pad` false: the real keyboard, no key to ring. null: the guided target is no box, or the focus is not in it.
@@ -465,10 +465,10 @@ export const tidyStep = (asked, dragging, tidy) => {
     return {asked: !done, done};
 };
 
-// What the guide drew by the target, as the boxes the page's bubble keeps off (guide-at `keepOff`, platform SPEC-editor-base section 13):
-// the value or key tag, the arrow, the outline of a place where a block goes, the ring round a menu's choice, and the words that
+// What the guide drew by the target, as the boxes the page's bubble keeps off (guide-at `keepOff`, platform SPEC-editor-base section 3.3):
+// the value or key tag, the outline of a place where a block goes as it is drawn (the arrow is not: it grows, and the page keeps room for it), the ring round a menu's choice, and the words that
 // say what the target is (`label`). Each is a {left, top, width, height} box in the frame's pixels, or null/undefined when it is not
 // drawn; one with no size is not a box. A list, not one box round them all: that box would cover the target and everything between.
-export const drawnBoxes = ({tag, arrow, drop, choice, label}) =>
-    [tag, arrow, drop, choice, label].filter(box => box && box.width > 0 && box.height > 0)
+export const drawnBoxes = ({tag, drop, choice, label}) =>
+    [tag, drop, choice, label].filter(box => box && box.width > 0 && box.height > 0)
         .map(box => ({left: box.left, top: box.top, width: box.width, height: box.height}));

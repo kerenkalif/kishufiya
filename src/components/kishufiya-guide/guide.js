@@ -426,13 +426,14 @@ const tellAt = (rect, via, arrow, extra) => {
     const snap = (typeof Blockly !== 'undefined' && Blockly.SNAP_RADIUS) || SNAP_RADIUS;
     const dropAttach = whole && !free && ws ? attachOf(whole, more.drop, snap, ws.scale || 1) : null;
     const typed = typingOf(more, document.activeElement, touchedInput);
-    // everything drawn beside the target, for the page's bubble to keep off (a tag, the arrow, a place's outline, a menu's choice, the label)
-    const shownBox = (el, size) => el && el.style.display !== 'none' && el.style.left !== '' ?
-        {left: parseFloat(el.style.left), top: parseFloat(el.style.top), width: size ? size.width : el.offsetWidth, height: size ? size.height : el.offsetHeight} : null;
+    // everything drawn beside the target, for the page's bubble to keep off (a tag, the outline as it is DRAWN - the frame the base
+    // answered, not the one asked for -, a menu's choice, the label). Not the arrow: it grows for ten seconds and every step would
+    // be a new report; the page keeps room for it already (`arrowRoom`)
+    const shownBox = el => el && el.style.display !== 'none' && el.style.left !== '' ?
+        {left: parseFloat(el.style.left), top: parseFloat(el.style.top), width: el.offsetWidth, height: el.offsetHeight} : null;
     const keepOff = drawnBoxes({
         tag: shownBox(valueTag),
-        arrow: shownBox(pointer, {width: parseFloat(pointer.style.width), height: parseFloat(pointer.style.height)}), // (`arrow` here is the side)
-        drop: dropRect,
+        drop: dropRect && toldFrame ? toldFrame : null,
         choice: choiceRing && choiceRing.style.display !== 'none' ? frameOf(choiceRing.getBoundingClientRect()) : null,
         label: lab
     });
