@@ -464,3 +464,11 @@ export const tidyStep = (asked, dragging, tidy) => {
     const done = Boolean(tidy());
     return {asked: !done, done};
 };
+
+// What the guide drew by the target, as the boxes the page's bubble keeps off (guide-at `keepOff`, platform SPEC-editor-base section 13):
+// the value or key tag, the arrow, the outline of a place where a block goes, the ring round a menu's choice, and the words that
+// say what the target is (`label`). Each is a {left, top, width, height} box in the frame's pixels, or null/undefined when it is not
+// drawn; one with no size is not a box. A list, not one box round them all: that box would cover the target and everything between.
+export const drawnBoxes = ({tag, arrow, drop, choice, label}) =>
+    [tag, arrow, drop, choice, label].filter(box => box && box.width > 0 && box.height > 0)
+        .map(box => ({left: box.left, top: box.top, width: box.width, height: box.height}));

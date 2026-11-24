@@ -124,7 +124,7 @@
 //                                                   (for half a second): why - targets.js
 //   guide-frame {id, frame}             the frame to draw at the drop, as the base decided it (drop-frame.ts); null: nothing left to draw
 //   guide-at {typing?: {text, fresh, pad: false}} (a box being typed in: its text now, and whether nothing was typed since it took the focus)
-//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?, dropRect?, accept?, dropKind?, label?}
+//   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?, dropRect?, accept?, dropKind?, label?, keepOff?: [{left, top, width, height}, ...]}
 //                                                   where the guided target is now, in this frame's pixels,
 //                                                   and on which side of it the arrow is; a field's value as
 //                                                   shown, and itself (raw: 'right arrow' for "חץ ימינה");
@@ -167,7 +167,7 @@
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
-import {TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
+import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
     scriptRan, scriptRing, softMarkColours, tellsClick, typing, typingOf, endEdit}
     from './detect.js';
@@ -426,11 +426,21 @@ const tellAt = (rect, via, arrow, extra) => {
     const snap = (typeof Blockly !== 'undefined' && Blockly.SNAP_RADIUS) || SNAP_RADIUS;
     const dropAttach = whole && !free && ws ? attachOf(whole, more.drop, snap, ws.scale || 1) : null;
     const typed = typingOf(more, document.activeElement, touchedInput);
-    const key = JSON.stringify([at, via, arrow, value, raw, typed, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach]);
+    // everything drawn beside the target, for the page's bubble to keep off (a tag, the arrow, a place's outline, a menu's choice, the label)
+    const shownBox = (el, size) => el && el.style.display !== 'none' && el.style.left !== '' ?
+        {left: parseFloat(el.style.left), top: parseFloat(el.style.top), width: size ? size.width : el.offsetWidth, height: size ? size.height : el.offsetHeight} : null;
+    const keepOff = drawnBoxes({
+        tag: shownBox(valueTag),
+        arrow: shownBox(pointer, {width: parseFloat(pointer.style.width), height: parseFloat(pointer.style.height)}), // (`arrow` here is the side)
+        drop: dropRect,
+        choice: choiceRing && choiceRing.style.display !== 'none' ? frameOf(choiceRing.getBoundingClientRect()) : null,
+        label: lab
+    });
+    const key = JSON.stringify([at, via, arrow, value, raw, typed, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach, keepOff]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send(inSession({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller,
+    send(inSession({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller, ...(keepOff.length ? {keepOff} : {}),
         ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})}, state.guide && state.guide.ask, {found: Boolean(at)}));
 };
 
