@@ -3,7 +3,7 @@
 //   npx jest test/unit/kishufiya-guide/value-mark
 import fs from 'fs';
 import path from 'path';
-import {signTagOf, keyLabelOf, KEY_WORDS, valueTagOf, tagPlace, TAG_GAP, choiceOf, choiceIndex, openMenuItems, MENU_ITEM} from
+import {signTagOf, signShownAt, keyLabelOf, valueTagOf, tagPlace, TAG_GAP, choiceOf, choiceIndex, openMenuItems, MENU_ITEM} from
     '../../../src/components/kishufiya-guide/value-mark.js';
 
 const rect = (left, top, right, bottom) => ({left, top, right, bottom, width: right - left, height: bottom - top});
@@ -34,11 +34,11 @@ describe('signTagOf: one tag for a value, a key and a choice', () => {
     test('a value to type', () => {
         expect(signTagOf({act: 'type', value: '10'})).toEqual({text: '10', kind: 'value'});
     });
-    test('a key to press is drawn by its name in Hebrew', () => {
-        expect(signTagOf({act: 'press', key: 'space'})).toEqual({text: 'רווח', kind: 'key'});
-        expect(signTagOf({act: 'press', key: 'up arrow'})).toEqual({text: 'חץ מעלה', kind: 'key'});
-        expect(signTagOf({act: 'press', key: 'a'})).toEqual({text: 'A', kind: 'key'});
-        expect(signTagOf({act: 'press', key: '5'})).toEqual({text: '5', kind: 'key'});
+    test('a key to press: the base label when sent, else the key as sent', () => {
+        expect(signTagOf({act: 'press', key: 'space', keyLabel: 'רווח'})).toEqual({text: 'רווח', kind: 'key'});
+        expect(signTagOf({act: 'press', key: 'right arrow'})).toEqual({text: 'right arrow', kind: 'key'});
+        expect(keyLabelOf({key: 'a', keyLabel: ''})).toBe('a');
+        expect(keyLabelOf({key: 5})).toBe(null);
     });
     test('a choice from a menu is drawn by the menu text', () => {
         expect(signTagOf({act: 'pick', choice: {label: 'חץ ימינה', raw: 'right arrow'}})).toEqual({text: 'חץ ימינה', kind: 'pick'});
@@ -51,15 +51,24 @@ describe('signTagOf: one tag for a value, a key and a choice', () => {
             expect(signTagOf(none)).toBe(null);
         }
     });
-    test('every key the base can send has a name; a word of the table never reads as inherited', () => {
-        for (const key of ['space', 'enter', 'up arrow', 'down arrow', 'left arrow', 'right arrow', 'any']) {
-            expect(keyLabelOf(key)).toBe(KEY_WORDS[key]);
-        }
-        expect(keyLabelOf('constructor')).toBe('constructor');
-        expect(keyLabelOf(5)).toBe(null);
+});
+
+describe('signShownAt: which tag is drawn where', () => {
+    const tag = kind => ({text: 'x', kind});
+    test('a key is drawn wherever it is pressed', () => {
+        expect(signShownAt(tag('key'), {via: 'stage'})).toEqual(tag('key'));
     });
-    test('the words for a child hold no Scratch word, no long dash and no angle bracket', () => {
-        for (const word of Object.values(KEY_WORDS)) expect(word).not.toMatch(/scratch|סקראץ|[<>–—]/i);
+    test('a choice only by its field', () => {
+        expect(signShownAt(tag('pick'), {via: 'field'})).toEqual(tag('pick'));
+        expect(signShownAt(tag('pick'), {via: 'block', input: true})).toBe(null);
+    });
+    test('a value by a field or a box, never on the way to it', () => {
+        expect(signShownAt(tag('value'), {via: 'field'})).toEqual(tag('value'));
+        expect(signShownAt(tag('value'), {via: 'block', input: {}})).toEqual(tag('value'));
+        expect(signShownAt(tag('value'), {via: 'category'})).toBe(null);
+    });
+    test('no sign, no tag', () => {
+        expect(signShownAt(null, {via: 'field'})).toBe(null);
     });
 });
 
@@ -140,6 +149,7 @@ describe('the guide draws from the signs and decides nothing', () => {
         for (const name of ['signTagOf', 'tagPlace', 'choiceOf', 'choiceIndex', 'openMenuItems']) {
             expect(guide).toContain(`${name}(`);
         }
+        expect(guide).toContain('signShownAt(');
         expect(guide).toContain('state.guide.target.signs');
     });
 });

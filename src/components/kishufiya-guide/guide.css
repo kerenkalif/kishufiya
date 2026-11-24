@@ -56,13 +56,13 @@
 }
 
 /* A key to press: the same tag drawn as a key cap (white, a dark edge), the key's name on it (guide.js drawValue, `data-kind`). */
+/* (only what differs from .value-tag) */
 .value-tag[data-kind='key'] {
     background: #ffffff;
     color: #1b1b1b;
     border-color: #1b1b1b;
     border-bottom-width: 6px;
     border-radius: 10px;
-    box-shadow: 0 0 0 3px #e53935, 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 /* ...and the choice to pick, in the menu the field opened: the ring, thinner on a row of a menu */

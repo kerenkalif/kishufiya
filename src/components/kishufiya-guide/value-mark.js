@@ -12,22 +12,11 @@ export const valueTagOf = signs => {
     return signs.value;
 };
 
-// The key to press, as the key menu names it in Hebrew (the base sends `key` as the game keeps it: 'right arrow', 'space',
-// a letter or a digit). A letter or a digit is drawn as itself, in capitals; a name this table does not know is drawn as sent.
-export const KEY_WORDS = {
-    space: 'רווח',
-    enter: 'אנטר',
-    'up arrow': 'חץ מעלה',
-    'down arrow': 'חץ מטה',
-    'left arrow': 'חץ שמאלה',
-    'right arrow': 'חץ ימינה',
-    any: 'כל מקש'
-};
-export const keyLabelOf = key => {
-    if (typeof key !== 'string' || key.trim() === '') return null;
-    const own = Object.prototype.hasOwnProperty.call(KEY_WORDS, key) ? KEY_WORDS[key] : null;
-    if (own) return own;
-    return key.length === 1 ? key.toUpperCase() : key;
+// The key to press, as the base says it: `keyLabel` (the key's name as the editor's menu shows it, the way `choice.label` is) when
+// the base sends one, else the `key` itself as sent. The editor holds no table of key names: the base is their one source.
+export const keyLabelOf = signs => {
+    const say = signs && (typeof signs.keyLabel === 'string' && signs.keyLabel !== '' ? signs.keyLabel : signs.key);
+    return typeof say === 'string' && say.trim() !== '' ? say : null;
 };
 
 // The one tag of a ringed target, by the base's signs: a value to type, else a key to press, else a choice to pick (the
@@ -36,11 +25,20 @@ export const keyLabelOf = key => {
 export const signTagOf = signs => {
     const value = valueTagOf(signs);
     if (value !== null) return {text: value, kind: 'value'};
-    const key = signs && signs.act !== 'type' ? keyLabelOf(signs.key) : null;
+    const key = signs && signs.act !== 'type' ? keyLabelOf(signs) : null;
     if (key !== null) return {text: key, kind: 'key'};
     const choice = choiceOf(signs);
     if (choice !== null) return {text: choice, kind: 'pick'};
     return null;
+};
+
+// Where each tag is drawn: a key by whatever is pressed (the stage has no field), a choice by its field, a value by a field or a
+// box (`onIt`: the ringed thing is one), never on the way to it. `found`: {via, input}. → the tag, or null
+export const signShownAt = (sign, found) => {
+    if (!sign) return null;
+    if (sign.kind === 'key') return sign;
+    if (sign.kind === 'pick') return found && found.via === 'field' ? sign : null;
+    return found && (found.via === 'field' || Boolean(found.input)) ? sign : null;
 };
 
 // Where the tag goes, by the field's rectangle ({left, top, right, bottom}): over the field, centred on it - a
