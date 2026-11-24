@@ -57,6 +57,9 @@
 //                                      from `guide` on purpose: it holds at every guide level, whether or not a ring is drawn.
 //                                      Other windows (a rename) and no 'names' at all: the window is as it was. A page
 //                                      from before this never sends it; an editor from before ignores it
+//                                      pointer: false - the red arrow is not drawn (nor told in 'guide-at' `arrow`): the ring
+//                                      alone marks the target (Keren 2026-11-24, the page's bubble points at it). Absent or
+//                                      anything else: drawn, as ever, so an older page is unchanged
 //   guide-clear  {}
 //   (session, platform SPEC-lesson-layers section 3, stage A1. The contract is session.js and its cases,
 //   test/unit/kishufiya-guide/guide-contract.cases.json - the same two files in כישופונת, so read them, not a copy of
@@ -431,7 +434,12 @@ const tellAt = (rect, via, arrow, extra) => {
     // be a new report; the page keeps room for it already (`arrowRoom`)
     const shownBox = el => el && el.style.display !== 'none' && el.style.left !== '' ?
         {left: parseFloat(el.style.left), top: parseFloat(el.style.top), width: el.offsetWidth, height: el.offsetHeight} : null;
+    // an open dropdown or field editor (Blockly's drop-down and widget divs): what the child picks from, so no window stands on it; it
+    // opens and closes without the target moving, and the box is part of the key below, so each is told anew
+    const openMenu = Array.from(document.querySelectorAll(OPEN_MENU_BOX)).map(el => el.getBoundingClientRect())
+        .find(box => box.width > 0 && box.height > 0);
     const keepOff = drawnBoxes({
+        menu: openMenu ? frameOf(openMenu) : null,
         tag: shownBox(valueTag),
         drop: dropRect && toldFrame ? toldFrame : null,
         choice: choiceRing && choiceRing.style.display !== 'none' ? frameOf(choiceRing.getBoundingClientRect()) : null,
@@ -500,6 +508,8 @@ const sideways = (r, x, side) => {
     return side;
 };
 // The buttons the arrow must not cover (the layer's own boxes are not among them)
+// The open dropdown or field editor Blockly draws by a field (display none while closed: no box)
+const OPEN_MENU_BOX = '.blocklyDropDownDiv, .blocklyWidgetDiv';
 const NEIGHBOUR_BUTTONS = 'button, [role="button"], [class*="_add-button_"]';
 // measured once per animation frame, however many times a draw places the arrow in it
 let buttonBoxes = null;
@@ -814,7 +824,10 @@ const drawGuide = () => {
     if (beside) how = 'beside';
     if (found.via === 'category') how = 'menu';
     const within = how === 'menu' ? uiRect('.blocklyToolboxDiv') : (root && root.getSvgRoot().getBoundingClientRect());
-    tellAt(r, found.via, placePointer(r, how, within), found);
+    // `pointer: false` (platform SPEC-editor-base section 3): the ring alone marks the target, no arrow - and none told
+    const side = state.guide.pointer ? placePointer(r, how, within) : null;
+    if (!state.guide.pointer) pointer.style.display = 'none';
+    tellAt(r, found.via, side, found);
     const {text, textCategory, textSprite} = state.guide;
     const say = (found.via === 'category' && textCategory) || (found.via === 'sprite' && textSprite) || text;
     if (bubbleText.textContent !== say) bubbleText.textContent = say;
@@ -1134,7 +1147,8 @@ const handleSaid = msg => {
             quiet: Boolean(msg.quiet),
             locate: Boolean(msg.locate),
             highlight: Boolean(msg.highlight),
-            clearOf: msg.clearOf || null
+            clearOf: msg.clearOf || null,
+            pointer: msg.pointer !== false
         };
         // a guide whose target is in a library waits for one pick: the library marks no several then (library.jsx multiAllowed) -
         // unless the step says `multi` (platform decision 55: a set of sprites added together); an older page never says it

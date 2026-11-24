@@ -211,6 +211,17 @@ describe('a block\'s ring is as before', () => {
         expect(ringBox()).toEqual({left: 296, top: 96, width: 268, height: 200});
         expect(lastAt()).toMatchObject({id: 3, via: 'script', arrow: null});
     });
+    test('pointer: false - the ring stays, the arrow is neither drawn nor told; absent: drawn as ever', () => {
+        handleGuide({type: 'guide', id: 5, target: {blockId: 'turn', in: 'code', sprite: 'Cat'}, pointer: false});
+        jest.advanceTimersByTime(50);
+        expect(showing('pointer')).toBe(false);
+        expect(ringBox()).toEqual({left: 312, top: 168, width: 252, height: 48});
+        expect(lastAt()).toMatchObject({id: 5, via: 'block', arrow: null});
+        handleGuide({type: 'guide', id: 6, target: {blockId: 'turn', in: 'code', sprite: 'Cat'}});
+        jest.advanceTimersByTime(50);
+        expect(showing('pointer')).toBe(true);
+        expect(lastAt()).toMatchObject({id: 6, arrow: 'left'});
+    });
 });
 
 describe('a script out of the code area\'s view: the code scrolls as for a block', () => {

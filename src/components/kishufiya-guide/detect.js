@@ -466,9 +466,11 @@ export const tidyStep = (asked, dragging, tidy) => {
 };
 
 // What the guide drew by the target, as the boxes the page's bubble keeps off (guide-at `keepOff`, platform SPEC-editor-base section 3.3):
-// the value or key tag, the outline of a place where a block goes as it is drawn (the arrow is not: it grows, and the page keeps room for it), the ring round a menu's choice, and the words that
+// the value or key tag, an open menu or field editor, the outline of a place where a block goes as it is drawn (the arrow is not: it grows, and the page keeps room for it), the ring round a menu's choice, and the words that
 // say what the target is (`label`). Each is a {left, top, width, height} box in the frame's pixels, or null/undefined when it is not
 // drawn; one with no size is not a box. A list, not one box round them all: that box would cover the target and everything between.
-export const drawnBoxes = ({tag, drop, choice, label}) =>
-    [tag, drop, choice, label].filter(box => box && box.width > 0 && box.height > 0)
+// `menu`: what the child must act on that the editor draws by the target - a dropdown or a field editor that is open (OPEN_MENU_BOX): no
+// window of the page may cover it (Keren 24.11: the bubble stood on "up arrow", the choice to pick)
+export const drawnBoxes = ({tag, drop, choice, label, menu}) =>
+    [tag, drop, choice, label, menu].filter(box => box && box.width > 0 && box.height > 0)
         .map(box => ({left: box.left, top: box.top, width: box.width, height: box.height}));

@@ -694,6 +694,28 @@
       ]
     },
     {
+      "name": "guide: a field this editor does not know (pointer, keepOff of a menu) is ignored: the message is handled as without it",
+      "steps": [
+        {
+          "hear": {
+            "type": "guide",
+            "id": 4,
+            "target": {
+              "ui": "flag"
+            },
+            "pointer": false
+          },
+          "expect": {
+            "heard": "old",
+            "orders": [],
+            "pass": true,
+            "session": null,
+            "locates": []
+          }
+        }
+      ]
+    },
+    {
       "name": "session: the first one heard begins from nothing (the mark, the freeze, the pick and the places go)",
       "steps": [
         {

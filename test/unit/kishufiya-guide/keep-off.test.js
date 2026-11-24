@@ -15,6 +15,10 @@ describe('drawnBoxes: what the guide drew by the target, for the bubble to keep 
         const tag = box(1, 1);
         expect(drawnBoxes({tag})[0]).not.toBe(tag);
     });
+    test('an open menu is one of them: the choice the child picks from is never covered', () => {
+        expect(drawnBoxes({menu: box(50, 60, 120, 200)})).toEqual([box(50, 60, 120, 200)]);
+        expect(drawnBoxes({tag: box(1, 1), menu: box(5, 5, 0, 0)})).toEqual([box(1, 1)]);
+    });
     test('the arrow is no part of it: it grows, and every step would be a new report', () => {
         expect(drawnBoxes({tag: box(1, 1), arrow: box(3, 4)})).toEqual([box(1, 1)]);
     });
