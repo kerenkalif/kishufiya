@@ -1,7 +1,7 @@
 // K12 (2026-10-28): what the guide tells the lesson the child did - the pure parts (detect.js).
 //   npx jest test/unit/kishufiya-guide
 import {categoryOf} from '../../../src/components/kishufiya-guide/targets.js';
-import {coveredBy, focusGame, forwardedKey, gameHeard, gameKey, libraryMissing, onTheWay, quietReports, samplePoints, spriteOnStage, typing, typingOf, endEdit} from '../../../src/components/kishufiya-guide/detect.js';
+import {coveredBy, focusGame, forwardedKey, gameHeard, gameKey, libraryMissing, onTheWay, quietReports, samplePoints, spriteOnStage, typing, typingOf, keptTyping, endEdit} from '../../../src/components/kishufiya-guide/detect.js';
 
 describe('keys', () => {
     test('the game gets the key as scratch-gui gives it', () => {
@@ -255,15 +255,34 @@ describe('locate without marking: the way is ringed, the target is not', () => {
 // when the platform says the value is in (guide-typed), ends the edit the way the child's own blur does.
 describe('a box typed in tells its text, and its edit ends when the platform says so', () => {
     const box = value => ({tagName: 'INPUT', value, blurred: 0, blur () { this.blurred += 1; }});
-    test('typingOf: the focused box of the target, its text, fresh until something is typed', () => {
+    test('typingOf: the focused box of the target, its text, fresh unless it is the text the child typed', () => {
         const el = box('12');
-        expect(typingOf({input: true, value: '12'}, el, true)).toEqual({text: '12', fresh: false, pad: false});
-        expect(typingOf({input: true, value: '12'}, el, false)).toEqual({text: '12', fresh: true, pad: false});
-        expect(typingOf({input: true, value: '12'}, box('13'), true)).toBe(null); // the focus is in another box
-        expect(typingOf({input: true, value: '12'}, {tagName: 'BUTTON'}, true)).toBe(null);
-        expect(typingOf({input: false, value: '12'}, el, true)).toBe(null); // the target is no box
-        expect(typingOf({input: true, value: null}, el, true)).toBe(null);
-        expect(typingOf(null, el, true)).toBe(null);
+        expect(typingOf({input: true, value: '12'}, el, '12')).toEqual({text: '12', fresh: false, pad: false});
+        expect(typingOf({input: true, value: '12'}, el, null)).toEqual({text: '12', fresh: true, pad: false});
+        expect(typingOf({input: true, value: '12'}, box('13'), '12')).toBe(null); // the focus is in another box
+        expect(typingOf({input: true, value: '12'}, {tagName: 'BUTTON'}, '12')).toBe(null);
+        expect(typingOf({input: false, value: '12'}, el, '12')).toBe(null); // the target is no box
+        expect(typingOf({input: true, value: null}, el, '12')).toBe(null);
+        expect(typingOf(null, el, '12')).toBe(null);
+    });
+    test('a value the dial brings after the child typed is fresh: touched is derived from the text, not a flag that stays on', () => {
+        const el = box('9'); // the child typed 9 in the direction box
+        let typed = '9'; // what the 'input' event kept
+        typed = keptTyping(typed, el);
+        expect(typingOf({input: true, value: '9'}, el, typed).fresh).toBe(false); // the typed text itself
+        el.value = '120'; // the dial writes it, the focus stays in the box, no 'input' event
+        typed = keptTyping(typed, el);
+        expect(typed).toBe(null);
+        expect(typingOf({input: true, value: '120'}, el, typed)).toEqual({text: '120', fresh: true, pad: false});
+        el.value = '9'; // the dial comes back to the very text typed earlier: still the dial's, the typing is forgotten
+        expect(typingOf({input: true, value: '9'}, el, keptTyping(typed, el)).fresh).toBe(true);
+    });
+    test('keptTyping: the typed text lives only while the focused box holds it', () => {
+        expect(keptTyping('12', box('12'))).toBe('12');
+        expect(keptTyping('12', box('13'))).toBe(null);
+        expect(keptTyping('12', {tagName: 'BUTTON', value: '12'})).toBe(null);
+        expect(keptTyping(null, box('12'))).toBe(null);
+        expect(keptTyping('12', null)).toBe(null);
     });
     test('endEdit: blur, only for the guide that asked and only in a box', () => {
         const el = box('12');

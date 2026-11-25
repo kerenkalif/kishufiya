@@ -31,14 +31,20 @@ export const focusGame = doc => {
 export const typing = el => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
 
 // What the page is told of a box the child is typing in (guide-at `typing`, platform SPEC-editor-base section 3.3): the box's own text as it is
-// now, and `fresh` - nothing typed since it took the focus. The sprite's boxes keep what is typed to themselves until blur or Enter
+// now, and `fresh` - the text in the box is not what the child typed (nothing typed, or the app wrote a new value). The sprite's boxes keep what is typed to themselves until blur or Enter
 // (BufferedInput), so the game does not hold it yet: the page says "the value is in" (guide-typed) and the guide ends the edit
 // (endEdit). `pad` false: the real keyboard, no key to ring. null: the guided target is no box, or the focus is not in it.
-export const typingOf = (found, active, touched) => {
+export const typingOf = (found, active, typedText) => {
     if (!found || !found.input || typeof found.value !== 'string') return null;
     if (!active || active.tagName !== 'INPUT' || active.value !== found.value) return null;
-    return {text: found.value, fresh: !touched, pad: false};
+    return {text: found.value, fresh: typedText !== found.value, pad: false};
 };
+
+// What the child typed in the focused box, derived from the box's own text (never a flag that stays on): the text the child's last
+// key left there, kept only while the box still holds it. A different text is one the app wrote (the direction dial turns the value
+// while the focus stays in the box), so it is not the child's typing and the next report calls it fresh.
+export const keptTyping = (typedText, active) =>
+    typeof typedText === 'string' && active && active.tagName === 'INPUT' && active.value === typedText ? typedText : null;
 
 // The platform says the value asked for is in the box ('guide-typed'): the edit ends the way the child's own blur ends it, so the
 // box submits (BufferedInput handleFlush) and the game holds the value. Only a box of the guided id and only while the focus is in one.

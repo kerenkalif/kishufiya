@@ -174,7 +174,7 @@
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
-    scriptRan, scriptRing, softMarkColours, tellsClick, typing, typingOf, endEdit}
+    scriptRan, scriptRing, softMarkColours, tellsClick, typing, typingOf, keptTyping, endEdit}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -399,7 +399,7 @@ const keepClearOf = () => {
 
 // Where the page is told the target is: sent only when it changes.
 let lastAt = '';
-let touchedInput = false; // something typed in the focused box since it took the focus
+let typedText = null; // the text the child's last key left in the focused box; kept only while the box still holds it (detect.js keptTyping)
 const tellAt = (rect, via, arrow, extra) => {
     const at = frameOf(rect);
     const more = extra || {};
@@ -431,7 +431,8 @@ const tellAt = (rect, via, arrow, extra) => {
     const ws = workspace();
     const snap = (typeof Blockly !== 'undefined' && Blockly.SNAP_RADIUS) || SNAP_RADIUS;
     const dropAttach = whole && !free && ws ? attachOf(whole, more.drop, snap, ws.scale || 1) : null;
-    const typed = typingOf(more, document.activeElement, touchedInput);
+    typedText = keptTyping(typedText, document.activeElement);
+    const typed = typingOf(more, document.activeElement, typedText);
     // everything drawn beside the target, for the page's bubble to keep off (a tag, the outline as it is DRAWN - the frame the base
     // answered, not the one asked for -, a menu's choice, the label). Not the arrow: it grows for ten seconds and every step would
     // be a new report; the page keeps room for it already (`arrowRoom`)
@@ -1390,8 +1391,8 @@ export const attachGuide = (theVm, sender) => {
     }
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('keyup', onKey, true);
-    window.addEventListener('input', e => { if (typing(e.target)) touchedInput = true; wake(); }, true);
-    window.addEventListener('focusin', () => { touchedInput = false; }, true);
+    window.addEventListener('input', e => { if (typing(e.target)) typedText = e.target.value; wake(); }, true);
+    window.addEventListener('focusin', () => { typedText = null; }, true);
     const inputs = [
         'pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click', 'contextmenu', 'dblclick'
     ];
