@@ -70,9 +70,15 @@ export const LessonButton = () => {
     );
 };
 
+// The home button is the editor's own way out; inside a lesson the platform draws its own "back to קסם הקוד" and exit
+// in the lesson's dots row (SPEC-editor-base section 14), so it is hidden there. The page tells it by the same
+// 'chrome' message as `alone`: framed by the platform and not alone = inside a lesson. Opened by itself or with no lesson, it stays.
+export const showHome = (alone, framed) => alone || !framed;
+
 // Before the logo: whether the game is saved, and the way to the child's main page.
 export const StatusArea = () => {
-    const {status} = useChrome();
+    const {status, alone} = useChrome();
+    const home = showHome(alone, window.parent !== window);
     return (
         <div className={styles.area}>
             {status && (
@@ -83,14 +89,14 @@ export const StatusArea = () => {
                     {status}
                 </span>
             )}
-            <button
+            {home && <button
                 className={styles.home}
                 title="לדף הראשי"
                 aria-label="לדף הראשי"
                 onClick={goHome}
             >
                 {'🏠'}
-            </button>
+            </button>}
         </div>
     );
 };
