@@ -2,7 +2,7 @@
 // the editor's own handler, and in which order. The shapes of the protocol are the contract's cases
 // (guide-contract.test.js); here is what the editor DOES with them.
 //   npx jest test/unit/kishufiya-guide/session
-import {answerId, asking, hearWith, inSession, newContract} from '../../../src/components/kishufiya-guide/session.js';
+import {answerId, asking, hearWith, inSession, looked, newContract} from '../../../src/components/kishufiya-guide/session.js';
 
 // An editor that only writes down what its handler was given
 const editor = () => {
@@ -134,5 +134,18 @@ describe('the engine before the layers (the children use it now): exactly as it 
             expect(inSession(answer, asking(msg), {found: false})).toBe(answer);
             expect(answerId(msg)).toBe(msg.id);
         }
+    });
+});
+
+describe('a located answer for a target inside the stage', () => {
+    const state = () => ({session: 's', locates: [{request: 'r', key: 'k', session: 's', found: false, since: null, told: '', highlight: false}]});
+    const stage = {left: 10, top: 20, width: 480, height: 360};
+    test('says the stage box with the place', () => {
+        const out = looked(state(), 'r', {rect: {left: 1, top: 2, width: 3, height: 4}, via: 'stage-sprite', stage}, 0, 0);
+        expect(out.say[0].stage).toEqual(stage);
+    });
+    test('says none for any other target', () => {
+        const out = looked(state(), 'r', {rect: {left: 1, top: 2, width: 3, height: 4}, via: 'ui'}, 0, 0);
+        expect('stage' in out.say[0]).toBe(false);
     });
 });

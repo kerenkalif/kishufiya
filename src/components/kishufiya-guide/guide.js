@@ -78,7 +78,7 @@
 //   locate       {session, request, want: {key, point, highlight}}
 //                                      where is this target (point: a guide's target) - asked apart from the guide, only in
 //                                      a session, several at once, and answered with
-//                                      'located' {id: request, key, session, request, found, via, rect, drop, scroller, reason?, by?}:
+//                                      'located' {id: request, key, session, request, found, via, rect, drop, scroller, stage?, reason?, by?}:
 //                                      found true when the target itself is there, and on every change; found false with
 //                                      a reason at once when a found one is lost, else once it stays missing. Only the
 //                                      way to it on screen (a closed category, its sprite's tile): found false, reason
@@ -863,7 +863,7 @@ const lookOf = (target, found) => {
     if (found.missing) return {missing: found.missing, by: found.by, passing: passingBy(found.missing)};
     if (!found.rect) return {};
     if (onTheWay(target, found.via)) return {missing: 'on-the-way', via: found.via};
-    return {rect: frameOf(found.rect), via: found.via, drop: found.drop, scroller: found.scroller, scrolling: Boolean(found.scrolling)};
+    return {rect: frameOf(found.rect), via: found.via, drop: found.drop, scroller: found.scroller, scrolling: Boolean(found.scrolling), ...(stageFrame(found) ? {stage: stageFrame(found)} : {})};
 };
 const drawLocates = () => {
     for (const request of [...softMarks.keys()]) if (!locateOf(state.contract, request)) softMark(request, null);
