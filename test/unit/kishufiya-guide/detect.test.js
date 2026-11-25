@@ -1,7 +1,7 @@
 // K12 (2026-10-28): what the guide tells the lesson the child did - the pure parts (detect.js).
 //   npx jest test/unit/kishufiya-guide
 import {categoryOf} from '../../../src/components/kishufiya-guide/targets.js';
-import {coveredBy, forwardedKey, gameHeard, gameKey, libraryMissing, onTheWay, quietReports, samplePoints, spriteOnStage, typing, typingOf, endEdit} from '../../../src/components/kishufiya-guide/detect.js';
+import {coveredBy, focusGame, forwardedKey, gameHeard, gameKey, libraryMissing, onTheWay, quietReports, samplePoints, spriteOnStage, typing, typingOf, endEdit} from '../../../src/components/kishufiya-guide/detect.js';
 
 describe('keys', () => {
     test('the game gets the key as scratch-gui gives it', () => {
@@ -273,5 +273,21 @@ describe('a box typed in tells its text, and its edit ends when the platform say
         expect(el.blurred).toBe(0);
         expect(endEdit(el, 3, 3)).toBe(true);
         expect(el.blurred).toBe(1);
+    });
+});
+
+describe('focusGame', () => {
+    test('blurs the element that has the focus, so the next key reaches the game', () => {
+        const body = {};
+        const button = {blur: jest.fn()};
+        const doc = {body, activeElement: button};
+        expect(focusGame(doc)).toBe(true);
+        expect(button.blur).toHaveBeenCalledTimes(1);
+    });
+    test('the page already has the focus: nothing to blur; no document: false', () => {
+        const body = {blur: jest.fn()};
+        expect(focusGame({body, activeElement: body})).toBe(true);
+        expect(body.blur).not.toHaveBeenCalled();
+        expect(focusGame(null)).toBe(false);
     });
 });

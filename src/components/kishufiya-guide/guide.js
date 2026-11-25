@@ -95,6 +95,7 @@
 //                                      waits for one. The guide then finds its target anew: the ring, the
 //                                      arrow and 'guide-at' follow the blocks, and the code scrolls to the target
 //                                      once more if the tidy left it out of view
+//   focus-game   {}   blur what has the focus, so the keys reach the game (detect.js focusGame)
 //   key-press    {key, code, keyCode, down}
 //                                      a key the child pressed while the focus was in the lesson, not here:
 //                                      given to the game, and told back as 'key' like one pressed here (K12)
@@ -127,6 +128,7 @@
 //                                                   (for half a second): why - targets.js
 //   guide-frame {id, frame}             the frame to draw at the drop, as the base decided it (drop-frame.ts); null: nothing left to draw
 //   guide-at {typing?: {text, fresh, pad: false}} (a box being typed in: its text now, and whether nothing was typed since it took the focus)
+//   guide-at {stage?: {left, top, width, height}} (the stage's box, same pixels as rect, for a target inside it)
 //   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?, dropRect?, accept?, dropKind?, label?, keepOff?: [{left, top, width, height}, ...]}
 //                                                   where the guided target is now, in this frame's pixels,
 //                                                   and on which side of it the arrow is; a field's value as
@@ -169,8 +171,8 @@
 //                                                   at a library) arrive as one library-pick each, in marking order, each
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
-import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound} from './targets.js';
-import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
+import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
+import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
     scriptRan, scriptRing, softMarkColours, tellsClick, typing, typingOf, endEdit}
     from './detect.js';
@@ -414,6 +416,7 @@ const tellAt = (rect, via, arrow, extra) => {
     const box = root && root.getSvgRoot ? root.getSvgRoot().getBoundingClientRect() : null;
     const clear = box && box.width > 0 ? frameOf(box) : null;
     const lab = frameOf(more.label);
+    const stage = stageFrame(more); // the stage's box, for a target inside it (the bubble stands beside the stage)
     const scroller = more.scroller || null; // the scrolling box the target is in: the base asks for its scroll
     // a dragged block's place: the frame it would have and where a release is accepted - reported, never decided here (platform
     // drop-frame.ts answers 'guide-frame', and only that is drawn)
@@ -445,11 +448,11 @@ const tellAt = (rect, via, arrow, extra) => {
         choice: choiceRing && choiceRing.style.display !== 'none' ? frameOf(choiceRing.getBoundingClientRect()) : null,
         label: lab
     });
-    const key = JSON.stringify([at, via, arrow, value, raw, typed, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach, keepOff]);
+    const key = JSON.stringify([at, via, arrow, value, raw, typed, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach, keepOff, stage]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send(inSession({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller, ...(keepOff.length ? {keepOff} : {}),
+    send(inSession({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller, ...(stage ? {stage} : {}), ...(keepOff.length ? {keepOff} : {}),
         ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})}, state.guide && state.guide.ask, {found: Boolean(at)}));
 };
 
@@ -1207,6 +1210,11 @@ const handleSaid = msg => {
         tidyAsked = true;
         tidyIfAsked();
         break;
+    case 'focus-game': {
+        // the keyboard's focus to the stage, so a key pressed reaches the game (platform press-run.ts asksKeys)
+        focusGame(document);
+        return true;
+    }
     case 'key-press': {
         const key = forwardedKey(msg, Boolean(state.frozen));
         if (key && vm) {

@@ -19,6 +19,14 @@ export const gameKey = e => {
 // focused button or tab of the editor (vm-listener-hoc: "Don't capture keys intended for Blockly inputs").
 export const gameHeard = (target, doc) => target === doc || Boolean(doc && target === doc.body);
 
+// The keyboard's focus to the game ('focus-game'): blur what has it, so the next key's target is the page itself (gameHeard). The
+// canvas is NOT focused: a key on it is not "the page as such", and the game would not hear it.
+export const focusGame = doc => {
+    const active = doc && doc.activeElement;
+    if (active && active !== doc.body && typeof active.blur === 'function') active.blur();
+    return Boolean(doc);
+};
+
 // A box being typed into: its letters are not the game's keys, nor the lesson's.
 export const typing = el => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
 

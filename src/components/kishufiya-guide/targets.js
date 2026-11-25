@@ -157,6 +157,10 @@ export const softFound = found => {
     return {...found, rect: found.named};
 };
 
+// guide-at `stage` (platform side-rule.ts): the stage's box for a target inside it (a sprite, a point, the flag, the stage
+// itself), in the same pixels as `rect`; null for any other target, and an old base ignores it.
+export const stageFrame = more => (more && more.stage ? frameOf(more.stage) : null);
+
 // A DOMRect as guide-at says a place: {left, top, width, height}, whole pixels (width and height from right and bottom).
 export const frameOf = rect => rect ? {
     left: Math.round(rect.left),
@@ -542,7 +546,7 @@ export const resolve = (target, vm) => {
             const other = vm.runtime.getTargetByDrawableId(top);
             return {missing: 'covered', by: other ? other.getName() : null};
         }
-        return {rect: on.rect, via: 'stage-sprite'};
+        return {rect: on.rect, via: 'stage-sprite', stage: canvas};
     }
     if (target.ui === 'stage' && target.stagePoint) {
         // a point on the stage: measured every look, so it follows the stage's size and the sprite's place now
@@ -554,7 +558,7 @@ export const resolve = (target, vm) => {
         if (point.missing) return point;
         const stage = {width: vm.runtime.stageWidth || 480, height: vm.runtime.stageHeight || 360};
         const on = stagePointOnScreen({x: point.x, y: point.y, stage, canvas});
-        return on.rect ? {rect: on.rect, via: 'stage-point'} : on;
+        return on.rect ? {rect: on.rect, via: 'stage-point', stage: canvas} : on;
     }
     if (target.ui === 'stage' && !rectOf(uiElement('stage'))) return {missing: 'stage-hidden'};
     if (TAB_OF_LIST[target.ui]) {
@@ -577,7 +581,7 @@ export const resolve = (target, vm) => {
         const label = inputLabel(el);
         // a field of the sprite info pane: its name is part of what an explanation of it talks about (softFound)
         const named = PANE_FIELDS.has(target.ui) ? withLabel(rect, label) : null;
-        return {rect, via: 'ui', value, raw: value, input, label, ...(named ? {named} : {})};
+        return {rect, via: 'ui', value, raw: value, input, label, ...(named ? {named} : {}), ...(target.ui === 'stage' ? {stage: rect} : {})};
     }
     if (target.libraryTag) {
         const rect = rectOf(libraryTagButton(target.libraryTag));

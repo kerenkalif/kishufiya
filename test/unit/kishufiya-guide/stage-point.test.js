@@ -54,7 +54,7 @@ describe('resolve: a point on the stage', () => {
     });
     test('both numbers: the mark at that point, via stage-point', () => {
         expect(resolve({ui: 'stage', stagePoint: {x: 0, y: 0}}, vm))
-            .toEqual({rect: {left: 206, right: 234, top: 126, bottom: 154}, via: 'stage-point'});
+            .toEqual({rect: {left: 206, right: 234, top: 126, bottom: 154}, via: 'stage-point', stage: canvas});
     });
     test('y alone: the sprite\'s x now, at that y', () => {
         const found = resolve({ui: 'stage', stagePoint: {y: 0, sprite: 'ship'}}, vm);
@@ -71,5 +71,17 @@ describe('resolve: a point on the stage', () => {
         const none = {left: 0, top: 0, width: 0, height: 0};
         const hidden = {...vm, renderer: {canvas: {getBoundingClientRect: () => none}}};
         expect(resolve({ui: 'stage', stagePoint: {x: 0, y: 0}}, hidden)).toEqual({missing: 'stage-hidden'});
+    });
+});
+
+describe('guide-at stage (the stage box for a target inside it)', () => {
+    const {stageFrame} = require('../../../src/components/kishufiya-guide/targets.js');
+    test('a target inside the stage tells the stage box in whole pixels, as rect', () => {
+        const canvas = {left: 100.4, top: 50, right: 580.4, bottom: 410};
+        expect(stageFrame({rect: {}, via: 'stage-sprite', stage: canvas})).toEqual({left: 100, top: 50, width: 480, height: 360});
+    });
+    test('any other target tells none', () => {
+        expect(stageFrame({rect: {}, via: 'ui'})).toBe(null);
+        expect(stageFrame(null)).toBe(null);
     });
 });
