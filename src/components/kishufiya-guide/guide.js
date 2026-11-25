@@ -169,7 +169,7 @@
 //                                                   at a library) arrive as one library-pick each, in marking order, each
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
-import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller} from './targets.js';
+import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
     scriptRan, scriptRing, softMarkColours, tellsClick, typing, typingOf, endEdit}
@@ -772,7 +772,7 @@ const drawGuide = () => {
         hideGuide();
         shown = {rect: r, via: found.via, input: Boolean(found.input)};
         if (marking === 'soft') {
-            placeRing(found);
+            placeRing(softFound(found)); // a pane's field with its name (targets.js softFound)
             ring.classList.add(styles.soft);
             setSoftColour(softMarkColours(state.guide.markColour));
             ring.classList.toggle(styles.point, found.via === 'stage-point');
@@ -850,7 +850,7 @@ const softMark = (request, found) => {
         layer.appendChild(el);
         softMarks.set(request, el);
     }
-    placeRing(found, el);
+    placeRing(softFound(found), el); // a pane's field with its name (targets.js softFound)
     el.classList.toggle(styles.point, found.via === 'stage-point');
 };
 // What the contract is told of one look at a place's target (session.js looked): the target itself, the way to it, or why

@@ -137,6 +137,25 @@ export const inputLabel = el => {
         el.closest('[class*="prompt_body_"]') && el.closest('[class*="prompt_body_"]').querySelector(PROMPT_LABEL);
     return words ? rectOf(words) : null;
 };
+// A box to type in together with the words that say what it is: the one rectangle around both (Keren 25.11.2026: an
+// explanation of a property of the sprite talks about its name and its value, "כיוון" and the number - the soft mark
+// of what is talked about goes around both, never around the number alone). null for a box with no words: the box
+// itself is all there is.
+export const withLabel = (rect, label) => {
+    if (!rect || !label) return null;
+    const left = Math.min(rect.left, label.left);
+    const top = Math.min(rect.top, label.top);
+    const right = Math.max(rect.right, label.right);
+    const bottom = Math.max(rect.bottom, label.bottom);
+    return {left, top, right, bottom, width: right - left, height: bottom - top};
+};
+// What the SOFT mark is drawn around (guide.js: a window's soft mark, a place's): the target with its words when
+// it has them (`named`), else the target. The red ring - where to act - stays on the box alone, and so does what
+// guide-at tells (`rect`, with `label` apart): nothing the page reads changes.
+export const softFound = found => {
+    if (!found || !found.named) return found;
+    return {...found, rect: found.named};
+};
 
 // A DOMRect as guide-at says a place: {left, top, width, height}, whole pixels (width and height from right and bottom).
 export const frameOf = rect => rect ? {
@@ -554,7 +573,11 @@ export const resolve = (target, vm) => {
         const value = el && el.tagName === 'INPUT' ? el.value : null;
         const input = Boolean(el && el.tagName === 'INPUT');
         if (!rect && target.ui === 'sprite-info') return {missing: 'pane-hidden'};
-        return rect ? {rect, via: 'ui', value, raw: value, input, label: inputLabel(el)} : {missing: 'ui'};
+        if (!rect) return {missing: 'ui'};
+        const label = inputLabel(el);
+        // a field of the sprite info pane: its name is part of what an explanation of it talks about (softFound)
+        const named = PANE_FIELDS.has(target.ui) ? withLabel(rect, label) : null;
+        return {rect, via: 'ui', value, raw: value, input, label, ...(named ? {named} : {})};
     }
     if (target.libraryTag) {
         const rect = rectOf(libraryTagButton(target.libraryTag));
