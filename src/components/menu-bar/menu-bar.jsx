@@ -862,6 +862,7 @@ class MenuBar extends React.Component {
                             <div
                                 className={classNames(styles.menuBarItem, styles.hoverable)}
                                 onClick={this.handleClickTidyBlocks}
+                                data-guide="tidy-blocks"
                                 role="button"
                                 title={this.props.intl.formatMessage(kishufiyaMessages.tidyBlocks)}
                             >

@@ -101,6 +101,8 @@ const UI = {
     'sound-list': '[class*="selector_list-area_"]',
     'sprite-list': '[class*="sprite-selector_items-wrapper_"]',
     'menu-bar': '[class*="menu-bar_menu-bar_"]',
+    // the "ארגן בלוקים" button of the menu bar (menu-bar.jsx data-guide): the lesson rings it when scripts lie on each other
+    'tidy-blocks': '[data-guide="tidy-blocks"]',
     // the sprite info's fields by the editor's own marks (data-guide in sprite-info.jsx, direction-picker.jsx,
     // toggle-buttons.jsx): no index, no label text (translated) - a field cannot be taken for its neighbour
     'sprite-name': '[data-guide="sprite-name"]',

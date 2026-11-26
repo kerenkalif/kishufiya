@@ -183,6 +183,7 @@ import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {setNameAsk} from './name-ask.js';
 import {answerId, asking, hearWith, inSession, opens, locateOf, looked, newContract, reasonSaid, toldAnew} from './session.js';
 import {openMenuRects} from './open-menus.js';
+import {scriptBoxes, topBlocksOf} from './script-boxes.js';
 import {signTagOf, signShownAt, tagPlace, choiceOf, choiceIndex, openMenuItems} from './value-mark.js';
 
 let vm = null;
@@ -1009,11 +1010,25 @@ const countBlocks = target => {
     return out;
 };
 
+// The open sprite's scripts as boxes, told when they change (the same debounce as the code's diff, no polling): the page finds
+// scripts lying on each other from them (script-boxes.js).
+let lastBoxes = '';
+const tellScriptBoxes = target => {
+    const ws = workspace();
+    if (!ws || !ws.getTopBlocks) return;
+    const boxes = scriptBoxes(topBlocksOf(ws), Boolean(ws.RTL));
+    const key = JSON.stringify([target.getName(), boxes]);
+    if (key === lastBoxes) return;
+    lastBoxes = key;
+    send({type: 'script-boxes', sprite: target.getName(), boxes});
+};
+
 let changeTimer = 0;
 const diffCode = () => {
     changeTimer = 0;
     const target = vm && vm.editingTarget;
     if (!target) return;
+    tellScriptBoxes(target);
     const now = countBlocks(target);
     const before = counts.get(target.id);
     counts.set(target.id, now);
