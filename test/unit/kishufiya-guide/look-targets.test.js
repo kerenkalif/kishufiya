@@ -5,6 +5,8 @@ import {resolve} from '../../../src/components/kishufiya-guide/targets.js';
 
 const all = [];
 const matches = (el, part) => {
+    const g = /^\[data-guide="([^"]+)"\]$/.exec(part);
+    if (g) return el.guide === g[1];
     const m = /^\[class\*="([^"]+)"\]$/.exec(part);
     return Boolean(m) && el.className.includes(m[1]);
 };
@@ -37,9 +39,19 @@ const editor = selectedTab => {
     });
     box(null, 'selector_list-area_cd34', 300);
     box(null, 'sprite-selector_items-wrapper_ef56', 400);
+    // the menu bar's tidy button is there on the code tab only (menu-bar.jsx isCodeTab)
+    if (selectedTab === 'code') box(null, 'menu-bar_item', 33).guide = 'tidy-blocks';
 };
 
 describe('look targets', () => {
+    test('the tidy button: rung on the code tab; from the costumes or sounds tab the code tab first', () => {
+        editor('code');
+        expect(resolve({ui: 'tidy-blocks'}, null)).toMatchObject({via: 'ui', rect: {height: 33}});
+        editor('costumes');
+        expect(resolve({ui: 'tidy-blocks'}, null)).toMatchObject({via: 'ui', rect: {height: 10}});
+        editor('sounds');
+        expect(resolve({ui: 'tidy-blocks'}, null)).toMatchObject({via: 'ui', rect: {height: 10}});
+    });
     test('the costume list with the costumes tab open: the whole list', () => {
         editor('costumes');
         expect(resolve({ui: 'costume-list'}, null)).toMatchObject({via: 'ui', rect: {height: 300}});

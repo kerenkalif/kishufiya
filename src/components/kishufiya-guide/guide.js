@@ -1013,9 +1013,16 @@ const countBlocks = target => {
 // The open sprite's scripts as boxes, told when they change (the same debounce as the code's diff, no polling): the page finds
 // scripts lying on each other from them (script-boxes.js).
 let lastBoxes = '';
+let boxesTimer = 0;
+// While a block is being dragged its place is not settled (and a block in the child's hand covers scripts it is only passing over):
+// nothing is told, and the drop's own change tells it (a drag ends with a change event).
 const tellScriptBoxes = target => {
     const ws = workspace();
     if (!ws || !ws.getTopBlocks) return;
+    if (ws.isDragging && ws.isDragging()) {
+        if (!boxesTimer) boxesTimer = setTimeout(() => { boxesTimer = 0; const now = vm && vm.editingTarget; if (now) tellScriptBoxes(now); }, 150);
+        return;
+    }
     const boxes = scriptBoxes(topBlocksOf(ws), Boolean(ws.RTL));
     const key = JSON.stringify([target.getName(), boxes]);
     if (key === lastBoxes) return;

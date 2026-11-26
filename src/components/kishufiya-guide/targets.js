@@ -502,7 +502,8 @@ export const resolve = (target, vm) => {
     // A target of the code or the palette while the costumes or the sounds are open: the code tab first
     // (a step that drew a costume left the child there, and the next block was "nowhere" - donuts 12.2,
     // 2026-10-26)
-    if (target.block || target.blockId || target.category || target.ui === 'make-variable' || target.ui === 'variable-name') {
+    if (target.block || target.blockId || target.category || target.ui === 'make-variable' || target.ui === 'variable-name' ||
+        target.ui === 'tidy-blocks') {
         const tab = uiElement('code-tab');
         const rect = tab && !/is-selected/.test(tab.className) && rectOf(tab);
         if (rect && !document.querySelector(NAME_BOX)) return {rect, via: 'ui'};
