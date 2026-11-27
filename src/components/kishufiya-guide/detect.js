@@ -468,6 +468,10 @@ export const softMarkColours = value => {
     return {line: `#${full}`, glow: `rgba(${r}, ${g}, ${b}, 0.65)`, glowPoint: `rgba(${r}, ${g}, ${b}, 0.8)`};
 };
 
+// The pixels at the top of the code area the base asks to keep free (guide message `reserve-top` {px}, SPEC-editor-base 15.1): a
+// whole number of pixels, 0 or more. null for anything else (the message is ignored); the base decides the number, never measured here.
+export const reserveTopPx = value => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.round(value) : null);
+
 // The lesson's 'tidy' (guide.js), one look at it: `asked` - whether it is still asked for after this look, `done` -
 // whether the scripts were put in place now. Not while a block is being dragged - blocks never move under the child's
 // hand, it is done at the drop -, and a tidy that could not be done (`tidy` → false: no code area to tidy in, as on

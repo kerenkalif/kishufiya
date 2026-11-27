@@ -106,6 +106,8 @@
 //                                      and the sprite list stay open, for a pick - the child opens the
 //                                      right sprite by themselves; nothing is opened for them (Keren,
 //                                      2026-10-23), the lesson may give a hint instead
+//   reserve-top  {px}                  the base's words strip takes px pixels at the top of the code area (SPEC-editor-base 15.1): the
+//                                      code area starts below them, 0 gives it back; 'code-area' is then told anew, measured after the move
 //   pick         {on}                  clicks on blocks in the code pick them (reported) instead of
 //                                      running or dragging them
 //   find         {id, opcode, inside?} which sprites' code has such a block (inside: within one of that
@@ -178,7 +180,7 @@ import {busyTracker} from './rects.js';
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
-    scriptRan, scriptRing, softMarkColours, tellsClick, typing, typingOf, keptTyping, endEdit}
+    scriptRan, scriptRing, softMarkColours, reserveTopPx, tellsClick, typing, typingOf, keptTyping, endEdit}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -615,8 +617,8 @@ const closeFieldEditors = () => {
     } catch (e) { /* the blocks are not loaded yet */ }
 };
 
-// The soft mark's colour from the guide message (`markColour`, softMarkColours in detect.js), as the variables
-// guide.css reads; none (null): its own purple
+// A mark's colour from the guide message (`markColour`, softMarkColours in detect.js; SPEC-editor-base 15.2), as the variables
+// guide.css reads for the ring and the soft mark alike; none (null): the fallback in guide.css (red ring, purple soft)
 let softColoured = false; // the variables are on the ring now
 const setSoftColour = colours => {
     if (!colours && !softColoured) return;
@@ -630,6 +632,26 @@ const setSoftColour = colours => {
         else ring.style.removeProperty(name);
     }
     softColoured = Boolean(colours);
+};
+
+// The base's words strip covers the top of the code area (SPEC-editor-base 15.1 `reserve-top` {px}): the workspace's
+// box starts px lower, so no block sits under it and the scroll still reaches every block. 0 gives it back. The same px
+// again does nothing; 'code-area' is told anew, measured after the move (the loop in tellCodeArea).
+let reservedTop = 0;
+const reserveTop = value => {
+    const px = reserveTopPx(value);
+    if (px === null || px === reservedTop) return;
+    reservedTop = px;
+    const ws = workspace();
+    const box = ws && ws.getInjectionDiv ? ws.getInjectionDiv() : document.querySelector('.injectionDiv');
+    if (!box) return;
+    box.style.top = px ? `${px}px` : '';
+    try {
+        ws.resize();
+    } catch (e) { // ignored: the workspace is not ready; the window resize below makes it measure again
+    }
+    window.dispatchEvent(new Event('resize'));
+    lastArea = '';
 };
 
 const hideGuide = () => {
@@ -812,7 +834,7 @@ const drawGuide = () => {
     placeRing(found);
     // an action's ring after a window's soft mark (the sprite's tile right after the flag's window): red again
     ring.classList.remove(styles.soft);
-    setSoftColour(null);
+    setSoftColour(softMarkColours(state.guide.markColour)); // the message's colour; none: guide.css's own red
     // a point on the stage: a round mark with a white halo, seen on a dark stage too (targets.js stagePoint)
     ring.classList.toggle(styles.point, found.via === 'stage-point');
     // a whole script (targets.js `script`): the ring alone - no arrow, no words, no louder ring (detect.js
@@ -1219,6 +1241,9 @@ const handleSaid = msg => {
     case 'guide-scroll':
         // the base's decision, done: a box scrolled to a target (targets.js scrollContainer)
         if ((state.guide && answerId(msg) === state.guide.id) || locateOf(state.contract, answerId(msg))) scrollContainer(msg.container, msg.top, msg.left);
+        break;
+    case 'reserve-top':
+        reserveTop(msg.px);
         break;
     case 'guide-frame':
         // the base's decision for the frame at the drop (platform drop-frame.ts): drawn exactly, nothing on null

@@ -77,13 +77,26 @@
     box-sizing: border-box;
 }
 
+/* The fallback colours of a mark, for a guide message without `markColour` (SPEC-editor-base 15.2): the only place they
+   are written. A message with it sets --mark-line / --mark-glow (guide.js setSoftColour) and these are not read. */
+.ring {
+    --mark-fallback: #e53935;
+    --mark-glow-fallback: rgba(229, 57, 53, 0.55);
+}
+
+.ring.soft {
+    --mark-fallback: #6a1b9a;
+    --mark-glow-fallback: rgba(149, 86, 205, 0.65);
+    --mark-glow-point-fallback: rgba(149, 86, 205, 0.8);
+}
+
 .ring,
 .flash {
     position: fixed;
     display: none;
     /* bolder red marks (Keren 19.11): an 8px line and a white outline outside and inside it, so the red is seen on any stage
        picture. The same numbers as the kishufonet guide's .kg-ring and .kg-drop (scratchjr-web web-overrides.css). */
-    border: 8px solid #e53935;
+    border: 8px solid var(--mark-line, var(--mark-fallback));
     border-radius: 8px;
     box-shadow: 0 0 0 3px #ffffff, inset 0 0 0 3px #ffffff;
     box-sizing: border-box;
@@ -93,7 +106,7 @@
     content: "";
     position: absolute;
     inset: -12px;
-    border: 5px solid #e53935;
+    border: 5px solid var(--mark-line, var(--mark-fallback));
     border-radius: 14px;
     animation: pulse 1.2s ease-out infinite;
 }
@@ -105,7 +118,7 @@
 
 /* not pressed after a few seconds: the ring grows and glows, the arrow is bigger (Keren, 2026-10-25) */
 .ring.louder {
-    box-shadow: 0 0 0 3px #ffffff, inset 0 0 0 3px #ffffff, 0 0 0 7px rgba(229, 57, 53, 0.35), 0 0 18px 6px rgba(229, 57, 53, 0.55);
+    box-shadow: 0 0 0 3px #ffffff, inset 0 0 0 3px #ffffff, 0 0 0 7px rgba(229, 57, 53, 0.35), 0 0 18px 6px var(--mark-glow, var(--mark-glow-fallback));
     animation: louder 0.7s ease-in-out infinite alternate;
 }
 
@@ -121,16 +134,16 @@
 }
 
 .ring.point.louder {
-    box-shadow: 0 0 0 3px #ffffff, 0 0 0 7px rgba(229, 57, 53, 0.35), 0 0 18px 8px rgba(229, 57, 53, 0.55), inset 0 0 0 3px #ffffff;
+    box-shadow: 0 0 0 3px #ffffff, 0 0 0 7px rgba(229, 57, 53, 0.35), 0 0 18px 8px var(--mark-glow, var(--mark-glow-fallback)), inset 0 0 0 3px #ffffff;
 }
 
 /* the thing a window of the lesson talks about (platform decision 32, 2026-10-31; guide.js marking 'soft'): a soft mark in
    ניצוצי's purple (the platform's --ked-nitz #6a1b9a) - or the guide message's `markColour` (guide.js
    setSoftColour) - an outline with a glow, no pulse, no arrow, nothing that asks for a press. A white halo inside and out, so it is seen on the stage's dark backdrop (space) as on a light one. */
 .ring.soft {
-    border: 3px solid var(--mark-line, #6a1b9a);
+    border: 3px solid var(--mark-line, var(--mark-fallback));
     border-radius: 10px;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 16px 6px var(--mark-glow, rgba(149, 86, 205, 0.65)), inset 0 0 0 2px rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 16px 6px var(--mark-glow, var(--mark-glow-fallback)), inset 0 0 0 2px rgba(255, 255, 255, 0.9);
     animation: none;
 }
 
@@ -140,7 +153,7 @@
 
 .ring.soft.point {
     border-radius: 50%;
-    box-shadow: 0 0 0 3px #ffffff, 0 0 16px 6px var(--mark-glow-point, rgba(149, 86, 205, 0.8)), inset 0 0 0 3px #ffffff;
+    box-shadow: 0 0 0 3px #ffffff, 0 0 16px 6px var(--mark-glow-point, var(--mark-glow-point-fallback)), inset 0 0 0 3px #ffffff;
 }
 
 /* a whole script longer than the code area's view (guide.js, detect.js scriptRing): the ring is cut at the area's edge, and

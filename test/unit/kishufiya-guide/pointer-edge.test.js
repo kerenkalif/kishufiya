@@ -89,3 +89,30 @@ describe('the soft mark\'s colour', () => {
         for (const bad of [undefined, null, '', 'red', '#12', 'url(x)', '#e0b100; x', 5]) expect(softMarkColours(bad)).toBeNull();
     });
 });
+
+// SPEC-editor-base 15.1 reserve-top: the px the base asks for, a whole number of pixels or nothing
+import {reserveTopPx} from '../../../src/components/kishufiya-guide/detect.js';
+describe('reserve-top px', () => {
+    test('0 or more is kept, rounded', () => {
+        expect(reserveTopPx(0)).toBe(0);
+        expect(reserveTopPx(64)).toBe(64);
+        expect(reserveTopPx(63.6)).toBe(64);
+    });
+    test('anything else is ignored', () => {
+        for (const bad of [undefined, null, '64', -1, NaN, Infinity]) expect(reserveTopPx(bad)).toBeNull();
+    });
+});
+
+// SPEC-editor-base 15.2: guide.css holds the fallback colours once; the message's colour is what guide.js sets
+describe('mark colour for a ring', () => {
+    test('a red or purple markColour gives the line and the glows', () => {
+        expect(softMarkColours('#e53935').line).toBe('#e53935');
+        expect(softMarkColours('#6a1b9a').glow).toBe('rgba(106, 27, 154, 0.65)');
+    });
+    test('guide.css keeps each fallback in one place', () => {
+        const css = require('fs').readFileSync(require('path').join(__dirname, '../../../src/components/kishufiya-guide/guide.css'), 'utf8');
+        expect(css.match(/--mark-fallback: #e53935/g)).toHaveLength(1);
+        expect(css.match(/--mark-fallback: #6a1b9a/g)).toHaveLength(1);
+        expect(css).not.toMatch(/border: [38]px solid #(e53935|6a1b9a)/);
+    });
+});
