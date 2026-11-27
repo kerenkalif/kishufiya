@@ -1,6 +1,7 @@
 import LazyScratchBlocks from './tw-lazy-scratch-blocks';
 import kishufiyaWords from './kishufiya-words.json';
 import {showRemembered} from './kishufiya-cloud.js';
+import {installLtrNumbers} from './kishufiya-ltr-numbers.js';
 
 /**
  * Connect scratch blocks with the vm
@@ -404,6 +405,9 @@ export default function (vm) {
             return alert.call(this, showRemembered(message), callback);
         };
     }
+
+    // Kishufiya (2026-11-28): a negative number in a field reads "-100", not "100-" (kishufiya-ltr-numbers.js)
+    installLtrNumbers(ScratchBlocks);
 
     return ScratchBlocks;
 }

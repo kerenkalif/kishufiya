@@ -1,0 +1,17 @@
+/*
+ * Kishufiya (Keren, 2026-11-28): in a right-to-left page a negative number drew its minus on the right of the
+ * digits ("100-" for -100), because a "-" before digits is a neutral mark that takes the page's direction.
+ * unicode-bidi: plaintext gives the content its own direction from its first letter: digits alone read left to
+ * right ("-100"), a Hebrew word still reads right to left. Alignment is not changed (no `direction` here).
+ * One rule for the GUI layer: the number inputs wherever they are (sprite info, direction, size, paint editor,
+ * settings), the field box the blocks editor opens over a block, and `.ltr-numbers` that a readout (monitor value,
+ * list item) takes with `composes`. The blocks' own drawn text is the SVG layer: kishufiya-ltr-numbers.js.
+ */
+:global(input[type="number"]),
+:global(.blocklyHtmlInput) {
+    unicode-bidi: plaintext;
+}
+
+.ltr-numbers {
+    unicode-bidi: plaintext;
+}

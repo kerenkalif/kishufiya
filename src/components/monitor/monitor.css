@@ -37,6 +37,7 @@
 }
 
 .value {
+    composes: ltr-numbers from "../../css/ltr-numbers.css";
     display: flex;
     justify-content: center;
     align-items: center;
@@ -50,6 +51,7 @@
 }
 
 .large-value {
+    composes: ltr-numbers from "../../css/ltr-numbers.css";
     min-height: 1.4rem;
     min-width: 3rem;
     padding: 0.1rem 0.25rem;
@@ -111,6 +113,7 @@
 }
 
 .list-value {
+    composes: ltr-numbers from "../../css/ltr-numbers.css";
     min-width: 40px;
     text-align: left;
     margin: 0 3px;
@@ -147,6 +150,7 @@
 }
 
 .value-inner {
+    composes: ltr-numbers from "../../css/ltr-numbers.css";
     padding: 3px 5px;
     min-height: 22px;
     overflow: hidden; /* Don't let long values escape container */
@@ -156,6 +160,7 @@
 }
 
 .list-input {
+    composes: ltr-numbers from "../../css/ltr-numbers.css";
     padding: 3px 5px;
     border: 0;
     background: none;
