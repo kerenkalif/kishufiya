@@ -127,6 +127,8 @@
 //   guide-missing {id, target, reason, by}          the target is nowhere on the screen, or cannot be clicked
 //                                                   (for half a second): why - targets.js
 //   guide-frame {id, frame}             the frame to draw at the drop, as the base decided it (drop-frame.ts); null: nothing left to draw
+//   guide-at, located {dialog?, next?, clip?: {left, top, width, height}, carried?: true} (the open dialog, the control pressed next, the visible box of the target's scroll container, a block being carried: rects.js)
+//   guide-busy {on: boolean} (a busy phase starts or ends: a block in flight, a dialog opening or moving, a library not loaded yet)
 //   guide-at {typing?: {text, fresh, pad: false}} (a box being typed in: its text now, and whether nothing was typed since it took the focus)
 //   guide-at {stage?: {left, top, width, height}} (the stage's box, same pixels as rect, for a target inside it)
 //   guide-at {rect: {left, top, width, height} | null, via, arrow: 'above' | 'below', value?, raw?, drop?, dropRect?, accept?, dropKind?, label?, keepOff?: [{left, top, width, height}, ...]}
@@ -171,6 +173,8 @@
 //                                                   at a library) arrive as one library-pick each, in marking order, each
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
+import {readRects, carriedNow, dialogBox} from './rects-dom.js';
+import {busyEdge, isBusy} from './rects.js';
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
@@ -398,6 +402,23 @@ const keepClearOf = () => {
     return named ? resolve(named, vm).block || null : null;
 };
 
+// The window's own box, for the part of a scroll container that shows (rects.js visibleOf)
+const viewBox = () => ({left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight});
+
+// 'guide-busy': told when a busy phase starts or ends (a block in flight, a dialog opening or moving, a library with nothing in it yet)
+let busyTold = false;
+let lastDialog = null;
+const tellBusy = () => {
+    const dialog = dialogBox(document);
+    const grid = document.querySelector('[class*="library_library-scroll-grid_"]');
+    const loading = Boolean(grid) && !grid.querySelector('[class*="library-item_library-item_"]');
+    const now = isBusy({carried: carriedNow(), dialog, lastDialog, loading});
+    lastDialog = dialog;
+    const edge = busyEdge(busyTold, now);
+    busyTold = now;
+    if (edge) send(edge);
+};
+
 // Where the page is told the target is: sent only when it changes.
 let lastAt = '';
 let typedText = null; // the text the child's last key left in the focused box; kept only while the box still holds it (detect.js keptTyping)
@@ -450,11 +471,12 @@ const tellAt = (rect, via, arrow, extra) => {
         choice: choiceRing && choiceRing.style.display !== 'none' ? frameOf(choiceRing.getBoundingClientRect()) : null,
         label: lab
     });
-    const key = JSON.stringify([at, via, arrow, value, raw, typed, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach, keepOff, stage]);
+    const rects = readRects(document, scroller, viewBox()); // dialog, next, clip, carried (rects.js): reported, never decided here
+    const key = JSON.stringify([at, via, arrow, value, raw, typed, drop, clear, lab, scroller, dropRect, accept, dropScroller, free, dropAttach, keepOff, stage, rects]);
     if (key === lastAt) return;
     lastAt = key;
     const id = state.guide ? state.guide.id : null;
-    send(inSession({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller, ...(stage ? {stage} : {}), ...(keepOff.length ? {keepOff} : {}),
+    send(inSession({type: 'guide-at', id, rect: at, via: via || null, arrow: arrow || null, value, raw, ...(typed ? {typing: typed} : {}), drop, clear, label: lab, scroller, ...(stage ? {stage} : {}), ...(keepOff.length ? {keepOff} : {}), ...rects,
         ...(dropRect ? {dropRect, accept, dropKind: free ? 'free' : 'dock', dropScroller, ...(dropAttach ? {dropAttach} : {})} : {})}, state.guide && state.guide.ask, {found: Boolean(at)}));
 };
 
@@ -865,7 +887,7 @@ const lookOf = (target, found) => {
     if (found.missing) return {missing: found.missing, by: found.by, passing: passingBy(found.missing)};
     if (!found.rect) return {};
     if (onTheWay(target, found.via)) return {missing: 'on-the-way', via: found.via};
-    return {rect: frameOf(found.rect), via: found.via, drop: found.drop, scroller: found.scroller, scrolling: Boolean(found.scrolling), ...(stageFrame(found) ? {stage: stageFrame(found)} : {})};
+    return {rect: frameOf(found.rect), via: found.via, drop: found.drop, scroller: found.scroller, scrolling: Boolean(found.scrolling), ...(stageFrame(found) ? {stage: stageFrame(found)} : {}), rects: readRects(document, found.scroller, viewBox())};
 };
 const drawLocates = () => {
     for (const request of [...softMarks.keys()]) if (!locateOf(state.contract, request)) softMark(request, null);
@@ -912,6 +934,7 @@ const tick = now => {
         drawVeil();
         drawGuide();
         drawLocates();
+        if (state.guide || state.contract.locates.length) tellBusy();
     }
     if (state.guide || state.frozen || tidyAsked || state.contract.locates.length || softMarks.size) frame = requestAnimationFrame(tick);
 };

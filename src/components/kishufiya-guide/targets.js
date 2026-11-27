@@ -284,6 +284,13 @@ const listScroller = (id, el) => {
     listBoxes[id] = list;
     return {id, ...spanOf(box), scrollTop: list.scrollTop, maxScrollTop: list.scrollHeight - list.clientHeight};
 };
+// The box of the scrolling container the base knows by `id` (guide-at `scroller`): the palette's area, the code area, or a list as last
+// reported. For guide-at `clip` (rects.js); null when it is not on screen.
+export const scrollerBox = id => {
+    if (id === 'palette') return rectOf(flyoutSvg(workspace()));
+    if (id === 'scripts') return codeArea();
+    return rectOf(listBoxes[id]);
+};
 // The palette's own scroll is in px of the screen here (-scrollY); the flyout's scrollTo takes workspace units
 const paletteScroller = (fws, area) => {
     const metrics = fws.getMetrics();

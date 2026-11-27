@@ -142,7 +142,7 @@ export const toldAnew = state => ({...state, locates: state.locates.map(one => (
 const noWait = reason => reason === 'on-the-way' || reason === 'no-game' || reason.indexOf('unsupported:') === 0;
 
 // One look at the place of `request`, at `now` ms. `look`, as the editor sees the target:
-//   {rect, via, drop?, scroller?, scrolling?, stage?} - the target itself (scrolling: out of its scrolling box's view), or
+//   {rect, via, drop?, scroller?, scrolling?, stage?, rects?} - the target itself (scrolling: out of its scrolling box's view), or
 //   {missing: reason, via?, by?, passing?}    - not here (passing: on its way by itself, not counted as missing), or
 //   {} / null                                 - nowhere ('offscreen').
 // -> {state, say, soft}: the 'located' to say, if any, and whether the soft mark is drawn at the target now.
@@ -155,7 +155,7 @@ export const looked = (state, request, look, now, after) => {
     let fields = null;
     let next = null;
     if (there) {
-        fields = {found: true, via: see.via || null, rect: see.rect, drop: see.drop || null, scroller: see.scroller || null, ...(see.stage ? {stage: see.stage} : {})};
+        fields = {found: true, via: see.via || null, rect: see.rect, drop: see.drop || null, scroller: see.scroller || null, ...(see.stage ? {stage: see.stage} : {}), ...(see.rects || {})};
         next = {...one, found: true, since: null};
     } else {
         const reason = see.missing || 'offscreen';
