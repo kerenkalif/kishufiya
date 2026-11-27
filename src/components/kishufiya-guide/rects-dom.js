@@ -4,8 +4,11 @@ import {visibleOf, rectsOf} from './rects.js';
 import {openMenuRects} from './open-menus.js';
 import {scrollerBox, workspace} from './targets.js';
 
-const MODAL = '[class*="modal_modal-content"], [class*="modal_modal-overlay"]';
-const NEXT = '[class*="ok-button"], [class*="ok_button"]';
+// The dialog itself first: the overlay is its full-screen ancestor (modal.css), so a selector list would always return the overlay.
+const MODAL_CONTENT = '[class*="modal_modal-content"]';
+const MODAL_OVERLAY = '[class*="modal_modal-overlay"]';
+const NEXT = '[class*="ok-button"]';
+const openModal = doc => doc.querySelector(MODAL_CONTENT) || doc.querySelector(MODAL_OVERLAY);
 
 const sized = el => {
     const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
@@ -14,14 +17,14 @@ const sized = el => {
 
 // The open modal (a library, a prompt), else the first open menu or field editor.
 export const dialogBox = doc => {
-    const modal = sized(doc.querySelector(MODAL));
+    const modal = sized(openModal(doc));
     if (modal) return modal;
     return openMenuRects(doc)[0] || null;
 };
 
 // The control that closes the open modal, when the editor has one (a prompt's OK); null otherwise.
 export const nextBox = doc => {
-    const modal = doc.querySelector(MODAL);
+    const modal = openModal(doc);
     return sized(modal && modal.querySelector(NEXT));
 };
 
