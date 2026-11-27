@@ -4,11 +4,11 @@ import {visibleOf, rectsOf} from './rects.js';
 import {openMenuRects} from './open-menus.js';
 import {scrollerBox, workspace} from './targets.js';
 
-// The dialog itself first: the overlay is its full-screen ancestor (modal.css), so a selector list would always return the overlay.
+// The dialog itself only: its overlay is a full-screen ancestor (modal.css), never the dialog's rect. When the content box is not
+// found the dialog is unknown, and an unknown dialog is an absent field (rects.js), not the whole window.
 const MODAL_CONTENT = '[class*="modal_modal-content"]';
-const MODAL_OVERLAY = '[class*="modal_modal-overlay"]';
 const NEXT = '[class*="ok-button"]';
-const openModal = doc => doc.querySelector(MODAL_CONTENT) || doc.querySelector(MODAL_OVERLAY);
+const openModal = doc => doc.querySelector(MODAL_CONTENT);
 
 const sized = el => {
     const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;

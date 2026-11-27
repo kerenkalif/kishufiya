@@ -174,7 +174,7 @@
 //                                                   told as its sprite starts to load - the next only after the one before
 //                                                   is in
 import {readRects, carriedNow, dialogBox} from './rects-dom.js';
-import {busyEdge, isBusy} from './rects.js';
+import {busyTracker} from './rects.js';
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
@@ -406,16 +406,18 @@ const keepClearOf = () => {
 const viewBox = () => ({left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight});
 
 // 'guide-busy': told when a busy phase starts or ends (a block in flight, a dialog opening or moving, a library with nothing in it yet)
-let busyTold = false;
-let lastDialog = null;
+const busy = busyTracker();
 const tellBusy = () => {
     const dialog = dialogBox(document);
     const grid = document.querySelector('[class*="library_library-scroll-grid_"]');
     const loading = Boolean(grid) && !grid.querySelector('[class*="library-item_library-item_"]');
-    const now = isBusy({carried: carriedNow(), dialog, lastDialog, loading});
-    lastDialog = dialog;
-    const edge = busyEdge(busyTold, now);
-    busyTold = now;
+    const edge = busy.look({carried: carriedNow(), dialog, loading});
+    if (edge) send(edge);
+};
+// Nothing alive any more (guide cleared, locates gone): let go of busy, if it was told, so the page never waits for an on:false that never comes.
+const settleBusy = () => {
+    if (state.guide || state.contract.locates.length) return;
+    const edge = busy.stop();
     if (edge) send(edge);
 };
 
@@ -935,6 +937,7 @@ const tick = now => {
         drawGuide();
         drawLocates();
         if (state.guide || state.contract.locates.length) tellBusy();
+        else settleBusy();
     }
     if (state.guide || state.frozen || tidyAsked || state.contract.locates.length || softMarks.size) frame = requestAnimationFrame(tick);
 };
@@ -1302,6 +1305,7 @@ export const handleGuide = (msg, say = send) => {
         state.contract = next;
     }, handleSaid, say);
     if (msg.type === 'locate' || msg.type === 'locate-clear') wake(); // a place asked or gone: the loop draws it
+    settleBusy(); // a clear that stops the last guide or locate ends busy at once, not on a frame that may never come
     return said;
 };
 

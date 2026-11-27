@@ -1,6 +1,7 @@
 // What the editor reports for the conductor: dialog, next, clip, carried and 'guide-busy' (rects.js), and that a 'located' answer carries them.
 //   npx jest test/unit/kishufiya-guide/rects
-import {rectsOf, visibleOf, isBusy, busyEdge, frame} from '../../../src/components/kishufiya-guide/rects.js';
+import {dialogBox, nextBox} from '../../../src/components/kishufiya-guide/rects-dom.js';
+import {rectsOf, visibleOf, isBusy, busyEdge, frame, busyTracker} from '../../../src/components/kishufiya-guide/rects.js';
 import {looked, newContract, hearWith} from '../../../src/components/kishufiya-guide/session.js';
 
 const box = (left, top, width, height) => ({left, top, width, height, right: left + width, bottom: top + height});
@@ -58,5 +59,30 @@ describe('a located answer carries the rects', () => {
         expect(step.say[0]).not.toHaveProperty('next');
         const plain = looked(s, 5, {rect: {left: 0, top: 0, width: 5, height: 5}, via: 'ui'}, 0, 1000);
         expect(plain.say[0]).not.toHaveProperty('dialog');
+    });
+});
+
+describe('busy never stays on after the guide stops', () => {
+    test('busy told, then the guide stops: one on:false, and the next guide starts clean', () => {
+        const t = busyTracker();
+        expect(t.look({carried: true})).toEqual({type: 'guide-busy', on: true});
+        expect(t.stop()).toEqual({type: 'guide-busy', on: false});
+        expect(t.stop()).toBeNull();
+        // a new guide, the same still dialog: it is not "moved" from the last guide's dialog beyond the first look
+        expect(t.look({dialog: box(0, 0, 10, 10)})).toEqual({type: 'guide-busy', on: true});
+        expect(t.look({dialog: box(0, 0, 10, 10)})).toEqual({type: 'guide-busy', on: false});
+    });
+    test('never told busy: stopping says nothing', () => {
+        expect(busyTracker().stop()).toBeNull();
+    });
+});
+
+describe('the dialog is never the full-screen overlay', () => {
+    const rect = {left: 0, top: 0, width: 1000, height: 800};
+    const doc = parts => ({querySelectorAll: () => [], querySelector: sel => (Object.keys(parts).find(k => sel.includes(k)) ? parts[Object.keys(parts).find(k => sel.includes(k))] : null)});
+    test('only the overlay found: no dialog reported', () => {
+        const overlay = {getBoundingClientRect: () => rect, querySelector: () => null};
+        expect(dialogBox(doc({'modal_modal-overlay': overlay}))).toBeNull();
+        expect(nextBox(doc({'modal_modal-overlay': overlay}))).toBeNull();
     });
 });

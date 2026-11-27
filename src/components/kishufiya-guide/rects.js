@@ -48,3 +48,27 @@ export const isBusy = ({carried, dialog, lastDialog, loading}) =>
 
 // One 'guide-busy' per change of busy-ness, never a repeat: `was` is what was last told (false at the start: nothing is said while idle).
 export const busyEdge = (was, now) => (Boolean(was) === Boolean(now) ? null : {type: 'guide-busy', on: Boolean(now)});
+
+// What was told of busy-ness and the last dialog seen, in one place, so that every way the guide stops lets go of both: a stop while
+// busy was told sends on:false (the page would wait for it for ever), and the next guide starts without a dialog "moved" from the last one.
+export const busyTracker = () => {
+    let told = false;
+    let lastDialog = null;
+    return {
+        // one look while a guide or a locate is alive -> the edge to send, or null
+        look: ({carried, dialog, loading}) => {
+            const now = isBusy({carried, dialog, lastDialog, loading});
+            lastDialog = dialog;
+            const edge = busyEdge(told, now);
+            told = now;
+            return edge;
+        },
+        // the guide stopped (ended, cleared, the loop ran out, a switch) -> the closing edge if busy was told, else null; forgets the dialog
+        stop: () => {
+            const edge = busyEdge(told, false);
+            told = false;
+            lastDialog = null;
+            return edge;
+        },
+    };
+};
