@@ -137,7 +137,7 @@ class CostumeTab extends React.Component {
         const target = this.props.vm.editingTarget;
         const costume = target && target.sprite.costumes[costumeIndex];
         const restoreCostumeFun = this.props.vm.deleteCostume(costumeIndex);
-        if (costume) recordItemDeletion(this.props.vm, 'Costume', costume.name, target, restoreCostumeFun);
+        if (costume) recordItemDeletion(this.props.vm, 'Costume', costume, target, restoreCostumeFun);
         this.props.dispatchUpdateRestore({
             restoreFun: restoreCostumeFun,
             deletedItem: 'Costume'

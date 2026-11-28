@@ -245,6 +245,14 @@
     opacity: 0.5;
 }
 
+/* a short line next to the undo / redo buttons when something could not be brought back */
+.undo-notice {
+    align-self: center;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
+    color: white;
+}
+
 /* the undo / redo arrows, mirrored in Hebrew */
 .mirrored img {
     transform: scaleX(-1);

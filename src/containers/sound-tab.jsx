@@ -86,7 +86,7 @@ class SoundTab extends React.Component {
         const target = this.props.vm.editingTarget;
         const sound = target && target.sprite.sounds[soundIndex];
         const restoreFun = this.props.vm.deleteSound(soundIndex);
-        if (sound) recordItemDeletion(this.props.vm, 'Sound', sound.name, target, restoreFun);
+        if (sound) recordItemDeletion(this.props.vm, 'Sound', sound, target, restoreFun);
         if (soundIndex >= this.state.selectedSoundIndex) {
             this.setState({selectedSoundIndex: Math.max(0, soundIndex - 1)});
         }

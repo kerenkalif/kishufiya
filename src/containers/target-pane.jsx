@@ -84,7 +84,7 @@ class TargetPane extends React.Component {
         const name = deleted ? deleted.getName() : '';
         const restoreSprite = this.props.vm.deleteSprite(id);
         const restoreFun = () => restoreSprite().then(this.handleActivateBlocksTab);
-        recordSpriteDeletion(this.props.vm, name, restoreSprite, this.handleActivateBlocksTab);
+        recordSpriteDeletion(this.props.vm, id, name, restoreSprite, this.handleActivateBlocksTab);
 
         this.props.dispatchUpdateRestore({
             restoreFun: restoreFun,

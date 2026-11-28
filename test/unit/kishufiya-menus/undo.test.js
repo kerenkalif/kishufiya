@@ -29,3 +29,23 @@ describe('a loaded game has nothing to restore', () => {
         expect(page).toMatch(/setMenus\(menus, Boolean\(lesson\), undoBar\);\s*clearRestoreState\(\);\s*history\.clear\(\);/);
     });
 });
+
+describe('the editor calls the history at the right places (wiring)', () => {
+    const read = f => fs.readFileSync(path.join(__dirname, '../../../src', f), 'utf8');
+    test('blocks.jsx saves the stacks before the reload and hands the sprite id after it', () => {
+        const blocks = read('containers/blocks.jsx');
+        expect(blocks).toMatch(/onWorkspaceUpdate \(data\) \{\s*workspaceWillReload\(\);/);
+        expect(blocks).toMatch(/this\.workspace\.clearUndo\(\);[\s\S]*workspaceReloaded\(this\.props\.vm\.editingTarget/);
+    });
+    test('the three delete handlers record the object (never a name) and the sprite id', () => {
+        expect(read('containers/costume-tab.jsx')).toMatch(/recordItemDeletion\(this\.props\.vm, 'Costume', costume, target,/);
+        expect(read('containers/sound-tab.jsx')).toMatch(/recordItemDeletion\(this\.props\.vm, 'Sound', sound, target,/);
+        expect(read('containers/target-pane.jsx')).toMatch(/recordSpriteDeletion\(this\.props\.vm, id, name,/);
+    });
+    test('no Hebrew string is hard-coded in the history modules (words come from kishufiyaMessages)', () => {
+        for (const f of ['lib/kishufiya-history.js', 'lib/kishufiya-deletions.js', 'lib/kishufiya-undo.js']) {
+            const code = read(f).split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
+            expect(code).not.toMatch(/[֐-׿]/);
+        }
+    });
+});

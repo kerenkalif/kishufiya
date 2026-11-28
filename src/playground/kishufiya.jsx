@@ -54,6 +54,8 @@ import {setProjectTitle} from '../reducers/project-title';
 import {setProjectUnchanged} from '../reducers/project-changed';
 import {clearRestore} from '../reducers/restore-deletion';
 import {history} from '../lib/kishufiya-history.js';
+import {setTabOpener, TABS} from '../lib/kishufiya-deletions.js';
+import {activateTab, BLOCKS_TAB_INDEX, COSTUMES_TAB_INDEX, SOUNDS_TAB_INDEX} from '../reducers/editor-tab';
 import {
     STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH, FIXED_WIDTH
 } from '../lib/layout-constants';
@@ -371,9 +373,10 @@ const Bridge = connect(
         onTitle: title => dispatch(setProjectTitle(title)),
         onFit: stageWidth => dispatch(setStageWidth(stageWidth)),
         onSaved: () => dispatch(setProjectUnchanged()),
-        onClearRestore: () => dispatch(clearRestore())
+        onClearRestore: () => dispatch(clearRestore()),
+        onShowTab: tab => dispatch(activateTab(tab))
     })
-)(({size, width, title, full, onLarge, onTitle, onFit, onSaved, onClearRestore}) => {
+)(({size, width, title, full, onLarge, onTitle, onFit, onSaved, onClearRestore, onShowTab}) => {
     useEffect(onLarge, []);
     useEffect(() => {
         fullNow = full;
@@ -383,6 +386,10 @@ const Bridge = connect(
     nameProject = onTitle;
     markSaved = onSaved;
     clearRestoreState = onClearRestore;
+    // what the undo bar brings back is shown: its tab opens (lib/kishufiya-deletions.js)
+    setTabOpener(tab => onShowTab({
+        [TABS.blocks]: BLOCKS_TAB_INDEX, [TABS.costumes]: COSTUMES_TAB_INDEX, [TABS.sounds]: SOUNDS_TAB_INDEX
+    }[tab]));
     // The child renamed the game in the title field: the platform keeps the name ("המשחקים שלי").
     useEffect(() => {
         const name = (title || '').trim();

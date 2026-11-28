@@ -39,7 +39,7 @@ import {setPlayer} from '../../reducers/mode';
 import {BLOCKS_TAB_INDEX} from '../../reducers/editor-tab';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {currentMenuRules, menusShown, subscribeMenus} from '../../lib/kishufiya-menus.js';
-import {barView, currentTop, isPressKey, runUndo, subscribeUndo} from '../../lib/kishufiya-undo.js';
+import {barView, currentNotice, currentTop, isPressKey, runUndo, subscribeUndo} from '../../lib/kishufiya-undo.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -132,6 +132,46 @@ const kishufiyaMessages = defineMessages({
         id: 'kishufiya.menuBar.redo',
         defaultMessage: 'Redo',
         description: 'Menu bar button: brings back what the undo button took back, as Ctrl+Y does'
+    },
+    undoDeleteSprite: {
+        id: 'kishufiya.menuBar.undoDeleteSprite',
+        defaultMessage: 'Undo: delete sprite {name}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    redoDeleteSprite: {
+        id: 'kishufiya.menuBar.redoDeleteSprite',
+        defaultMessage: 'Redo: delete sprite {name}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    undoDeleteCostume: {
+        id: 'kishufiya.menuBar.undoDeleteCostume',
+        defaultMessage: 'Undo: delete costume {name} of sprite {sprite}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    redoDeleteCostume: {
+        id: 'kishufiya.menuBar.redoDeleteCostume',
+        defaultMessage: 'Redo: delete costume {name} of sprite {sprite}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    undoDeleteSound: {
+        id: 'kishufiya.menuBar.undoDeleteSound',
+        defaultMessage: 'Undo: delete sound {name} of sprite {sprite}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    redoDeleteSound: {
+        id: 'kishufiya.menuBar.redoDeleteSound',
+        defaultMessage: 'Redo: delete sound {name} of sprite {sprite}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    undoFailed: {
+        id: 'kishufiya.menuBar.undoFailed',
+        defaultMessage: 'Could not bring back {name}. You can press again.',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    undoSkipped: {
+        id: 'kishufiya.menuBar.undoSkipped',
+        defaultMessage: 'Could not bring back {name}, so it was skipped.',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
     },
     tidyBlocks: {
         id: 'kishufiya.menuBar.tidyBlocks',
@@ -469,6 +509,16 @@ class MenuBar extends React.Component {
     renderUndoRedo () {
         const {intl, isCodeTab, isRtl} = this.props;
         const view = barView({isRtl, isCodeTab, top: currentTop()});
+        // a deletion names itself and its sprite; a code step is the plain word
+        const labelOf = (side, redo) => {
+            const what = side.label;
+            if (!what) return intl.formatMessage(redo ? kishufiyaMessages.redo : kishufiyaMessages.undo);
+            return intl.formatMessage(kishufiyaMessages[`${redo ? 'redo' : 'undo'}Delete${what.item}`],
+                {name: what.name, sprite: what.spriteName});
+        };
+        const notice = currentNotice();
+        const noticeText = notice && intl.formatMessage(
+            kishufiyaMessages[notice.kind === 'skipped' ? 'undoSkipped' : 'undoFailed'], {name: notice.name});
         const button = (key, icon, label, side, onClick) => (
             <div
                 className={classNames(styles.menuBarItem, {
@@ -496,10 +546,9 @@ class MenuBar extends React.Component {
         );
         return (
             <React.Fragment>
-                {button('undo', undoIcon, view.undo.label || intl.formatMessage(kishufiyaMessages.undo), view.undo,
-                    () => runUndo(false))}
-                {button('redo', redoIcon, view.redo.label || intl.formatMessage(kishufiyaMessages.redo), view.redo,
-                    () => runUndo(true))}
+                {button('undo', undoIcon, labelOf(view.undo, false), view.undo, () => runUndo(false))}
+                {button('redo', redoIcon, labelOf(view.redo, true), view.redo, () => runUndo(true))}
+                {noticeText && <div className={styles.undoNotice} role="status">{noticeText}</div>}
             </React.Fragment>
         );
     }
