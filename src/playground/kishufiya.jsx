@@ -71,7 +71,7 @@ import {CAPS, opens} from '../components/kishufiya-guide/session.js';
 import {stageModeMessage} from '../components/kishufiya-guide/detect.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 import {setMenus} from '../lib/kishufiya-menus.js';
-import {ownNow, setForeignProject, showingMessage, onLayersChange} from '../lib/kishufiya-showing.js';
+import {editorReadyMessage, ownNow, setForeignProject, showingMessage, onLayersChange} from '../lib/kishufiya-showing.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
 import {
     PLATFORM_MAX_THUMBNAIL_BYTES,
@@ -199,7 +199,7 @@ const load = async (url, title, lesson, id, menus) => {
         post({kishufiya: 'loaded'});
         // and to the page beside it: what it sent before the game was in never arrived (the guide, a freeze)
         // caps: what this build knows of the layered engine's protocol (session.js)
-        post({kishufiya: 'to-lesson', msg: {type: 'editor-ready', runs: true, caps: CAPS, own: ownNow()}});
+        post({kishufiya: 'to-lesson', msg: editorReadyMessage(CAPS)});
         toldFull = false; // the page that hears 'editor-ready' knows nothing yet: once more if the stage is full-screen now
         tellStageMode();
         toldOwn = null; // the same: a page that loads anew hears it once

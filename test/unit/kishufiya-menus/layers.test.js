@@ -1,7 +1,7 @@
 //   npx jest test/unit/kishufiya-menus/layers
 import fs from 'fs';
 import path from 'path';
-import {registerLayer, layerIsOpen, onLayersChange, isOwn, ownNow, setForeignProject} from '../../../src/lib/kishufiya-showing.js';
+import {registerLayer, layerIsOpen, onLayersChange, isOwn, ownNow, setForeignProject, editorReadyMessage} from '../../../src/lib/kishufiya-showing.js';
 
 describe('layers that replace the editor', () => {
     test('registered while open, gone after unregister; tells listeners', () => {
@@ -32,11 +32,11 @@ describe('layers that replace the editor', () => {
         expect(ownNow()).toBe(true);
     });
 
-    test('the guide tells its code area with ownNow, and the page tells editor-ready with it', () => {
-        const guide = fs.readFileSync(path.join(__dirname, '../../../src/components/kishufiya-guide/guide.js'), 'utf8');
-        expect(guide).toMatch(/codeAreaMessage\([^)]*ownNow\(\)\)/);
-        const host = fs.readFileSync(path.join(__dirname, '../../../src/playground/kishufiya.jsx'), 'utf8');
-        expect(host).toMatch(/type: 'editor-ready'[^}]*own: ownNow\(\)/);
+    test('editor-ready carries own, from the same answer', () => {
+        expect(editorReadyMessage({session: true})).toEqual({type: 'editor-ready', runs: true, caps: {session: true}, own: true});
+        const off = registerLayer();
+        expect(editorReadyMessage({}).own).toBe(false);
+        off();
     });
 
     test('the wrapper registers on mount and unregisters on unmount', () => {

@@ -21,6 +21,8 @@ export const setForeignProject = value => {
     foreign = Boolean(value);
 };
 export const ownNow = () => isOwn({foreignProject: foreign, replacedByLayer: layerIsOpen()});
+// What the editor says when it is up: `own` is in it, so a page that hears it never starts from a guess.
+export const editorReadyMessage = caps => ({type: 'editor-ready', runs: true, caps, own: ownNow()});
 
 // Layers that replace the editor, registered while mounted. registerLayer returns the way to unregister.
 const layers = new Set();
