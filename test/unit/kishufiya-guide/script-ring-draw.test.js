@@ -5,9 +5,6 @@
 //   npx jest test/unit/kishufiya-guide/script-ring-draw
 import {attachGuide, handleGuide} from '../../../src/components/kishufiya-guide/guide.js';
 
-// the editor's costume-to-URL pulls in the webpack-loader storage chain, which Node has no loader for; the ring never draws a picture
-jest.mock('../../../src/lib/get-costume-url', () => () => '');
-
 // the CSS module's class names as themselves, to find the guide's parts by them
 jest.mock('../../../src/components/kishufiya-guide/guide.css', () => ({
     layer: 'layer', veil: 'veil', note: 'note', ring: 'ring', flash: 'flash', bubble: 'bubble', text: 'text', arrow: 'arrow',
