@@ -49,7 +49,7 @@ export const recordSpriteDeletion = (vm, id, name, restoreSprite, activateBlocks
             };
             return {targetId: target.id};
         },
-        deleteAgain: async self => {
+        deleteAgain: self => {
             // the sprite is found by the id its restore gave
             const target = vm.runtime.getTargetById(self.spriteKey);
             if (!target || !target.isOriginal) throw new Error(`sprite ${self.name} is not there`);
@@ -83,7 +83,7 @@ export const recordItemDeletion = (vm, item, object, target, restore) => {
             if (vm.editingTarget !== owner) vm.setEditingTarget(owner.id);
             showTab(tab);
         },
-        deleteAgain: async self => {
+        deleteAgain: self => {
             const owner = aliveTarget(vm, self.ownerId);
             const index = listOf(owner, item).indexOf(self.object);
             if (index < 0) throw new Error(`${item} ${self.name} is not there`);
