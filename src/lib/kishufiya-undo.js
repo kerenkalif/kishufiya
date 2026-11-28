@@ -9,15 +9,24 @@ export const stackState = workspace => ({
     redo: Boolean(workspace && workspace.redoStack_ && workspace.redoStack_.length > 0)
 });
 
-// What the undo button does now. The code area's history first; when it is empty, the last deleted sprite, costume
-// or sound is brought back (this is what the edit menu's "שחזר" did, which a child no longer has). Nothing: dim.
-export const WORKSPACE = 'workspace';
-export const RESTORE = 'restore';
-export const undoAction = (canWorkspaceUndo, restorable) => {
-    if (canWorkspaceUndo) return WORKSPACE;
-    if (restorable) return RESTORE;
-    return null;
+// What the bar draws (pure, so it is tested without a screen). The undo and redo buttons are the code area's history
+// only, lit while there is something to go back or forward to, and only on the code tab. The restore button is
+// separate: it shows only while a deleted sprite, costume or sound can come back, and names which one. In Hebrew
+// the arrows are mirrored (undo points right, redo left, as in Word).
+export const RESTORE_WORDS = {
+    Sprite: 'שחזר את הדמות',
+    Costume: 'שחזר את התלבושת',
+    Sound: 'שחזר את הצליל'
 };
+
+export const barView = ({isRtl, isCodeTab, history, restorable, deletedItem}) => ({
+    undo: {enabled: Boolean(isCodeTab && history.undo), mirrored: Boolean(isRtl)},
+    redo: {enabled: Boolean(isCodeTab && history.redo), mirrored: Boolean(isRtl)},
+    restore: restorable && RESTORE_WORDS[deletedItem] ? {label: RESTORE_WORDS[deletedItem]} : null
+});
+
+// Enter and Space press a bar button, as on "המשחקים שלי".
+export const isPressKey = key => key === 'Enter' || key === ' ';
 
 let workspace = null;
 let last = {undo: false, redo: false};

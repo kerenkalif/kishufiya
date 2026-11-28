@@ -52,6 +52,7 @@ import {compose} from 'redux';
 import {setStageSize, setStageWidth} from '../reducers/stage-size';
 import {setProjectTitle} from '../reducers/project-title';
 import {setProjectUnchanged} from '../reducers/project-changed';
+import {clearRestore} from '../reducers/restore-deletion';
 import {
     STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH, FIXED_WIDTH
 } from '../lib/layout-constants';
@@ -100,6 +101,7 @@ let cloud = null; // the game's ☁ variables (attachCloud)
 setChromeSender(message => post(message));
 let up = false; // the VM exists and the editor's own default project has finished loading
 let dirty = false;
+let clearRestoreState = () => {}; // set by <Bridge>: a loaded game has nothing to restore
 let nameProject = () => {}; // set by <Bridge>, which can reach the GUI's store
 // Also set by <Bridge>: the game as the page has it now is saved, so the editor's own "leave this page?"
 // question (project-saver-hoc) stops popping up when the child presses home after a save.
@@ -179,6 +181,7 @@ let loading = false;
 const load = async (url, title, lesson, id, menus, undoBar) => {
     setLibraryLesson(lesson);
     setMenus(menus, Boolean(lesson), undoBar);
+    clearRestoreState();
     gameId = id || null;
     loading = true;
     try {
@@ -365,9 +368,10 @@ const Bridge = connect(
         onLarge: () => dispatch(setStageSize(STAGE_SIZE_MODES.large)),
         onTitle: title => dispatch(setProjectTitle(title)),
         onFit: stageWidth => dispatch(setStageWidth(stageWidth)),
-        onSaved: () => dispatch(setProjectUnchanged())
+        onSaved: () => dispatch(setProjectUnchanged()),
+        onClearRestore: () => dispatch(clearRestore())
     })
-)(({size, width, title, full, onLarge, onTitle, onFit, onSaved}) => {
+)(({size, width, title, full, onLarge, onTitle, onFit, onSaved, onClearRestore}) => {
     useEffect(onLarge, []);
     useEffect(() => {
         fullNow = full;
@@ -376,6 +380,7 @@ const Bridge = connect(
     }, [full]);
     nameProject = onTitle;
     markSaved = onSaved;
+    clearRestoreState = onClearRestore;
     // The child renamed the game in the title field: the platform keeps the name ("המשחקים שלי").
     useEffect(() => {
         const name = (title || '').trim();

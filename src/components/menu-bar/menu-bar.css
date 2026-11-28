@@ -245,6 +245,11 @@
     opacity: 0.5;
 }
 
+/* the undo / redo arrows, mirrored in Hebrew */
+.mirrored img {
+    transform: scaleX(-1);
+}
+
 .mystuff > a {
   background-repeat: no-repeat;
   background-position: center center;

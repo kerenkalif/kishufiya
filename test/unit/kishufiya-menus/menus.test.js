@@ -98,6 +98,12 @@ describe('menusShown: a menu with no usable item is not shown', () => {
     });
 });
 
+describe('menusShown: player only', () => {
+    test('a page that only plays has no editing menus', () => {
+        expect(menusShown(menuRules('staff', true, true), {playerOnly: true})).toEqual({file: false, edit: false});
+    });
+});
+
 describe('the undo bar switch', () => {
     test('off by default (new feature behind a switch), on only when the page says so', () => {
         expect(UNDO_BAR_ENABLED).toBe(false);

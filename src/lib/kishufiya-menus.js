@@ -33,8 +33,8 @@ export const menuRules = (mode, inLesson = false, undoBar = false) => {
         newWindow: staff, // "New window" (desktop app item), not for a child
         newGame: staff || !inLesson,
         downloadToComputer: true, // "הורדה למחשב": a child's own copy, the platform checks nothing here
-        // "שחזר" (the last deleted sprite, costume or sound). With the undo buttons it is the undo button's second
-        // job (when there is nothing to undo in the code area), so only staff keep the menu item.
+        // "שחזר" (the last deleted sprite, costume or sound). With the undo bar it is the bar's own restore button,
+        // so only staff keep the menu item.
         restoreDeleted: staff || !undoBar,
         undoBar // the "ביטול" / "ביצוע חוזר" buttons, for everyone
     };
@@ -42,9 +42,11 @@ export const menuRules = (mode, inLesson = false, undoBar = false) => {
 
 // Which top menus show, from the items this audience can use (Keren, 28.11): a menu with none is not shown.
 // ctx: what the page's own props decide about file-menu items - saveItems (canSave, canCreateCopy, canRemix, default
-// none), newWindowAvailable and packagerAvailable (the desktop app / the packager hook exist; default yes).
+// none), newWindowAvailable and packagerAvailable (the desktop app / the packager hook exist; default yes),
+// playerOnly (the page only plays: no editing menus).
 export const menusShown = (rules, ctx = {}) => {
-    const {saveItems = false, newWindowAvailable = true, packagerAvailable = true} = ctx;
+    const {saveItems = false, newWindowAvailable = true, packagerAvailable = true, playerOnly = false} = ctx;
+    if (playerOnly) return {file: false, edit: false};
     return {
         file: Boolean(saveItems || rules.newGame || rules.loadFromComputer || rules.downloadToComputer ||
             (newWindowAvailable && rules.newWindow) || (packagerAvailable && rules.packager) || rules.restorePoints),

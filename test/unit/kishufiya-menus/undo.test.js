@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import {
-    stackState, undoAction, WORKSPACE, RESTORE, attachUndoWorkspace, detachUndoWorkspace, runUndo,
+    stackState, barView, isPressKey, attachUndoWorkspace, detachUndoWorkspace, runUndo,
     currentUndoState, subscribeUndo, notifyUndo
 } from '../../../src/lib/kishufiya-undo.js';
 
@@ -33,12 +33,35 @@ describe('stackState', () => {
     });
 });
 
-describe('undoAction', () => {
-    test('the code area first, then restore, else dim', () => {
-        expect(undoAction(true, true)).toBe(WORKSPACE);
-        expect(undoAction(true, false)).toBe(WORKSPACE);
-        expect(undoAction(false, true)).toBe(RESTORE);
-        expect(undoAction(false, false)).toBe(null);
+const base = {isRtl: false, isCodeTab: true, history: {undo: true, redo: false}, restorable: false, deletedItem: ''};
+
+describe('barView', () => {
+    test('undo and redo follow the code area history, on the code tab only', () => {
+        expect(barView(base).undo.enabled).toBe(true);
+        expect(barView(base).redo.enabled).toBe(false);
+        expect(barView({...base, isCodeTab: false}).undo.enabled).toBe(false);
+    });
+    test('the arrows are mirrored in Hebrew only', () => {
+        expect(barView(base).undo.mirrored).toBe(false);
+        expect(barView({...base, isRtl: true}).undo.mirrored).toBe(true);
+        expect(barView({...base, isRtl: true}).redo.mirrored).toBe(true);
+    });
+    test('restore shows only while something can come back, and says what', () => {
+        expect(barView(base).restore).toBe(null);
+        expect(barView({...base, restorable: true, deletedItem: 'Sprite'}).restore.label).toBe('שחזר את הדמות');
+        expect(barView({...base, restorable: true, deletedItem: 'Costume'}).restore.label).toBe('שחזר את התלבושת');
+        expect(barView({...base, restorable: true, deletedItem: 'Sound'}).restore.label).toBe('שחזר את הצליל');
+        expect(barView({...base, restorable: true, deletedItem: ''}).restore).toBe(null);
+    });
+    test('restore is its own button: an empty history never restores', () => {
+        const view = barView({...base, history: {undo: false, redo: false}, restorable: true, deletedItem: 'Sound'});
+        expect(view.undo.enabled).toBe(false);
+        expect(view.restore).not.toBe(null);
+    });
+    test('Enter and Space press a button', () => {
+        expect(isPressKey('Enter')).toBe(true);
+        expect(isPressKey(' ')).toBe(true);
+        expect(isPressKey('a')).toBe(false);
     });
 });
 
@@ -104,6 +127,22 @@ describe('menu-bar.jsx keeps every item behind menuRules', () => {
         expect(source).toMatch(/!rules\.restoreDeleted \? null/);
         expect(source).toMatch(/rules\.downloadToComputer && \(\s*<SB3Downloader>/);
         expect(source).toMatch(/shown\.edit && <MenuLabel/);
+        expect(source).toMatch(/tabIndex=\{0\}\s*aria-label=\{label\}\s*aria-disabled=\{!enabled\}/);
         expect(source).toMatch(/canManageFiles && shown\.file/);
+    });
+});
+
+describe('a loaded game has nothing to restore', () => {
+    const reducer = require('../../../src/reducers/restore-deletion.js');
+    test('clearRestore empties what a delete set', () => {
+        const fun = () => {};
+        let state = reducer.default(undefined, reducer.setRestore({restoreFun: fun, deletedItem: 'Sprite'}));
+        expect(state.restoreFun).toBe(fun);
+        state = reducer.default(state, reducer.clearRestore());
+        expect(state).toEqual({restoreFun: null, deletedItem: ''});
+    });
+    test('the load path clears it', () => {
+        const page = fs.readFileSync(path.join(__dirname, '../../../src/playground/kishufiya.jsx'), 'utf8');
+        expect(page).toMatch(/setMenus\(menus, Boolean\(lesson\), undoBar\);\s*clearRestoreState\(\);/);
     });
 });

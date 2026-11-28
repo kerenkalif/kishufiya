@@ -39,7 +39,7 @@ import {setPlayer} from '../../reducers/mode';
 import {BLOCKS_TAB_INDEX} from '../../reducers/editor-tab';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {currentMenuRules, menusShown, subscribeMenus} from '../../lib/kishufiya-menus.js';
-import {currentUndoState, runUndo, subscribeUndo, undoAction, RESTORE} from '../../lib/kishufiya-undo.js';
+import {barView, currentUndoState, isPressKey, runUndo, subscribeUndo} from '../../lib/kishufiya-undo.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -464,22 +464,29 @@ class MenuBar extends React.Component {
             </MenuLabel>
         );
     }
-    // The undo / redo buttons (kishufiya-undo.js). Undo is the code area's history while it has one; when it is
-    // empty, it brings back the last deleted sprite, costume or sound, which is what the edit menu's "restore" did.
+    // The undo / redo buttons (kishufiya-undo.js): the code area's history, as Ctrl+Z / Ctrl+Y. A separate restore button
+    // shows only while a deleted sprite, costume or sound can come back, and says which.
     renderUndoRedo () {
+        const {intl, isCodeTab, isRtl} = this.props;
         const history = currentUndoState();
-        const {intl, isCodeTab} = this.props;
-        const button = (key, icon, message, enabled, onClick) => (
+        const button = (key, icon, label, enabled, mirrored, onClick) => (
             <div
-                className={classNames(styles.menuBarItem, {[styles.hoverable]: enabled, [styles.disabled]: !enabled})}
+                className={classNames(styles.menuBarItem, {
+                    [styles.hoverable]: enabled,
+                    [styles.disabled]: !enabled,
+                    [styles.mirrored]: mirrored
+                })}
                 data-guide={key}
                 role="button"
+                tabIndex={0}
+                aria-label={label}
                 aria-disabled={!enabled}
-                title={intl.formatMessage(message)}
+                title={label}
                 onClick={enabled ? onClick : null}
+                onKeyDown={enabled ? e => isPressKey(e.key) && onClick() : null}
             >
                 <img
-                    alt={intl.formatMessage(message)}
+                    alt=""
                     src={icon}
                     draggable={false}
                     width={20}
@@ -488,15 +495,18 @@ class MenuBar extends React.Component {
             </div>
         );
         return (
-            <React.Fragment>
-                <DeletionRestorer>{(handleRestore, {restorable}) => {
-                    const action = undoAction(Boolean(isCodeTab && history.undo), restorable);
-                    return button('undo', undoIcon, kishufiyaMessages.undo, action !== null,
-                        action === RESTORE ? handleRestore : () => runUndo(false));
-                }}</DeletionRestorer>
-                {button('redo', redoIcon, kishufiyaMessages.redo, Boolean(isCodeTab && history.redo),
-                    () => runUndo(true))}
-            </React.Fragment>
+            <DeletionRestorer>{(handleRestore, {restorable, deletedItem}) => {
+                const view = barView({isRtl, isCodeTab, history, restorable, deletedItem});
+                return (
+                    <React.Fragment>
+                        {button('undo', undoIcon, intl.formatMessage(kishufiyaMessages.undo), view.undo.enabled,
+                            view.undo.mirrored, () => runUndo(false))}
+                        {button('redo', redoIcon, intl.formatMessage(kishufiyaMessages.redo), view.redo.enabled,
+                            view.redo.mirrored, () => runUndo(true))}
+                        {view.restore && button('restore', undoIcon, view.restore.label, true, false, handleRestore)}
+                    </React.Fragment>
+                );
+            }}</DeletionRestorer>
         );
     }
     wrapAboutMenuCallback (callback) {
@@ -510,7 +520,8 @@ class MenuBar extends React.Component {
         const shown = menusShown(rules, {
             saveItems: Boolean(this.props.canSave || this.props.canCreateCopy || this.props.canRemix),
             newWindowAvailable: Boolean(this.props.onClickNewWindow),
-            packagerAvailable: Boolean(this.props.onClickPackager)
+            packagerAvailable: Boolean(this.props.onClickPackager),
+            playerOnly: Boolean(this.props.isPlayerOnly)
         });
         const saveNowMessage = (
             <FormattedMessage

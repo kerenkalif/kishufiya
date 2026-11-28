@@ -26,8 +26,14 @@ const setRestore = function (state) {
     };
 };
 
+// A loaded game has nothing deleted that could come back: the last game's restore must not outlive it.
+const clearRestore = function () {
+    return setRestore(initialState);
+};
+
 export {
     reducer as default,
+    clearRestore,
     initialState as restoreDeletionInitialState,
     setRestore
 };
