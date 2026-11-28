@@ -59,16 +59,28 @@ describe('code-area message with both edges', () => {
     const rect = {left: 1, top: 80, width: 300, height: 400};
     test('reserved (top) and reservedBottom, both in the key', () => {
         const a = codeAreaMessage(rect, [], 64, 80);
-        expect(a.msg).toEqual({type: 'code-area', rect, avoid: [], reserved: 64, reservedBottom: 80});
+        expect(a.msg).toEqual({type: 'code-area', rect, avoid: [], own: true, reserved: 64, reservedBottom: 80});
         expect(a.key).not.toBe(codeAreaMessage(rect, [], 64, 0).key);
         expect(a.key).not.toBe(codeAreaMessage(rect, [], 0, 80).key);
     });
     test('none kept: no fields; top only is as before', () => {
-        expect(codeAreaMessage(rect, [], 0, 0).msg).toEqual({type: 'code-area', rect, avoid: []});
-        expect(codeAreaMessage(rect, [], 64).msg).toEqual({type: 'code-area', rect, avoid: [], reserved: 64});
+        expect(codeAreaMessage(rect, [], 0, 0).msg).toEqual({type: 'code-area', rect, avoid: [], own: true});
+        expect(codeAreaMessage(rect, [], 64).msg).toEqual({type: 'code-area', rect, avoid: [], own: true, reserved: 64});
     });
     test('a bottom alone says only reservedBottom', () => {
-        expect(codeAreaMessage(rect, [], 0, 50).msg).toEqual({type: 'code-area', rect, avoid: [], reservedBottom: 50});
+        expect(codeAreaMessage(rect, [], 0, 50).msg).toEqual({type: 'code-area', rect, avoid: [], own: true, reservedBottom: 50});
+    });
+});
+
+describe('code-area says whether the editor shows the lesson game (away has one writer)', () => {
+    const rect = {left: 1, top: 80, width: 300, height: 400};
+    test('own is on every message, also with a rect measured under a layer', () => {
+        expect(codeAreaMessage(rect, [], 0, 0, false).msg.own).toBe(false);
+        expect(codeAreaMessage(rect, [], 0, 0, true).msg.own).toBe(true);
+        expect(codeAreaMessage(rect, [], 0, 0).msg.own).toBe(true);
+    });
+    test('a change of own alone is told again at once (own is in the key)', () => {
+        expect(codeAreaMessage(rect, [], 0, 0, false).key).not.toBe(codeAreaMessage(rect, [], 0, 0, true).key);
     });
 });
 
