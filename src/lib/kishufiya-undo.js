@@ -111,9 +111,24 @@ export const attachUndoWorkspace = ws => {
 };
 
 // The workspace is about to be reloaded (blocks.jsx, a sprite switch): its stacks are the open sprite's.
-export const workspaceWillReload = () => history.beforeReload();
+// Switch off: nothing at all (no signature, no saved stacks, Blockly's own undo untouched). A failure never breaks the reload.
+export const workspaceWillReload = () => {
+    if (!barOn()) return;
+    try {
+        history.beforeReload();
+    } catch (error) {
+        log.warn(`undo: saving the sprite's steps failed: ${error && error.message}`);
+    }
+};
 // The workspace was reloaded and its stacks cleared: it now shows the sprite `key`.
-export const workspaceReloaded = key => history.afterReload(key);
+export const workspaceReloaded = key => {
+    if (!barOn()) return;
+    try {
+        history.afterReload(key);
+    } catch (error) {
+        log.warn(`undo: restoring the sprite's steps failed: ${error && error.message}`);
+    }
+};
 
 // The buttons: the same path as the keyboard's. false when nothing ran.
 export const runUndo = redo => history.run(Boolean(redo));

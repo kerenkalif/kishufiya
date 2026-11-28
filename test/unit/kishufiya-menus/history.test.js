@@ -481,6 +481,24 @@ describe('the switch off: nothing changes', () => {
         expect(history.projectSize()).toEqual({undo: 0, redo: 0});
         detachUndoWorkspace();
     });
+    test('a sprite switch saves and restores nothing (Blockly clears its stacks as always)', () => {
+        setMenus('child', true);
+        history.clear();
+        const before = jest.spyOn(history, 'beforeReload');
+        const after = jest.spyOn(history, 'afterReload');
+        const ws = fakeWorkspace();
+        attachUndoWorkspace(ws);
+        ws.reload('s1');
+        ws.fire({name: 'a'});
+        ws.reload('s2');
+        ws.reload('s1');
+        expect(ws.undoStack_).toEqual([]);
+        expect(before).not.toHaveBeenCalled();
+        expect(after).not.toHaveBeenCalled();
+        before.mockRestore();
+        after.mockRestore();
+        detachUndoWorkspace();
+    });
     test('taking the workspace back gives its own undo back', () => {
         const ws = fakeWorkspace();
         const own = ws.undo;
