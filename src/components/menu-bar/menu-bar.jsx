@@ -38,6 +38,7 @@ import {openTipsLibrary, openSettingsModal, openRestorePointModal} from '../../r
 import {setPlayer} from '../../reducers/mode';
 import {BLOCKS_TAB_INDEX} from '../../reducers/editor-tab';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
+import {currentMenuRules, subscribeMenus} from '../../lib/kishufiya-menus.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -246,9 +247,12 @@ class MenuBar extends React.Component {
     }
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
+        // which items show is decided by lib/kishufiya-menus.js, from the page's load message
+        this.stopMenus = subscribeMenus(() => this.forceUpdate());
     }
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
+        if (this.stopMenus) this.stopMenus();
     }
     // כישופייה: the button tidies the scripts; the only other tidy is the one the lesson asks for (guide.js 'tidy').
     handleClickTidyBlocks () {
@@ -350,10 +354,11 @@ class MenuBar extends React.Component {
         if (modifier) {
             if (event.key.toLowerCase() === 's') {
                 this.props.handleSaveProject();
-                event.preventDefault();    
+                event.preventDefault();
             } else if (event.key.toLowerCase() === 'o') {
-                event.preventDefault();    
-                this.props.onStartSelectingFileUpload();
+                event.preventDefault();
+                // the shortcut of "load from computer": hidden with it
+                if (currentMenuRules().loadFromComputer) this.props.onStartSelectingFileUpload();
             }
         }
     }
@@ -417,7 +422,8 @@ class MenuBar extends React.Component {
                 onOpen={this.props.onRequestOpenAbout}
                 onClose={this.props.onRequestCloseAbout}
             >
-                <img alt=""
+                <img
+                    alt=""
                     className={styles.aboutIcon}
                     src={aboutIcon}
                     draggable={false}
@@ -449,6 +455,7 @@ class MenuBar extends React.Component {
         };
     }
     render () {
+        const rules = currentMenuRules();
         const saveNowMessage = (
             <FormattedMessage
                 defaultMessage="Save now"
@@ -519,13 +526,15 @@ class MenuBar extends React.Component {
                                 onOpen={this.props.onClickErrors}
                                 onClose={this.props.onRequestCloseErrors}
                             >
-                                <img alt=""
+                                <img
+                                    alt=""
                                     src={errorIcon}
                                     draggable={false}
                                     width={20}
                                     height={20}
                                 />
-                                <img alt=""
+                                <img
+                                    alt=""
                                     src={dropdownCaret}
                                     draggable={false}
                                     width={8}
@@ -588,7 +597,8 @@ class MenuBar extends React.Component {
                                 onOpen={this.props.onClickFile}
                                 onClose={this.props.onRequestCloseFile}
                             >
-                                <img alt=""
+                                <img
+                                    alt=""
                                     src={fileIcon}
                                     draggable={false}
                                     width={20}
@@ -601,7 +611,8 @@ class MenuBar extends React.Component {
                                         id="gui.menuBar.file"
                                     />
                                 </span>
-                                <img alt=""
+                                <img
+                                    alt=""
                                     src={dropdownCaret}
                                     draggable={false}
                                     width={8}
@@ -612,12 +623,14 @@ class MenuBar extends React.Component {
                                     open={this.props.fileMenuOpen}
                                     place={this.props.isRtl ? 'left' : 'right'}
                                 >
-                                    <MenuItem
-                                        isRtl={this.props.isRtl}
-                                        onClick={this.handleClickNew}
-                                    >
-                                        {newProjectMessage}
-                                    </MenuItem>
+                                    {rules.newGame && (
+                                        <MenuItem
+                                            isRtl={this.props.isRtl}
+                                            onClick={this.handleClickNew}
+                                        >
+                                            {newProjectMessage}
+                                        </MenuItem>
+                                    )}
                                     {this.props.onClickNewWindow && (
                                         <MenuItem
                                             isRtl={this.props.isRtl}
@@ -651,11 +664,13 @@ class MenuBar extends React.Component {
                                         </MenuSection>
                                     )}
                                     <MenuSection>
-                                        <MenuItem
-                                            onClick={this.props.onStartSelectingFileUpload}
-                                        >
-                                            {this.props.intl.formatMessage(sharedMessages.loadFromComputerTitle)}
-                                        </MenuItem>
+                                        {rules.loadFromComputer && (
+                                            <MenuItem
+                                                onClick={this.props.onStartSelectingFileUpload}
+                                            >
+                                                {this.props.intl.formatMessage(sharedMessages.loadFromComputerTitle)}
+                                            </MenuItem>
+                                        )}
                                         <SB3Downloader>
                                             {(_className, downloadProject) => (
                                                 <MenuItem onClick={this.getSaveToComputerHandler(downloadProject)}>
@@ -664,7 +679,7 @@ class MenuBar extends React.Component {
                                             )}
                                         </SB3Downloader>
                                     </MenuSection>
-                                    {this.props.onClickPackager && (
+                                    {this.props.onClickPackager && rules.packager && (
                                         <MenuSection>
                                             <MenuItem
                                                 onClick={this.handleClickPackager}
@@ -678,15 +693,17 @@ class MenuBar extends React.Component {
                                             </MenuItem>
                                         </MenuSection>
                                     )}
-                                    <MenuSection>
-                                        <MenuItem onClick={this.handleClickRestorePoints}>
-                                            <FormattedMessage
-                                                defaultMessage="Restore points"
-                                                description="Menu bar item to manage restore points"
-                                                id="tw.menuBar.restorePoints"
-                                            />
-                                        </MenuItem>
-                                    </MenuSection>
+                                    {rules.restorePoints && (
+                                        <MenuSection>
+                                            <MenuItem onClick={this.handleClickRestorePoints}>
+                                                <FormattedMessage
+                                                    defaultMessage="Restore points"
+                                                    description="Menu bar item to manage restore points"
+                                                    id="tw.menuBar.restorePoints"
+                                                />
+                                            </MenuItem>
+                                        </MenuSection>
+                                    )}
                                 </MenuBarMenu>
                             </MenuLabel>
                         )}
@@ -695,7 +712,8 @@ class MenuBar extends React.Component {
                             onOpen={this.props.onClickEdit}
                             onClose={this.props.onRequestCloseEdit}
                         >
-                            <img alt=""
+                            <img
+                                alt=""
                                 src={editIcon}
                                 draggable={false}
                                 width={20}
@@ -708,7 +726,8 @@ class MenuBar extends React.Component {
                                     id="gui.menuBar.edit"
                                 />
                             </span>
-                            <img alt=""
+                            <img
+                                alt=""
                                 src={dropdownCaret}
                                 draggable={false}
                                 width={8}
@@ -729,89 +748,103 @@ class MenuBar extends React.Component {
                                         </MenuItem>
                                     )}</DeletionRestorer>
                                 )}
-                                <MenuSection>
-                                    <TurboMode>{(toggleTurboMode, {turboMode}) => (
-                                        <MenuItem onClick={toggleTurboMode}>
-                                            {turboMode ? (
-                                                <FormattedMessage
-                                                    defaultMessage="Turn off Turbo Mode"
-                                                    description="Menu bar item for turning off turbo mode"
-                                                    id="gui.menuBar.turboModeOff"
-                                                />
-                                            ) : (
-                                                <FormattedMessage
-                                                    defaultMessage="Turn on Turbo Mode"
-                                                    description="Menu bar item for turning on turbo mode"
-                                                    id="gui.menuBar.turboModeOn"
-                                                />
-                                            )}
-                                        </MenuItem>
-                                    )}</TurboMode>
-                                    <FramerateChanger>{(changeFramerate, {framerate}) => (
-                                        <MenuItem onClick={changeFramerate}>
-                                            {framerate === 60 ? (
-                                                <FormattedMessage
-                                                    defaultMessage="Turn off 60 FPS Mode"
-                                                    description="Menu bar item for turning off 60 FPS mode"
-                                                    id="tw.menuBar.60off"
-                                                />
-                                            ) : (
-                                                <FormattedMessage
-                                                    defaultMessage="Turn on 60 FPS Mode"
-                                                    description="Menu bar item for turning on 60 FPS mode"
-                                                    id="tw.menuBar.60on"
-                                                />
-                                            )}
-                                        </MenuItem>
-                                    )}</FramerateChanger>
-                                    <ChangeUsername>{changeUsername => (
-                                        <MenuItem onClick={changeUsername}>
+                                {(rules.turbo || rules.fps60 || rules.username || rules.cloudVariables) && (
+                                    <MenuSection>
+                                        {rules.turbo && (
+                                            <TurboMode>{(toggleTurboMode, {turboMode}) => (
+                                                <MenuItem onClick={toggleTurboMode}>
+                                                    {turboMode ? (
+                                                        <FormattedMessage
+                                                            defaultMessage="Turn off Turbo Mode"
+                                                            description="Menu bar item for turning off turbo mode"
+                                                            id="gui.menuBar.turboModeOff"
+                                                        />
+                                                    ) : (
+                                                        <FormattedMessage
+                                                            defaultMessage="Turn on Turbo Mode"
+                                                            description="Menu bar item for turning on turbo mode"
+                                                            id="gui.menuBar.turboModeOn"
+                                                        />
+                                                    )}
+                                                </MenuItem>
+                                            )}</TurboMode>
+                                        )}
+                                        {rules.fps60 && (
+                                            <FramerateChanger>{(changeFramerate, {framerate}) => (
+                                                <MenuItem onClick={changeFramerate}>
+                                                    {framerate === 60 ? (
+                                                        <FormattedMessage
+                                                            defaultMessage="Turn off 60 FPS Mode"
+                                                            description="Menu bar item for turning off 60 FPS mode"
+                                                            id="tw.menuBar.60off"
+                                                        />
+                                                    ) : (
+                                                        <FormattedMessage
+                                                            defaultMessage="Turn on 60 FPS Mode"
+                                                            description="Menu bar item for turning on 60 FPS mode"
+                                                            id="tw.menuBar.60on"
+                                                        />
+                                                    )}
+                                                </MenuItem>
+                                            )}</FramerateChanger>
+                                        )}
+                                        {rules.username && (
+                                            <ChangeUsername>{changeUsername => (
+                                                <MenuItem onClick={changeUsername}>
+                                                    <FormattedMessage
+                                                        defaultMessage="Change Username"
+                                                        description="Menu bar item for changing the username"
+                                                        id="tw.menuBar.changeUsername"
+                                                    />
+                                                </MenuItem>
+                                            )}</ChangeUsername>
+                                        )}
+                                        {rules.cloudVariables && (
+                                            // eslint-disable-next-line max-len
+                                            <CloudVariablesToggler>{(toggleCloudVariables, {enabled, canUseCloudVariables}) => (
+                                                <MenuItem
+                                                    className={classNames({[styles.disabled]: !canUseCloudVariables})}
+                                                    onClick={toggleCloudVariables}
+                                                >
+                                                    {canUseCloudVariables ? (
+                                                        enabled ? (
+                                                            <FormattedMessage
+                                                                defaultMessage="Disable Cloud Variables"
+                                                                // eslint-disable-next-line max-len
+                                                                description="Menu bar item for disabling cloud variables"
+                                                                id="tw.menuBar.cloudOff"
+                                                            />
+                                                        ) : (
+                                                            <FormattedMessage
+                                                                defaultMessage="Enable Cloud Variables"
+                                                                description="Menu bar item for enabling cloud variables"
+                                                                id="tw.menuBar.cloudOn"
+                                                            />
+                                                        )
+                                                    ) : (
+                                                        <FormattedMessage
+                                                            defaultMessage="Cloud Variables are not Available"
+                                                            // eslint-disable-next-line max-len
+                                                            description="Menu bar item for when cloud variables are not available"
+                                                            id="tw.menuBar.cloudUnavailable"
+                                                        />
+                                                    )}
+                                                </MenuItem>
+                                            )}</CloudVariablesToggler>
+                                        )}
+                                    </MenuSection>
+                                )}
+                                {rules.advancedSettings && (
+                                    <MenuSection>
+                                        <MenuItem onClick={this.props.onClickSettingsModal}>
                                             <FormattedMessage
-                                                defaultMessage="Change Username"
-                                                description="Menu bar item for changing the username"
-                                                id="tw.menuBar.changeUsername"
+                                                defaultMessage="Advanced Settings"
+                                                description="Menu bar item for advanced settings"
+                                                id="tw.menuBar.moreSettings"
                                             />
                                         </MenuItem>
-                                    )}</ChangeUsername>
-                                    <CloudVariablesToggler>{(toggleCloudVariables, {enabled, canUseCloudVariables}) => (
-                                        <MenuItem
-                                            className={classNames({[styles.disabled]: !canUseCloudVariables})}
-                                            onClick={toggleCloudVariables}
-                                        >
-                                            {canUseCloudVariables ? (
-                                                enabled ? (
-                                                    <FormattedMessage
-                                                        defaultMessage="Disable Cloud Variables"
-                                                        description="Menu bar item for disabling cloud variables"
-                                                        id="tw.menuBar.cloudOff"
-                                                    />
-                                                ) : (
-                                                    <FormattedMessage
-                                                        defaultMessage="Enable Cloud Variables"
-                                                        description="Menu bar item for enabling cloud variables"
-                                                        id="tw.menuBar.cloudOn"
-                                                    />
-                                                )
-                                            ) : (
-                                                <FormattedMessage
-                                                    defaultMessage="Cloud Variables are not Available"
-                                                    // eslint-disable-next-line max-len
-                                                    description="Menu bar item for when cloud variables are not available"
-                                                    id="tw.menuBar.cloudUnavailable"
-                                                />
-                                            )}
-                                        </MenuItem>
-                                    )}</CloudVariablesToggler>
-                                </MenuSection>
-                                <MenuSection>
-                                    <MenuItem onClick={this.props.onClickSettingsModal}>
-                                        <FormattedMessage
-                                            defaultMessage="Advanced Settings"
-                                            description="Menu bar item for advanced settings"
-                                            id="tw.menuBar.moreSettings"
-                                        />
-                                    </MenuItem>
-                                </MenuSection>
+                                    </MenuSection>
+                                )}
                             </MenuBarMenu>
                         </MenuLabel>
                         {this.props.isTotallyNormal && (
@@ -866,7 +899,8 @@ class MenuBar extends React.Component {
                                 role="button"
                                 title={this.props.intl.formatMessage(kishufiyaMessages.tidyBlocks)}
                             >
-                                <img alt=""
+                                <img
+                                    alt=""
                                     src={tidyIcon}
                                     draggable={false}
                                     width={20}
@@ -882,7 +916,8 @@ class MenuBar extends React.Component {
                                 className={classNames(styles.menuBarItem, styles.hoverable)}
                                 onClick={this.props.onClickAddonSettings}
                             >
-                                <img alt=""
+                                <img
+                                    alt=""
                                     src={addonsIcon}
                                     draggable={false}
                                     width={20}
@@ -897,12 +932,13 @@ class MenuBar extends React.Component {
                                 </span>
                             </div>
                         )}
-                        {this.props.onClickSettingsModal && (
+                        {this.props.onClickSettingsModal && rules.advancedButton && (
                             <div
                                 className={classNames(styles.menuBarItem, styles.hoverable)}
                                 onClick={this.props.onClickSettingsModal}
                             >
-                                <img alt=""
+                                <img
+                                    alt=""
                                     src={advancedIcon}
                                     draggable={false}
                                     width={20}

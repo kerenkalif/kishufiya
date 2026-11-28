@@ -4,7 +4,8 @@
  *
  * The page that embeds this one (same origin only) drives it with postMessage:
  *   parent -> editor  {kishufiya: 'hello'}           are you up? (answered with 'ready' once the VM is)
- *   parent -> editor  {kishufiya: 'load', url, title, lesson, gameId}
+ *   parent -> editor  {kishufiya: 'load', url, title, lesson, gameId, menus}  menus: 'child' | 'staff' (default child;
+ *                                                    lib/kishufiya-menus.js decides every menu item from it)
  *                                                    load a project (.sb3) from a URL; title names it (the
  *                                                    file a child downloads is called by it); lesson: the
  *                                                    lesson's slug, whose characters the library shows first;
@@ -68,6 +69,8 @@ import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
 import {CAPS, opens} from '../components/kishufiya-guide/session.js';
 import {stageModeMessage} from '../components/kishufiya-guide/detect.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
+import {setMenus} from '../lib/kishufiya-menus.js';
+import {isOwn, showingMessage} from '../lib/kishufiya-showing.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
 import {
     PLATFORM_MAX_THUMBNAIL_BYTES,
@@ -108,6 +111,19 @@ const tellStageMode = () => {
     const msg = stageModeMessage(toldFull, fullNow);
     if (!msg) return;
     toldFull = fullNow;
+    post({kishufiya: 'to-lesson', msg});
+};
+// Whether the editor shows the lesson's own game, told to the lesson as 'showing' {own} on change only
+// (lib/kishufiya-showing.js): false while a project the page did not hand it is loaded, or a layer that
+// replaces the editor ("המשחקים שלי") is open. `toldOwn` undefined: not told yet (said once after 'editor-ready').
+let foreignProject = false;
+let layerOpen = false;
+let toldOwn = null;
+const tellShowing = () => {
+    const own = isOwn({foreignProject, replacedByLayer: layerOpen});
+    const msg = showingMessage(toldOwn, own);
+    if (!msg) return;
+    toldOwn = own;
     post({kishufiya: 'to-lesson', msg});
 };
 let gameId = null; // the open game's id in "המשחקים שלי"
@@ -157,8 +173,9 @@ const markChanged = () => {
 // a reason to save (it cost one save per opened game, 2026-10-24).
 let loading = false;
 
-const load = async (url, title, lesson, id) => {
+const load = async (url, title, lesson, id, menus) => {
     setLibraryLesson(lesson);
+    setMenus(menus, Boolean(lesson));
     gameId = id || null;
     loading = true;
     try {
@@ -167,6 +184,7 @@ const load = async (url, title, lesson, id) => {
         // 204: nothing to load, the child starts from the editor's own empty project
         if (res.status !== 204) await vm.loadProject(await res.arrayBuffer());
         cloud.start(await readCloud(res, url));
+        foreignProject = false; // the page's own project is the one loaded now
         if (title) {
             knownTitle = title;
             nameProject(title);
@@ -182,6 +200,8 @@ const load = async (url, title, lesson, id) => {
         post({kishufiya: 'to-lesson', msg: {type: 'editor-ready', runs: true, caps: CAPS}});
         toldFull = false; // the page that hears 'editor-ready' knows nothing yet: once more if the stage is full-screen now
         tellStageMode();
+        toldOwn = null; // the same: a page that loads anew hears it once
+        tellShowing();
         sendProject(true);
     } catch (e) {
         post({kishufiya: 'error', message: String((e && e.message) || e)});
@@ -262,8 +282,10 @@ window.addEventListener('message', e => {
     // the lesson's opening is answered from the moment this page loads, as כישופונת does: everything else waits for the editor
     if (!up && !(e.data.kishufiya === 'to-editor' && opens(e.data.msg))) return;
     if (e.data.kishufiya === 'hello') post({kishufiya: 'ready'});
-    else if (e.data.kishufiya === 'load') load(e.data.url, e.data.title, e.data.lesson, e.data.gameId);
-    else if (e.data.kishufiya === 'save') save(e.data.id, e.data.thumbnail);
+    else if (e.data.kishufiya === 'load') {
+        const {url, title, lesson, gameId: id, menus} = e.data;
+        load(url, title, lesson, id, menus);
+    } else if (e.data.kishufiya === 'save') save(e.data.id, e.data.thumbnail);
     else if (e.data.kishufiya === 'to-editor' && e.data.msg) fromLesson(e.data.msg);
     else if (e.data.kishufiya === 'chrome') {
         const {status, lessonHidden, alone} = e.data;
@@ -290,6 +312,12 @@ const onVmInit = _vm => {
         if (loading) return;
         sendProject();
         if (layerOrderChanged(savedOrder, currentOrder())) markChanged();
+    });
+    // a project loaded by anything but load() above (a file from the computer) is not the lesson's game
+    vm.runtime.on('PROJECT_LOADED', () => {
+        if (loading) return;
+        foreignProject = true;
+        if (up) tellShowing();
     });
     vm.on('EXTENSION_ADDED', () => sendProject()); // the pen, for one, is not a change of the project for the VM
 };
@@ -428,6 +456,10 @@ window.addEventListener('kishufiya-new-game', () => {
 // "המשחקים שלי", opened from the menu bar (menu-bar.jsx sends the event).
 const MyGamesHost = () => {
     const [open, setOpen] = useState(false);
+    useEffect(() => {
+        layerOpen = open;
+        if (up) tellShowing();
+    }, [open]);
     useEffect(() => {
         const show = () => setOpen(true);
         window.addEventListener('kishufiya-my-games', show);

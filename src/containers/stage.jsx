@@ -83,6 +83,8 @@ class Stage extends React.Component {
 
             // tw: handle changes to high quality pen
             this.props.vm.renderer.on('UseHighQualityRenderChanged', this.props.onHighQualityPenChanged);
+            // כישופייה: high quality pen is on for everyone, and is no longer a menu choice (Keren, 28.11)
+            this.props.vm.renderer.setUseHighQualityRender(true);
         }
         this.props.vm.attachV2BitmapAdapter(new V2BitmapAdapter());
     }
