@@ -3,7 +3,6 @@
 // (platform src/lib/limits.ts SPRITE_THUMB_MAX_CHARS: change the two together); a picture that comes out longer is not said.
 export const SPRITE_THUMB_PX = 56;
 export const SPRITE_THUMB_MAX_CHARS = 24000;
-export const SPRITE_THUMB_WAIT_MS = 400;
 
 // The box the costume is drawn in, inside size x size, its proportions kept. -> {width, height}, whole px, at least 1.
 export const thumbBox = (width, height, size = SPRITE_THUMB_PX) => {
@@ -53,4 +52,18 @@ export const thumbFor = async (target, urlOf) => {
     } catch (e) { // ignored: no picture is no harm, the strip draws the name alone
         return null;
     }
+};
+
+// The teller of `editing`: said at once on every switch, in the order of the switches (the sprite's opening is what the lesson waits for); the picture follows in a second `editing` of the
+// same sprite when it is ready, and only if that sprite is still the one open (a sequence counter: a late picture of a sprite left meanwhile is dropped, never said after the next one's name).
+export const makeEditingTeller = (send, thumbOf) => {
+    let seq = 0;
+    return target => {
+        const mine = ++seq;
+        const name = target.getName();
+        send({type: 'editing', sprite: name});
+        thumbOf(target).then(thumb => {
+            if (mine === seq && thumb) send({type: 'editing', sprite: name, thumb});
+        }, () => {}); // ignored: no picture is no harm, thumbFor never rejects
+    };
 };

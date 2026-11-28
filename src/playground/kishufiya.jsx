@@ -71,6 +71,7 @@ import MyGames from '../components/kishufiya-my-games/my-games.jsx';
 import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.jsx';
 import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
+import getCostumeUrl from '../lib/get-costume-url';
 import {CAPS, opens} from '../components/kishufiya-guide/session.js';
 import {stageModeMessage} from '../components/kishufiya-guide/detect.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
@@ -308,7 +309,7 @@ window.addEventListener('message', e => {
 const onVmInit = _vm => {
     vm = _vm;
     // the lesson points into the editor and hears what the child does (kishufiya-guide)
-    attachGuide(vm, msg => post({kishufiya: 'to-lesson', msg}));
+    attachGuide(vm, msg => post({kishufiya: 'to-lesson', msg}), getCostumeUrl);
     cloud = attachCloud(vm, values => post({kishufiya: 'cloud', values}));
     vm.on('PROJECT_CHANGED', () => {
         if (loading) return;

@@ -182,8 +182,7 @@
 import {readRects, carriedNow, dialogBox} from './rects-dom.js';
 import {busyTracker} from './rects.js';
 import {setKeptBottom, setKeptTop} from '../../lib/kishufiya-key-bar.js';
-import {thumbFor, SPRITE_THUMB_WAIT_MS} from './sprite-thumb.js';
-import getCostumeUrl from '../../lib/get-costume-url';
+import {thumbFor, makeEditingTeller} from './sprite-thumb.js';
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
@@ -1368,19 +1367,14 @@ export const handleGuide = (msg, say = send) => {
     return said;
 };
 
-// 'editing' with the sprite's small picture (sprite-thumb.js): the picture is made once for each costume and kept, so a sprite opened again says it at once; a first one waits
-// for it at most SPRITE_THUMB_WAIT_MS and is said without it when it does not come, never later (the sprite's opening is what the lesson waits for).
+// 'editing' with the sprite's small picture (sprite-thumb.js makeEditingTeller): the name is said at once on every switch; the picture (made once for each costume and kept) follows in a
+// second 'editing' of the same sprite, only if it is still the one open.
 const tellEditing = target => {
-    const name = target.getName();
-    let said = false;
-    const say = thumb => {
-        if (said) return;
-        said = true;
-        send({type: 'editing', sprite: name, ...(thumb ? {thumb} : {})});
-    };
-    const timer = setTimeout(() => say(null), SPRITE_THUMB_WAIT_MS);
-    thumbFor(target, getCostumeUrl).then(thumb => { clearTimeout(timer); say(thumb); }, () => { clearTimeout(timer); say(null); });
+    if (!editingTeller) editingTeller = makeEditingTeller(msg => send(msg), t => costumeUrl ? thumbFor(t, costumeUrl) : Promise.resolve(null));
+    editingTeller(target);
 };
+let editingTeller = null;
+let costumeUrl = null; // the editor's costume-to-URL (lib/get-costume-url), handed in by attachGuide: it is webpack-only, so this file does not import it
 
 // The code area's place, told when it changes: the page keeps ניצוצי off the sprite tiles and the zoom
 // buttons (2026-10-26).
@@ -1509,7 +1503,8 @@ const watchRuns = () => {
     }
 };
 
-export const attachGuide = (theVm, sender) => {
+export const attachGuide = (theVm, sender, costumeUrlOf = null) => {
+    costumeUrl = costumeUrlOf;
     vm = theVm;
     send = sender;
     if (!layer) {

@@ -1,6 +1,6 @@
 // SPEC-editor-base 15.2: `editing` {sprite, thumb} - the sprite's small picture - and 15.1: the corner picture stands under the strip.
 //   npx jest test/unit/kishufiya-guide/sprite-thumb
-import {thumbBox, sayable, SPRITE_THUMB_PX, SPRITE_THUMB_MAX_CHARS} from '../../../src/components/kishufiya-guide/sprite-thumb.js';
+import {makeEditingTeller, thumbBox, sayable, SPRITE_THUMB_PX, SPRITE_THUMB_MAX_CHARS} from '../../../src/components/kishufiya-guide/sprite-thumb.js';
 import {setKeptTop, keptTopPx, watermarkTop} from '../../../src/lib/kishufiya-key-bar.js';
 
 describe('sprite picture', () => {
@@ -33,5 +33,31 @@ describe('the corner picture under the strip', () => {
         expect(keptTopPx()).toBe(0);
         setKeptTop(NaN);
         expect(keptTopPx()).toBe(0);
+    });
+});
+
+describe('editing teller order', () => {
+    const png = 'data:image/png;base64,iVBORw0KGgo=';
+    const sprite = name => ({getName: () => name});
+    test('two quick switches with a slow first picture: the last said sprite is the second, the stale picture is dropped', async () => {
+        const said = [];
+        let release;
+        const slow = new Promise(resolve => { release = resolve; });
+        const teller = makeEditingTeller(m => said.push(m), t => (t.getName() === 'A' ? slow : Promise.resolve(null)));
+        teller(sprite('A'));
+        teller(sprite('B'));
+        release(png);
+        await slow;
+        await Promise.resolve();
+        expect(said).toEqual([{type: 'editing', sprite: 'A'}, {type: 'editing', sprite: 'B'}]);
+    });
+    test('a picture of the sprite still open follows its name', async () => {
+        const said = [];
+        const teller = makeEditingTeller(m => said.push(m), () => Promise.resolve(png));
+        teller(sprite('A'));
+        expect(said).toEqual([{type: 'editing', sprite: 'A'}]);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(said[1]).toEqual({type: 'editing', sprite: 'A', thumb: png});
     });
 });
