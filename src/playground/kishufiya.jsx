@@ -75,7 +75,7 @@ import {CAPS, opens} from '../components/kishufiya-guide/session.js';
 import {stageModeMessage} from '../components/kishufiya-guide/detect.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 import {setMenus} from '../lib/kishufiya-menus.js';
-import {isOwn, showingMessage, layerIsOpen, onLayersChange} from '../lib/kishufiya-showing.js';
+import {editorReadyMessage, ownNow, setForeignProject, showingMessage, onLayersChange} from '../lib/kishufiya-showing.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
 import {
     PLATFORM_MAX_THUMBNAIL_BYTES,
@@ -122,10 +122,9 @@ const tellStageMode = () => {
 // Whether the editor shows the lesson's own game, told to the lesson as 'showing' {own} on change only
 // (lib/kishufiya-showing.js): false while a project the page did not hand it is loaded, or a layer that
 // replaces the editor ("המשחקים שלי") is open. `toldOwn` undefined: not told yet (said once after 'editor-ready').
-let foreignProject = false;
 let toldOwn = null;
 const tellShowing = () => {
-    const own = isOwn({foreignProject, replacedByLayer: layerIsOpen()});
+    const own = ownNow();
     const msg = showingMessage(toldOwn, own);
     if (!msg) return;
     toldOwn = own;
@@ -194,7 +193,7 @@ const load = async (url, title, lesson, id, menus, undoBar) => {
         // 204: nothing to load, the child starts from the editor's own empty project
         if (res.status !== 204) await vm.loadProject(await res.arrayBuffer());
         cloud.start(await readCloud(res, url));
-        foreignProject = false; // the page's own project is the one loaded now
+        setForeignProject(false); // the page's own project is the one loaded now
         if (title) {
             knownTitle = title;
             nameProject(title);
@@ -207,7 +206,7 @@ const load = async (url, title, lesson, id, menus, undoBar) => {
         post({kishufiya: 'loaded'});
         // and to the page beside it: what it sent before the game was in never arrived (the guide, a freeze)
         // caps: what this build knows of the layered engine's protocol (session.js)
-        post({kishufiya: 'to-lesson', msg: {type: 'editor-ready', runs: true, caps: CAPS}});
+        post({kishufiya: 'to-lesson', msg: editorReadyMessage(CAPS)});
         toldFull = false; // the page that hears 'editor-ready' knows nothing yet: once more if the stage is full-screen now
         tellStageMode();
         toldOwn = null; // the same: a page that loads anew hears it once
@@ -326,7 +325,7 @@ const onVmInit = _vm => {
     // a project loaded by anything but load() above (a file from the computer) is not the lesson's game
     vm.runtime.on('PROJECT_LOADED', () => {
         if (loading) return;
-        foreignProject = true;
+        setForeignProject(true);
         if (up) tellShowing();
     });
     vm.on('EXTENSION_ADDED', () => sendProject()); // the pen, for one, is not a change of the project for the VM

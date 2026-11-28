@@ -193,6 +193,7 @@ import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {setNameAsk} from './name-ask.js';
 import {answerId, asking, hearWith, inSession, opens, locateOf, looked, newContract, reasonSaid, toldAnew} from './session.js';
 import {openMenuRects} from './open-menus.js';
+import {ownNow} from '../../lib/kishufiya-showing.js';
 import {scriptBoxes, topBlocksOf} from './script-boxes.js';
 import {signTagOf, signShownAt, tagPlace, choiceOf, choiceIndex, openMenuItems} from './value-mark.js';
 
@@ -1391,7 +1392,7 @@ const tellCodeArea = () => {
     const ws = workspace();
     const inForce = ws ? Math.max(0, ws.kishufiyaReserved || 0) : 0;
     const inForceBottom = ws ? Math.max(0, ws.kishufiyaReservedBottom || 0) : 0;
-    const {key, msg} = codeAreaMessage(rect, avoid, rect ? inForce : 0, rect ? inForceBottom : 0);
+    const {key, msg} = codeAreaMessage(rect, avoid, rect ? inForce : 0, rect ? inForceBottom : 0, ownNow());
     if (key === lastArea || !send) return;
     lastArea = key;
     send(msg);

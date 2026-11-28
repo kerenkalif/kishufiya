@@ -13,6 +13,17 @@ export const isOwn = ({foreignProject, replacedByLayer}) => !foreignProject && !
 
 export const showingMessage = (told, own) => (told === own ? null : {type: 'showing', own});
 
+// THE ONE ANSWER, readable from anywhere in the editor (away has one writer, the editor): `own` goes on every 'showing', on every
+// 'code-area' and on 'editor-ready', so the page never infers it from a message that is not about it (the code area is measured
+// forever, also while "המשחקים שלי" covers it). foreignProject is set by the page that loads projects (kishufiya.jsx).
+let foreign = false;
+export const setForeignProject = value => {
+    foreign = Boolean(value);
+};
+export const ownNow = () => isOwn({foreignProject: foreign, replacedByLayer: layerIsOpen()});
+// What the editor says when it is up: `own` is in it, so a page that hears it never starts from a guess.
+export const editorReadyMessage = caps => ({type: 'editor-ready', runs: true, caps, own: ownNow()});
+
 // Layers that replace the editor, registered while mounted. registerLayer returns the way to unregister.
 const layers = new Set();
 const layerListeners = new Set();

@@ -135,10 +135,10 @@ describe('code-area message', () => {
     const rect = {left: 1, top: 80, width: 300, height: 400};
     test('carries reserved, and it is in the key', () => {
         const a = codeAreaMessage(rect, [], 64);
-        expect(a.msg).toEqual({type: 'code-area', rect, avoid: [], reserved: 64});
+        expect(a.msg).toEqual({type: 'code-area', rect, avoid: [], own: true, reserved: 64});
         expect(a.key).not.toBe(codeAreaMessage(rect, [], 0).key);
     });
     test('none kept: no reserved field', () => {
-        expect(codeAreaMessage(rect, [], 0).msg).toEqual({type: 'code-area', rect, avoid: []});
+        expect(codeAreaMessage(rect, [], 0).msg).toEqual({type: 'code-area', rect, avoid: [], own: true});
     });
 });

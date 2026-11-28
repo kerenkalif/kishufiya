@@ -1,7 +1,7 @@
 //   npx jest test/unit/kishufiya-menus/layers
 import fs from 'fs';
 import path from 'path';
-import {registerLayer, layerIsOpen, onLayersChange, isOwn} from '../../../src/lib/kishufiya-showing.js';
+import {registerLayer, layerIsOpen, onLayersChange, isOwn, ownNow, setForeignProject, editorReadyMessage} from '../../../src/lib/kishufiya-showing.js';
 
 describe('layers that replace the editor', () => {
     test('registered while open, gone after unregister; tells listeners', () => {
@@ -17,6 +17,25 @@ describe('layers that replace the editor', () => {
         b();
         expect(layerIsOpen()).toBe(false);
         expect(calls).toBe(4);
+        off();
+    });
+
+    test('ownNow is the one answer the code-area, showing and editor-ready messages carry', () => {
+        expect(ownNow()).toBe(true);
+        const off = registerLayer();
+        expect(ownNow()).toBe(false); // "המשחקים שלי" is open: the periodic code-area says own false for as long as it is
+        off();
+        expect(ownNow()).toBe(true);
+        setForeignProject(true);
+        expect(ownNow()).toBe(false);
+        setForeignProject(false);
+        expect(ownNow()).toBe(true);
+    });
+
+    test('editor-ready carries own, from the same answer', () => {
+        expect(editorReadyMessage({session: true})).toEqual({type: 'editor-ready', runs: true, caps: {session: true}, own: true});
+        const off = registerLayer();
+        expect(editorReadyMessage({}).own).toBe(false);
         off();
     });
 

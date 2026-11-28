@@ -502,12 +502,14 @@ export const reservedMetrics = (m, px) => reserveMetrics(m, px, 0);
 // What 'code-area' says (SPEC-editor-base 15.1): the box measured after both moves, what to avoid, `reserved` - the px really kept at
 // the top (absent = 0) - and `reservedBottom` at the bottom (absent = 0). `key` - said only when it changed, so both are in it: a change
 // of a strip alone is told again.
-export const codeAreaMessage = (rect, avoid, reserved, reservedBottom) => {
+// `own` (kishufiya-showing.js ownNow): whether the editor shows the lesson's game - said on every code-area, so the page's "away" is the editor's word and
+// never a guess from a measurement taken under a layer ("המשחקים שלי" leaves the code area mounted and measurable).
+export const codeAreaMessage = (rect, avoid, reserved, reservedBottom, own = true) => {
     const kept = reserved > 0 ? reserved : 0;
     const keptBottom = reservedBottom > 0 ? reservedBottom : 0;
     return {
-        key: JSON.stringify([rect, avoid, kept, keptBottom]),
-        msg: {type: 'code-area', rect, avoid, ...(kept ? {reserved: kept} : {}), ...(keptBottom ? {reservedBottom: keptBottom} : {})}
+        key: JSON.stringify([rect, avoid, kept, keptBottom, own]),
+        msg: {type: 'code-area', rect, avoid, own, ...(kept ? {reserved: kept} : {}), ...(keptBottom ? {reservedBottom: keptBottom} : {})}
     };
 };
 
