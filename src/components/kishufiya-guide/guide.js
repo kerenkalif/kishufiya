@@ -1376,7 +1376,10 @@ const tellCodeArea = () => {
         .filter(Boolean)
         // ...and any menu open over the code: the bubble stands off it while it is open (open-menus.js)
         .concat(openMenuRects(document));
-    const {key, msg} = codeAreaMessage(rect, avoid, rect ? reservedTop : 0);
+    // what is in force on the workspace now, not what was asked: until a resize takes it (-1: not yet), the rect has none of it
+    const ws = workspace();
+    const inForce = ws ? Math.max(0, ws.kishufiyaReserved || 0) : 0;
+    const {key, msg} = codeAreaMessage(rect, avoid, rect ? inForce : 0);
     if (key === lastArea || !send) return;
     lastArea = key;
     send(msg);
