@@ -4,6 +4,7 @@ import {
     STAGE_DISPLAY_SIZES,
     FIXED_WIDTH
 } from '../lib/layout-constants';
+import {fullScreenStageHeight} from './kishufiya-key-bar';
 
 const maxScaleParam = typeof URLSearchParams !== 'undefined' && new URLSearchParams(location.search).get('scale');
 
@@ -56,9 +57,11 @@ const getStageDimensions = (stageSize, customStageSize, isFullScreen) => {
     };
 
     if (isFullScreen) {
-        stageDimensions.height = window.innerHeight -
-            STAGE_DIMENSION_DEFAULTS.menuHeightAdjustment -
-            STAGE_DIMENSION_DEFAULTS.fullScreenSpacingBorderAdjustment;
+        // כישופייה: less the bottom the base keeps for its key bar (SPEC-editor-base 15.1)
+        stageDimensions.height = fullScreenStageHeight(
+            window.innerHeight,
+            STAGE_DIMENSION_DEFAULTS.menuHeightAdjustment + STAGE_DIMENSION_DEFAULTS.fullScreenSpacingBorderAdjustment
+        );
 
         stageDimensions.width = stageDimensions.height * (customStageSize.width / customStageSize.height);
 

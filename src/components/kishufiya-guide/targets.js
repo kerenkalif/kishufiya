@@ -244,9 +244,10 @@ export const codeArea = () => {
         else left = Math.max(left, r.right);
     }
     if (right - left < 20) return null;
-    // below the top the base keeps for its words strip (guide.js reserveTop; SPEC-editor-base 15.1)
+    // below the top and above the bottom the base keeps for its strips (guide.js reserve; SPEC-editor-base 15.1): no drop is accepted there
     const kept = ws.kishufiyaReserved > 0 ? ws.kishufiyaReserved : 0;
-    return {left, right, top: svg.top + kept, bottom: svg.bottom, width: right - left, height: svg.bottom - svg.top - kept};
+    const keptBottom = ws.kishufiyaReservedBottom > 0 ? ws.kishufiyaReservedBottom : 0;
+    return {left, right, top: svg.top + kept, bottom: svg.bottom - keptBottom, width: right - left, height: Math.max(0, svg.bottom - svg.top - kept - keptBottom)};
 };
 
 const realBlock = block => {

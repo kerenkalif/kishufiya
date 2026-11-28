@@ -106,8 +106,11 @@
 //                                      and the sprite list stay open, for a pick - the child opens the
 //                                      right sprite by themselves; nothing is opened for them (Keren,
 //                                      2026-10-23), the lesson may give a hint instead
-//   reserve-top  {px}                  the base's words strip takes px pixels at the top of the code area (SPEC-editor-base 15.1): the
-//                                      code area starts below them, 0 gives it back; 'code-area' is then told anew, measured after the move
+//   reserve      {top, bottom}         the base's strips take `top` px at the top and `bottom` px at the bottom of the code area (SPEC-editor-base
+//                                      15.1): the code area starts below the first and ends above the second (no block is dropped in them,
+//                                      the scroll reaches every block, the zoom controls sit above the bottom one), 0 gives it back;
+//                                      'code-area' is then told anew, measured after the moves, with `reserved` and `reservedBottom`
+//   reserve-top  {px}                  alias: reserve {top: px, bottom: 0}
 //   pick         {on}                  clicks on blocks in the code pick them (reported) instead of
 //                                      running or dragging them
 //   find         {id, opcode, inside?} which sprites' code has such a block (inside: within one of that
@@ -177,10 +180,11 @@
 //                                                   is in
 import {readRects, carriedNow, dialogBox} from './rects-dom.js';
 import {busyTracker} from './rects.js';
+import {setKeptBottom} from '../../lib/kishufiya-key-bar.js';
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
-    scriptRan, scriptRing, softMarkColours, reserveTopPx, reservedMetrics, codeAreaMessage, tellsClick, typing, typingOf, keptTyping, endEdit}
+    scriptRan, scriptRing, softMarkColours, reserveOf, reserveMetrics, codeAreaMessage, tellsClick, typing, typingOf, keptTyping, endEdit}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -635,11 +639,13 @@ const setSoftColour = colours => {
     softColoured = Boolean(colours);
 };
 
-// The base's words strip covers the top of the code area (SPEC-editor-base 15.1 `reserve-top` {px}): only the code area starts px
-// lower - the workspace's metrics (detect.js reservedMetrics), so the scroll still reaches every block - and the palette stays
-// where it is. 0 gives it back. It is put on whichever workspace is there now (a rebuilt one, after the costumes tab and back, has
-// none of it): looked at on every area tick. 'code-area' is told anew, measured after the move (tellCodeArea).
+// The base's strips cover the top and the bottom of the code area (SPEC-editor-base 15.1 `reserve` {top, bottom}; `reserve-top` {px} is
+// reserve {top: px, bottom: 0}): only the code area starts `top` lower and ends `bottom` higher - the workspace's metrics (detect.js
+// reserveMetrics), so the scroll still reaches every block - and the palette stays where it is. 0 gives it back. It is put on whichever
+// workspace is there now (a rebuilt one, after the costumes tab and back, has none of it): looked at on every area tick. 'code-area' is
+// told anew, measured after the move (tellCodeArea). The bottom is also kept for the stage's full-screen (lib/kishufiya-key-bar.js).
 let reservedTop = 0;
+let reservedBottom = 0;
 const applyReserve = () => {
     const ws = workspace();
     if (!ws || !ws.getMetrics) return;
@@ -647,12 +653,14 @@ const applyReserve = () => {
         const own = ws.getMetrics;
         ws.kishufiyaOwnMetrics = own;
         ws.kishufiyaReserved = 0;
+        ws.kishufiyaReservedBottom = 0;
         ws.getMetrics = function () {
-            return reservedMetrics(own.call(this), this.kishufiyaReserved);
+            return reserveMetrics(own.call(this), this.kishufiyaReserved, this.kishufiyaReservedBottom);
         };
     }
-    if (ws.kishufiyaReserved === reservedTop) return;
+    if (ws.kishufiyaReserved === reservedTop && ws.kishufiyaReservedBottom === reservedBottom) return;
     ws.kishufiyaReserved = reservedTop;
+    ws.kishufiyaReservedBottom = reservedBottom;
     try {
         ws.resize();
     } catch (e) { // ignored: the workspace is not ready; the next area tick looks again
@@ -660,10 +668,12 @@ const applyReserve = () => {
     }
     lastArea = '';
 };
-const reserveTop = value => {
-    const px = reserveTopPx(value);
-    if (px === null) return;
-    reservedTop = px;
+const reserve = msg => {
+    const asked = reserveOf(msg);
+    if (!asked) return;
+    reservedTop = asked.top;
+    reservedBottom = asked.bottom;
+    setKeptBottom(asked.bottom); // the stage's full-screen keeps it too, and the browser's full-screen gives way while it is there
     applyReserve();
 };
 
@@ -1260,8 +1270,9 @@ const handleSaid = msg => {
         // the base's decision, done: a box scrolled to a target (targets.js scrollContainer)
         if ((state.guide && answerId(msg) === state.guide.id) || locateOf(state.contract, answerId(msg))) scrollContainer(msg.container, msg.top, msg.left);
         break;
+    case 'reserve':
     case 'reserve-top':
-        reserveTop(msg.px);
+        reserve(msg);
         break;
     case 'guide-frame':
         // the base's decision for the frame at the drop (platform drop-frame.ts): drawn exactly, nothing on null
@@ -1379,7 +1390,8 @@ const tellCodeArea = () => {
     // what is in force on the workspace now, not what was asked: until a resize takes it (-1: not yet), the rect has none of it
     const ws = workspace();
     const inForce = ws ? Math.max(0, ws.kishufiyaReserved || 0) : 0;
-    const {key, msg} = codeAreaMessage(rect, avoid, rect ? inForce : 0);
+    const inForceBottom = ws ? Math.max(0, ws.kishufiyaReservedBottom || 0) : 0;
+    const {key, msg} = codeAreaMessage(rect, avoid, rect ? inForce : 0, rect ? inForceBottom : 0);
     if (key === lastArea || !send) return;
     lastArea = key;
     send(msg);

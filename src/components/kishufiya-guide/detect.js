@@ -468,21 +468,53 @@ export const softMarkColours = value => {
     return {line: `#${full}`, glow: `rgba(${r}, ${g}, ${b}, 0.65)`, glowPoint: `rgba(${r}, ${g}, ${b}, 0.8)`, halo: `rgba(${r}, ${g}, ${b}, 0.35)`};
 };
 
-// The pixels at the top of the code area the base asks to keep free (guide message `reserve-top` {px}, SPEC-editor-base 15.1): a
-// whole number of pixels, 0 or more. null for anything else (the message is ignored); the base decides the number, never measured here.
-export const reserveTopPx = value => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.round(value) : null);
+// The pixels at an edge of the code area the base asks to keep free (guide message `reserve` {top, bottom}, SPEC-editor-base 15.1): a
+// whole number of pixels, 0 or more. null for anything else; the base decides the number, never measured here.
+export const reservePx = value => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.round(value) : null);
+export const reserveTopPx = reservePx;
 
-// The workspace's metrics with the top `px` of the code area kept free (SPEC-editor-base 15.1): the view is that much shorter and
-// starts that much lower (absoluteTop - the content is translated by it), so the scroll still reaches every block and only the
-// code area moves, never the palette. `m`: the workspace's own getMetrics(); the same object back for 0.
-export const reservedMetrics = (m, px) => (m && px > 0 ? {...m, absoluteTop: (m.absoluteTop || 0) + px, viewHeight: Math.max(0, m.viewHeight - px)} : m);
-
-// What 'code-area' says (SPEC-editor-base 15.1): the box measured after the move, what to avoid, and `reserved` - the px really kept
-// (absent = 0). `key` - said only when it changed, so `reserved` is in it: a change of the strip alone is told again.
-export const codeAreaMessage = (rect, avoid, reserved) => {
-    const kept = reserved > 0 ? reserved : 0;
-    return {key: JSON.stringify([rect, avoid, kept]), msg: {type: 'code-area', rect, avoid, ...(kept ? {reserved: kept} : {})}};
+// What a 'reserve' {top, bottom} or its alias 'reserve-top' {px} (= top px, bottom 0) asks for: {top, bottom} in whole pixels, or null
+// when the message is not one of those (a field that is there but is not a number 0 or more spoils it; a missing one is 0).
+export const reserveOf = msg => {
+    if (!msg) return null;
+    if (msg.type === 'reserve-top') {
+        const px = reservePx(msg.px);
+        return px === null ? null : {top: px, bottom: 0};
+    }
+    if (msg.type !== 'reserve') return null;
+    const top = msg.top === undefined ? 0 : reservePx(msg.top);
+    const bottom = msg.bottom === undefined ? 0 : reservePx(msg.bottom);
+    return top === null || bottom === null ? null : {top, bottom};
 };
+
+// The workspace's metrics with the top `top` and the bottom `bottom` px of the code area kept free (SPEC-editor-base 15.1): the view is
+// that much shorter and starts `top` lower (absoluteTop - the content is translated by it), so the scroll still reaches every block
+// (nothing hides behind either strip), the zoom controls (placed from viewHeight) sit above the bottom strip, and only the code area
+// moves, never the palette. `m`: the workspace's own getMetrics(); the same object back for 0 and 0.
+export const reserveMetrics = (m, top, bottom = 0) => {
+    const t = top > 0 ? top : 0;
+    const b = bottom > 0 ? bottom : 0;
+    if (!m || (!t && !b)) return m;
+    return {...m, absoluteTop: (m.absoluteTop || 0) + t, viewHeight: Math.max(0, m.viewHeight - t - b)};
+};
+export const reservedMetrics = (m, px) => reserveMetrics(m, px, 0);
+
+// What 'code-area' says (SPEC-editor-base 15.1): the box measured after both moves, what to avoid, `reserved` - the px really kept at
+// the top (absent = 0) - and `reservedBottom` at the bottom (absent = 0). `key` - said only when it changed, so both are in it: a change
+// of a strip alone is told again.
+export const codeAreaMessage = (rect, avoid, reserved, reservedBottom) => {
+    const kept = reserved > 0 ? reserved : 0;
+    const keptBottom = reservedBottom > 0 ? reservedBottom : 0;
+    return {
+        key: JSON.stringify([rect, avoid, kept, keptBottom]),
+        msg: {type: 'code-area', rect, avoid, ...(kept ? {reserved: kept} : {}), ...(keptBottom ? {reservedBottom: keptBottom} : {})}
+    };
+};
+
+// 'stage-mode' {fullscreen} (SPEC-editor-base 15.1): said on change only. `told` - what the page was last told (false at the start:
+// the page takes a stage that is not full-screen as given); `now` - the editor's stage is full-screen now (scratch-gui isFullScreen).
+// -> the message, or null when there is nothing to tell.
+export const stageModeMessage = (told, now) => (Boolean(told) === Boolean(now) ? null : {type: 'stage-mode', fullscreen: Boolean(now)});
 
 // The lesson's 'tidy' (guide.js), one look at it: `asked` - whether it is still asked for after this look, `done` -
 // whether the scripts were put in place now. Not while a block is being dragged - blocks never move under the child's

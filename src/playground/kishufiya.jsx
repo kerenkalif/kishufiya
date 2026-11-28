@@ -66,6 +66,7 @@ import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.
 import {Theme} from '../lib/themes';
 import {attachGuide, handleGuide} from '../components/kishufiya-guide/guide.js';
 import {CAPS, opens} from '../components/kishufiya-guide/session.js';
+import {stageModeMessage} from '../components/kishufiya-guide/detect.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
 import {
@@ -99,6 +100,16 @@ let nameProject = () => {}; // set by <Bridge>, which can reach the GUI's store
 // Also set by <Bridge>: the game as the page has it now is saved, so the editor's own "leave this page?"
 // question (project-saver-hoc) stops popping up when the child presses home after a save.
 let markSaved = () => {};
+// The stage full-screen (scratch-gui isFullScreen, the CSS mode in this frame), told to the page as 'stage-mode' {fullscreen} on change
+// only (SPEC-editor-base 15.1): `toldFull` is what the page last heard (a page that loads anew hears it again after 'editor-ready').
+let fullNow = false;
+let toldFull = false;
+const tellStageMode = () => {
+    const msg = stageModeMessage(toldFull, fullNow);
+    if (!msg) return;
+    toldFull = fullNow;
+    post({kishufiya: 'to-lesson', msg});
+};
 let gameId = null; // the open game's id in "המשחקים שלי"
 let knownTitle = null; // the name as the platform has it: a change from it is the child's
 
@@ -169,6 +180,8 @@ const load = async (url, title, lesson, id) => {
         // and to the page beside it: what it sent before the game was in never arrived (the guide, a freeze)
         // caps: what this build knows of the layered engine's protocol (session.js)
         post({kishufiya: 'to-lesson', msg: {type: 'editor-ready', runs: true, caps: CAPS}});
+        toldFull = false; // the page that hears 'editor-ready' knows nothing yet: once more if the stage is full-screen now
+        tellStageMode();
         sendProject(true);
     } catch (e) {
         post({kishufiya: 'error', message: String((e && e.message) || e)});
@@ -314,7 +327,8 @@ const Bridge = connect(
     state => ({
         size: state.scratchGui.stageSize.stageSize,
         width: state.scratchGui.stageSize.width,
-        title: state.scratchGui.projectTitle
+        title: state.scratchGui.projectTitle,
+        full: Boolean(state.scratchGui.mode.isFullScreen)
     }),
     dispatch => ({
         onLarge: () => dispatch(setStageSize(STAGE_SIZE_MODES.large)),
@@ -322,8 +336,13 @@ const Bridge = connect(
         onFit: stageWidth => dispatch(setStageWidth(stageWidth)),
         onSaved: () => dispatch(setProjectUnchanged())
     })
-)(({size, width, title, onLarge, onTitle, onFit, onSaved}) => {
+)(({size, width, title, full, onLarge, onTitle, onFit, onSaved}) => {
     useEffect(onLarge, []);
+    useEffect(() => {
+        fullNow = full;
+        // before the editor is up there is nobody to tell: the page is told after 'editor-ready'
+        if (up) tellStageMode();
+    }, [full]);
     nameProject = onTitle;
     markSaved = onSaved;
     // The child renamed the game in the title field: the platform keeps the name ("המשחקים שלי").

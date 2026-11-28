@@ -6,6 +6,7 @@ import {connect} from 'react-redux';
 import {setFullScreen} from '../reducers/mode';
 import {setIsWindowFullScreen} from '../reducers/tw';
 import FullscreenAPI from './tw-fullscreen-api';
+import {browserFullscreenAllowed} from './kishufiya-key-bar';
 
 const TWFullScreenHOC = function (WrappedComponent) {
     class FullScreenComponent extends React.Component {
@@ -24,8 +25,10 @@ const TWFullScreenHOC = function (WrappedComponent) {
         }
         componentDidUpdate () {
             if (FullscreenAPI.available()) {
+                // כישופייה: no browser full-screen while the base keeps a bottom strip - it would hide the base's layer
+                // (SPEC-editor-base 15.1); the stage is full-screen in the editor's own (CSS) mode
                 if (this.props.isFullScreen) {
-                    FullscreenAPI.request();
+                    if (browserFullscreenAllowed()) FullscreenAPI.request();
                 } else if (FullscreenAPI.enabled()) {
                     FullscreenAPI.exit();
                 }
