@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import {useEffect} from 'react';
+import {keptTopPx, watermarkTop} from '../../lib/kishufiya-key-bar.js';
 
 // כישופייה: the selected sprite's faint picture in the code area's corner sits BEHIND the blocks (Keren,
 // 2026-10-24) - an image over the blocks hid the script a child put in that corner. It is drawn inside the
@@ -36,7 +37,8 @@ const place = url => {
     const rtl = Boolean(box && box.closest('[dir="rtl"]'));
     const x = corner ? corner.left - at.left - (rtl ? 0 : SIZE) : MARGIN;
     image.setAttribute('x', Math.max(0, x));
-    image.setAttribute('y', corner ? Math.max(0, corner.top - at.top) : MARGIN);
+    // moved down by the room the base's strip keeps at the top (reserve {top}): the workspace's metrics move the blocks, this picture is outside them
+    image.setAttribute('y', corner ? watermarkTop(corner.top, at.top, keptTopPx()) : MARGIN + keptTopPx());
     image.setAttribute('href', url);
     return true;
 };
