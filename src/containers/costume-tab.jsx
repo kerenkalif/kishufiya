@@ -25,6 +25,7 @@ import {
 } from '../reducers/editor-tab';
 
 import {setRestore} from '../reducers/restore-deletion';
+import {recordItemDeletion} from '../lib/kishufiya-deletions.js';
 import {showStandardAlert, closeAlertWithId} from '../reducers/alerts';
 
 import addLibraryBackdropIcon from '../components/asset-panel/icon--add-backdrop-lib.svg';
@@ -133,7 +134,10 @@ class CostumeTab extends React.Component {
         this.setState({selectedCostumeIndex: costumeIndex});
     }
     handleDeleteCostume (costumeIndex) {
+        const target = this.props.vm.editingTarget;
+        const costume = target && target.sprite.costumes[costumeIndex];
         const restoreCostumeFun = this.props.vm.deleteCostume(costumeIndex);
+        if (costume) recordItemDeletion(this.props.vm, 'Costume', costume.name, target, restoreCostumeFun);
         this.props.dispatchUpdateRestore({
             restoreFun: restoreCostumeFun,
             deletedItem: 'Costume'

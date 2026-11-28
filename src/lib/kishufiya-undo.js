@@ -1,71 +1,82 @@
-// The undo / redo buttons of the menu bar (Keren, 28.11): what Ctrl+Z and Ctrl+Y do in the code area, from the bar.
-// The code area's own undo is the Blockly workspace's (scratch-blocks core/blockly.js keydown: workspace.undo(redo)),
-// so a button calls the same method on the same workspace: one history, no second one kept here. The workspace
-// clears it on every sprite switch (blocks.jsx onWorkspaceUpdate), and says so through notifyUndo().
+// The undo / redo buttons of the menu bar (Keren, 28.11): ONE history of code edits and of deleted sprites, costumes
+// and sounds, in the order they happened (lib/kishufiya-history.js keeps the order). The code area's own undo stays the
+// Blockly workspace's (scratch-blocks workspace.undo(redo)); this file connects the two:
+//   - every workspace event that goes on the workspace's undo stack is also recorded in the history;
+//   - workspace.undo itself is routed through the history while the bar is on, so Ctrl+Z / Ctrl+Y in the code area
+//     and the buttons are one path (Ctrl+Z after a deleted costume brings the costume back, as the button does);
+//   - the workspace clears its stacks on every sprite switch, and says so through workspaceCleared().
+import {currentMenuRules} from './kishufiya-menus.js';
+import {history, describeEntry} from './kishufiya-history.js';
 
-// What the stacks hold: the buttons are lit while there is something to go back or forward to.
-export const stackState = workspace => ({
-    undo: Boolean(workspace && workspace.undoStack_ && workspace.undoStack_.length > 0),
-    redo: Boolean(workspace && workspace.redoStack_ && workspace.redoStack_.length > 0)
-});
-
-// What the bar draws (pure, so it is tested without a screen). The undo and redo buttons are the code area's history
-// only, lit while there is something to go back or forward to, and only on the code tab. The restore button is
-// separate: it shows only while a deleted sprite, costume or sound can come back, and names which one. In Hebrew
-// the arrows are mirrored (undo points right, redo left, as in Word).
-export const RESTORE_WORDS = {
-    Sprite: 'שחזר את הדמות',
-    Costume: 'שחזר את התלבושת',
-    Sound: 'שחזר את הצליל'
+// What the bar draws (pure, so it is tested without a screen). A button is lit while its next entry can run: a code
+// step only on the code tab (the workspace is not on screen elsewhere), a deletion on any tab. In Hebrew the arrows
+// are mirrored (undo points right, redo left, as in Word). label: null means the plain "ביטול" / "ביצוע חוזר".
+export const barView = ({isRtl, isCodeTab, top}) => {
+    const side = (entry, redo) => ({
+        enabled: Boolean(entry && (entry.kind !== 'code' || isCodeTab)),
+        mirrored: Boolean(isRtl),
+        label: describeEntry(entry, redo)
+    });
+    return {undo: side(top.undo, false), redo: side(top.redo, true)};
 };
-
-export const barView = ({isRtl, isCodeTab, history, restorable, deletedItem}) => ({
-    undo: {enabled: Boolean(isCodeTab && history.undo), mirrored: Boolean(isRtl)},
-    redo: {enabled: Boolean(isCodeTab && history.redo), mirrored: Boolean(isRtl)},
-    restore: restorable && RESTORE_WORDS[deletedItem] ? {label: RESTORE_WORDS[deletedItem]} : null
-});
 
 // Enter and Space press a bar button, as on "המשחקים שלי".
 export const isPressKey = key => key === 'Enter' || key === ' ';
 
+const barOn = () => currentMenuRules().undoBar;
+
 let workspace = null;
-let last = {undo: false, redo: false};
-const listeners = new Set();
+let nativeUndo = null;
+let stopListening = null;
 
-export const currentUndoState = () => last;
+export const currentTop = () => history.peek();
+export const subscribeUndo = fn => history.subscribe(fn);
 
-export const subscribeUndo = fn => {
-    listeners.add(fn);
-    return () => listeners.delete(fn);
+const codeHook = {
+    canUndo: redo => {
+        const stack = workspace && (redo ? workspace.redoStack_ : workspace.undoStack_);
+        return Boolean(stack && stack.length > 0);
+    },
+    undo: redo => {
+        if (typeof workspace.hideChaff === 'function') workspace.hideChaff();
+        nativeUndo(Boolean(redo));
+    }
 };
 
-// Tells the bar to look again, only when a button's state changed.
-export const notifyUndo = () => {
-    const next = stackState(workspace);
-    if (next.undo === last.undo && next.redo === last.redo) return;
-    last = next;
-    for (const listener of listeners) listener();
+// A workspace event: one that went on its undo stack is one step of the history (Blockly fires the listeners right
+// after pushing it on the stack, workspace.js fireChangeListener).
+const onWorkspaceEvent = event => {
+    if (event && event.recordUndo && barOn()) history.recordCode(event.group);
 };
 
 export const detachUndoWorkspace = () => {
-    if (workspace && typeof workspace.removeChangeListener === 'function') workspace.removeChangeListener(notifyUndo);
+    if (workspace) {
+        if (stopListening) stopListening();
+        if (nativeUndo) workspace.undo = nativeUndo;
+    }
     workspace = null;
-    notifyUndo();
+    nativeUndo = null;
+    stopListening = null;
+    history.setCode(null);
+    history.dropCode();
 };
 
 // blocks.jsx hands over its workspace once it exists, and takes it back when it is disposed.
 export const attachUndoWorkspace = ws => {
     detachUndoWorkspace();
     workspace = ws;
-    workspace.addChangeListener(notifyUndo);
-    notifyUndo();
+    nativeUndo = ws.undo.bind(ws);
+    ws.undo = redo => {
+        if (!barOn()) return nativeUndo(redo); // switch off: the workspace's own undo, unchanged
+        return history.run(Boolean(redo));
+    };
+    ws.addChangeListener(onWorkspaceEvent);
+    stopListening = () => ws.removeChangeListener(onWorkspaceEvent);
+    history.setCode(codeHook);
 };
 
-// The same call as the keyboard's (Blockly.mainWorkspace.undo(redo)); false when there is no workspace.
-export const runUndo = redo => {
-    if (!workspace) return false;
-    if (typeof workspace.hideChaff === 'function') workspace.hideChaff();
-    workspace.undo(Boolean(redo));
-    notifyUndo();
-    return true;
-};
+// The workspace cleared its undo stacks (blocks.jsx, a sprite switch): its code steps are gone, deletions stay.
+export const workspaceCleared = () => history.dropCode();
+
+// The buttons: the same path as the keyboard's. false when nothing ran.
+export const runUndo = redo => history.run(Boolean(redo));

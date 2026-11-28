@@ -37,6 +37,7 @@ import {
 } from '../reducers/editor-tab';
 
 import {setRestore} from '../reducers/restore-deletion';
+import {recordItemDeletion} from '../lib/kishufiya-deletions.js';
 import {showStandardAlert, closeAlertWithId} from '../reducers/alerts';
 
 class SoundTab extends React.Component {
@@ -82,7 +83,10 @@ class SoundTab extends React.Component {
     }
 
     handleDeleteSound (soundIndex) {
+        const target = this.props.vm.editingTarget;
+        const sound = target && target.sprite.sounds[soundIndex];
         const restoreFun = this.props.vm.deleteSound(soundIndex);
+        if (sound) recordItemDeletion(this.props.vm, 'Sound', sound.name, target, restoreFun);
         if (soundIndex >= this.state.selectedSoundIndex) {
             this.setState({selectedSoundIndex: Math.max(0, soundIndex - 1)});
         }

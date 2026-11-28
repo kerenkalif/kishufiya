@@ -53,6 +53,7 @@ import {setStageSize, setStageWidth} from '../reducers/stage-size';
 import {setProjectTitle} from '../reducers/project-title';
 import {setProjectUnchanged} from '../reducers/project-changed';
 import {clearRestore} from '../reducers/restore-deletion';
+import {history} from '../lib/kishufiya-history.js';
 import {
     STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH, FIXED_WIDTH
 } from '../lib/layout-constants';
@@ -182,6 +183,7 @@ const load = async (url, title, lesson, id, menus, undoBar) => {
     setLibraryLesson(lesson);
     setMenus(menus, Boolean(lesson), undoBar);
     clearRestoreState();
+    history.clear(); // a loaded game has nothing to undo
     gameId = id || null;
     loading = true;
     try {

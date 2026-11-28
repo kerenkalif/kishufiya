@@ -33,9 +33,9 @@ export const menuRules = (mode, inLesson = false, undoBar = false) => {
         newWindow: staff, // "New window" (desktop app item), not for a child
         newGame: staff || !inLesson,
         downloadToComputer: true, // "הורדה למחשב": a child's own copy, the platform checks nothing here
-        // "שחזר" (the last deleted sprite, costume or sound). With the undo bar it is the bar's own restore button,
-        // so only staff keep the menu item.
-        restoreDeleted: staff || !undoBar,
+        // "שחזר" (the last deleted sprite, costume or sound). With the undo bar, "ביטול" brings deletions back,
+        // in order, so nobody keeps this item.
+        restoreDeleted: !undoBar,
         undoBar // the "ביטול" / "ביצוע חוזר" buttons, for everyone
     };
 };

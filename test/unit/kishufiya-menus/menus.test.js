@@ -26,7 +26,13 @@ describe('menuRules', () => {
         expect(menuRules('staff', true).newGame).toBe(true);
     });
     test('staff sees everything', () => {
-        expect(Object.values(menuRules('staff', true, true)).every(Boolean)).toBe(true);
+        const rules = menuRules('staff', true);
+        expect(Object.entries(rules).filter(([k]) => k !== 'undoBar').every(([, v]) => v)).toBe(true);
+    });
+    test('with the undo bar, "ביטול" brings deletions back: nobody keeps the old restore item', () => {
+        expect(menuRules('staff', true, true).restoreDeleted).toBe(false);
+        expect(menuRules('child', true, true).restoreDeleted).toBe(false);
+        expect(menuRules('staff', true, true).undoBar).toBe(true);
     });
 });
 

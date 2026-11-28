@@ -39,7 +39,7 @@ import {setPlayer} from '../../reducers/mode';
 import {BLOCKS_TAB_INDEX} from '../../reducers/editor-tab';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
 import {currentMenuRules, menusShown, subscribeMenus} from '../../lib/kishufiya-menus.js';
-import {barView, currentUndoState, isPressKey, runUndo, subscribeUndo} from '../../lib/kishufiya-undo.js';
+import {barView, currentTop, isPressKey, runUndo, subscribeUndo} from '../../lib/kishufiya-undo.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -464,26 +464,26 @@ class MenuBar extends React.Component {
             </MenuLabel>
         );
     }
-    // The undo / redo buttons (kishufiya-undo.js): the code area's history, as Ctrl+Z / Ctrl+Y. A separate restore button
-    // shows only while a deleted sprite, costume or sound can come back, and says which.
+    // The undo / redo buttons (kishufiya-undo.js): ONE history of code edits and of deleted sprites, costumes and
+    // sounds, in the order they happened. The tooltip names a deletion ("ביטול: מחיקת הדמות מטבע").
     renderUndoRedo () {
         const {intl, isCodeTab, isRtl} = this.props;
-        const history = currentUndoState();
-        const button = (key, icon, label, enabled, mirrored, onClick) => (
+        const view = barView({isRtl, isCodeTab, top: currentTop()});
+        const button = (key, icon, label, side, onClick) => (
             <div
                 className={classNames(styles.menuBarItem, {
-                    [styles.hoverable]: enabled,
-                    [styles.disabled]: !enabled,
-                    [styles.mirrored]: mirrored
+                    [styles.hoverable]: side.enabled,
+                    [styles.disabled]: !side.enabled,
+                    [styles.mirrored]: side.mirrored
                 })}
                 data-guide={key}
                 role="button"
                 tabIndex={0}
                 aria-label={label}
-                aria-disabled={!enabled}
+                aria-disabled={!side.enabled}
                 title={label}
-                onClick={enabled ? onClick : null}
-                onKeyDown={enabled ? e => isPressKey(e.key) && onClick() : null}
+                onClick={side.enabled ? onClick : null}
+                onKeyDown={side.enabled ? e => isPressKey(e.key) && onClick() : null}
             >
                 <img
                     alt=""
@@ -495,18 +495,12 @@ class MenuBar extends React.Component {
             </div>
         );
         return (
-            <DeletionRestorer>{(handleRestore, {restorable, deletedItem}) => {
-                const view = barView({isRtl, isCodeTab, history, restorable, deletedItem});
-                return (
-                    <React.Fragment>
-                        {button('undo', undoIcon, intl.formatMessage(kishufiyaMessages.undo), view.undo.enabled,
-                            view.undo.mirrored, () => runUndo(false))}
-                        {button('redo', redoIcon, intl.formatMessage(kishufiyaMessages.redo), view.redo.enabled,
-                            view.redo.mirrored, () => runUndo(true))}
-                        {view.restore && button('restore', undoIcon, view.restore.label, true, false, handleRestore)}
-                    </React.Fragment>
-                );
-            }}</DeletionRestorer>
+            <React.Fragment>
+                {button('undo', undoIcon, view.undo.label || intl.formatMessage(kishufiyaMessages.undo), view.undo,
+                    () => runUndo(false))}
+                {button('redo', redoIcon, view.redo.label || intl.formatMessage(kishufiyaMessages.redo), view.redo,
+                    () => runUndo(true))}
+            </React.Fragment>
         );
     }
     wrapAboutMenuCallback (callback) {
