@@ -82,12 +82,14 @@
 .ring {
     --mark-fallback: #e53935;
     --mark-glow-fallback: rgba(229, 57, 53, 0.55);
+    --mark-halo-fallback: rgba(229, 57, 53, 0.35);
 }
 
 .ring.soft {
     --mark-fallback: #6a1b9a;
     --mark-glow-fallback: rgba(149, 86, 205, 0.65);
     --mark-glow-point-fallback: rgba(149, 86, 205, 0.8);
+    --mark-halo-fallback: rgba(149, 86, 205, 0.35);
 }
 
 .ring,
@@ -118,7 +120,7 @@
 
 /* not pressed after a few seconds: the ring grows and glows, the arrow is bigger (Keren, 2026-10-25) */
 .ring.louder {
-    box-shadow: 0 0 0 3px #ffffff, inset 0 0 0 3px #ffffff, 0 0 0 7px rgba(229, 57, 53, 0.35), 0 0 18px 6px var(--mark-glow, var(--mark-glow-fallback));
+    box-shadow: 0 0 0 3px #ffffff, inset 0 0 0 3px #ffffff, 0 0 0 7px var(--mark-halo, var(--mark-halo-fallback)), 0 0 18px 6px var(--mark-glow, var(--mark-glow-fallback));
     animation: louder 0.7s ease-in-out infinite alternate;
 }
 
@@ -134,7 +136,7 @@
 }
 
 .ring.point.louder {
-    box-shadow: 0 0 0 3px #ffffff, 0 0 0 7px rgba(229, 57, 53, 0.35), 0 0 18px 8px var(--mark-glow, var(--mark-glow-fallback)), inset 0 0 0 3px #ffffff;
+    box-shadow: 0 0 0 3px #ffffff, 0 0 0 7px var(--mark-halo, var(--mark-halo-fallback)), 0 0 18px 8px var(--mark-glow, var(--mark-glow-fallback)), inset 0 0 0 3px #ffffff;
 }
 
 /* the thing a window of the lesson talks about (platform decision 32, 2026-10-31; guide.js marking 'soft'): a soft mark in

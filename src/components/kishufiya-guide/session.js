@@ -80,6 +80,7 @@ const asked = (locates, msg) => {
         key: typeof want.key === 'string' ? want.key : null,
         target: want.point,
         highlight: Boolean(want.highlight),
+        ...(typeof want.markColour === 'string' ? {markColour: want.markColour} : {}),
         told: '', // the last 'located' said of it, to say only a change
         found: false,
         since: null // when it was first seen missing

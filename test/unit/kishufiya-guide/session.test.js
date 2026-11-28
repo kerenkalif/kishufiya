@@ -149,3 +149,13 @@ describe('a located answer for a target inside the stage', () => {
         expect('stage' in out.say[0]).toBe(false);
     });
 });
+
+describe('a place asked with a mark colour', () => {
+    test('keeps it for its soft mark, and none when none was sent', () => {
+        const it = editor();
+        it.hear({type: 'locate', session: 1, request: 1, want: {key: 'k', point: {ui: 'flag'}, highlight: true, markColour: '#6a1b9a'}});
+        it.hear(place(1, 2));
+        expect(it.state.locates.find(l => l.request === 1).markColour).toBe('#6a1b9a');
+        expect('markColour' in it.state.locates.find(l => l.request === 2)).toBe(false);
+    });
+});

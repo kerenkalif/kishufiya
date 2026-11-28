@@ -244,7 +244,9 @@ export const codeArea = () => {
         else left = Math.max(left, r.right);
     }
     if (right - left < 20) return null;
-    return {left, right, top: svg.top, bottom: svg.bottom, width: right - left, height: svg.bottom - svg.top};
+    // below the top the base keeps for its words strip (guide.js reserveTop; SPEC-editor-base 15.1)
+    const kept = ws.kishufiyaReserved > 0 ? ws.kishufiyaReserved : 0;
+    return {left, right, top: svg.top + kept, bottom: svg.bottom, width: right - left, height: svg.bottom - svg.top - kept};
 };
 
 const realBlock = block => {

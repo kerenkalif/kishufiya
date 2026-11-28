@@ -80,7 +80,7 @@ describe('the ring inside the screen', () => {
 
 describe('the soft mark\'s colour', () => {
     test('the platform\'s block colour: the line and its glows', () => {
-        expect(softMarkColours('#e0b100')).toEqual({line: '#e0b100', glow: 'rgba(224, 177, 0, 0.65)', glowPoint: 'rgba(224, 177, 0, 0.8)'});
+        expect(softMarkColours('#e0b100')).toEqual({line: '#e0b100', glow: 'rgba(224, 177, 0, 0.65)', glowPoint: 'rgba(224, 177, 0, 0.8)', halo: 'rgba(224, 177, 0, 0.35)'});
     });
     test('a short hex is read too', () => {
         expect(softMarkColours('#fa0').line).toBe('#ffaa00');
@@ -114,5 +114,31 @@ describe('mark colour for a ring', () => {
         expect(css.match(/--mark-fallback: #e53935/g)).toHaveLength(1);
         expect(css.match(/--mark-fallback: #6a1b9a/g)).toHaveLength(1);
         expect(css).not.toMatch(/border: [38]px solid #(e53935|6a1b9a)/);
+    });
+});
+
+// review 28.11 (1, 4): the code area alone moves, the strip's px go out in code-area
+import {reservedMetrics, codeAreaMessage} from '../../../src/components/kishufiya-guide/detect.js';
+describe('reserve-top on the workspace metrics', () => {
+    const m = {absoluteTop: 0, absoluteLeft: 120, viewHeight: 500, viewWidth: 600, toolboxWidth: 120, flyoutWidth: 120};
+    test('the code area starts px lower and is px shorter; the sides (palette) stay', () => {
+        const r = reservedMetrics(m, 64);
+        expect(r).toMatchObject({absoluteTop: 64, viewHeight: 436, absoluteLeft: 120, toolboxWidth: 120, flyoutWidth: 120});
+        expect(m.viewHeight).toBe(500);
+    });
+    test('0, or none: the metrics as they are', () => {
+        expect(reservedMetrics(m, 0)).toBe(m);
+        expect(reservedMetrics(m, -1)).toBe(m);
+    });
+});
+describe('code-area message', () => {
+    const rect = {left: 1, top: 80, width: 300, height: 400};
+    test('carries reserved, and it is in the key', () => {
+        const a = codeAreaMessage(rect, [], 64);
+        expect(a.msg).toEqual({type: 'code-area', rect, avoid: [], reserved: 64});
+        expect(a.key).not.toBe(codeAreaMessage(rect, [], 0).key);
+    });
+    test('none kept: no reserved field', () => {
+        expect(codeAreaMessage(rect, [], 0).msg).toEqual({type: 'code-area', rect, avoid: []});
     });
 });

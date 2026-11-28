@@ -180,7 +180,7 @@ import {busyTracker} from './rects.js';
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
-    scriptRan, scriptRing, softMarkColours, reserveTopPx, tellsClick, typing, typingOf, keptTyping, endEdit}
+    scriptRan, scriptRing, softMarkColours, reserveTopPx, reservedMetrics, codeAreaMessage, tellsClick, typing, typingOf, keptTyping, endEdit}
     from './detect.js';
 import styles from './guide.css';
 import {watchPicks} from './picks.js';
@@ -625,7 +625,8 @@ const setSoftColour = colours => {
     const vars = {
         '--mark-line': colours && colours.line,
         '--mark-glow': colours && colours.glow,
-        '--mark-glow-point': colours && colours.glowPoint
+        '--mark-glow-point': colours && colours.glowPoint,
+        '--mark-halo': colours && colours.halo
     };
     for (const name of Object.keys(vars)) {
         if (vars[name]) ring.style.setProperty(name, vars[name]);
@@ -634,24 +635,36 @@ const setSoftColour = colours => {
     softColoured = Boolean(colours);
 };
 
-// The base's words strip covers the top of the code area (SPEC-editor-base 15.1 `reserve-top` {px}): the workspace's
-// box starts px lower, so no block sits under it and the scroll still reaches every block. 0 gives it back. The same px
-// again does nothing; 'code-area' is told anew, measured after the move (the loop in tellCodeArea).
+// The base's words strip covers the top of the code area (SPEC-editor-base 15.1 `reserve-top` {px}): only the code area starts px
+// lower - the workspace's metrics (detect.js reservedMetrics), so the scroll still reaches every block - and the palette stays
+// where it is. 0 gives it back. It is put on whichever workspace is there now (a rebuilt one, after the costumes tab and back, has
+// none of it): looked at on every area tick. 'code-area' is told anew, measured after the move (tellCodeArea).
 let reservedTop = 0;
-const reserveTop = value => {
-    const px = reserveTopPx(value);
-    if (px === null || px === reservedTop) return;
-    reservedTop = px;
+const applyReserve = () => {
     const ws = workspace();
-    const box = ws && ws.getInjectionDiv ? ws.getInjectionDiv() : document.querySelector('.injectionDiv');
-    if (!box) return;
-    box.style.top = px ? `${px}px` : '';
+    if (!ws || !ws.getMetrics) return;
+    if (!ws.kishufiyaOwnMetrics) {
+        const own = ws.getMetrics;
+        ws.kishufiyaOwnMetrics = own;
+        ws.kishufiyaReserved = 0;
+        ws.getMetrics = function () {
+            return reservedMetrics(own.call(this), this.kishufiyaReserved);
+        };
+    }
+    if (ws.kishufiyaReserved === reservedTop) return;
+    ws.kishufiyaReserved = reservedTop;
     try {
         ws.resize();
-    } catch (e) { // ignored: the workspace is not ready; the window resize below makes it measure again
+    } catch (e) { // ignored: the workspace is not ready; the next area tick looks again
+        ws.kishufiyaReserved = -1;
     }
-    window.dispatchEvent(new Event('resize'));
     lastArea = '';
+};
+const reserveTop = value => {
+    const px = reserveTopPx(value);
+    if (px === null) return;
+    reservedTop = px;
+    applyReserve();
 };
 
 const hideGuide = () => {
@@ -889,7 +902,7 @@ const drawGuide = () => {
 // The places the page asks for ('locate', session.js): each told where it is when that changes, apart from the guide - none
 // of its ring, arrow, bubble or scroll. With highlight, the soft mark of a why window at it, one of its own for each.
 const softMarks = new Map(); // a place's request → its soft mark
-const softMark = (request, found) => {
+const softMark = (request, found, markColour) => {
     let el = softMarks.get(request);
     if (!found) {
         if (el) el.remove();
@@ -900,6 +913,11 @@ const softMark = (request, found) => {
         el = div(`${styles.ring} ${styles.soft}`);
         layer.appendChild(el);
         softMarks.set(request, el);
+    }
+    const colours = softMarkColours(markColour); // the place's own colour (`want.markColour`); none: guide.css's purple
+    for (const [name, value] of [['--mark-line', colours && colours.line], ['--mark-glow', colours && colours.glow], ['--mark-glow-point', colours && colours.glowPoint], ['--mark-halo', colours && colours.halo]]) {
+        if (value) el.style.setProperty(name, value);
+        else el.style.removeProperty(name);
     }
     placeRing(softFound(found), el); // a pane's field with its name (targets.js softFound)
     el.classList.toggle(styles.point, found.via === 'stage-point');
@@ -918,12 +936,12 @@ const drawLocates = () => {
     if (!state.contract.locates.length) return;
     const area = codeArea();
     const now = performance.now();
-    for (const {request, target} of state.contract.locates) {
+    for (const {request, target, markColour} of state.contract.locates) {
         const found = seenPart(resolve(target, vm), area);
         const step = looked(state.contract, request, lookOf(target, found), now, MISSING_AFTER_MS);
         state.contract = step.state;
         for (const msg of step.say) send(msg);
-        softMark(request, step.soft ? found : null);
+        softMark(request, step.soft ? found : null, markColour);
     }
 };
 
@@ -1342,6 +1360,7 @@ let areaTicks = 0;
 const AREA_EVERY_MS = 250;
 const AREA_RESEND = 4;
 const tellCodeArea = () => {
+    applyReserve(); // a workspace rebuilt since (the costumes tab and back) gets the reserved top again
     // said again now and then: a lesson page loaded anew after the editor did not hear it
     if (++areaTicks % AREA_RESEND === 0) lastArea = '';
     const box = r => r && r.width > 0 && {
@@ -1357,10 +1376,10 @@ const tellCodeArea = () => {
         .filter(Boolean)
         // ...and any menu open over the code: the bubble stands off it while it is open (open-menus.js)
         .concat(openMenuRects(document));
-    const key = JSON.stringify([rect, avoid]);
+    const {key, msg} = codeAreaMessage(rect, avoid, rect ? reservedTop : 0);
     if (key === lastArea || !send) return;
     lastArea = key;
-    send({type: 'code-area', rect, avoid});
+    send(msg);
 };
 
 // once, when the VM is up
