@@ -12,3 +12,27 @@
 export const isOwn = ({foreignProject, replacedByLayer}) => !foreignProject && !replacedByLayer;
 
 export const showingMessage = (told, own) => (told === own ? null : {type: 'showing', own});
+
+// Layers that replace the editor, registered while mounted. registerLayer returns the way to unregister.
+const layers = new Set();
+const layerListeners = new Set();
+const changed = () => {
+    for (const fn of layerListeners) fn();
+};
+
+export const registerLayer = () => {
+    const token = {};
+    layers.add(token);
+    changed();
+    return () => {
+        layers.delete(token);
+        changed();
+    };
+};
+
+export const layerIsOpen = () => layers.size > 0;
+
+export const onLayersChange = fn => {
+    layerListeners.add(fn);
+    return () => layerListeners.delete(fn);
+};

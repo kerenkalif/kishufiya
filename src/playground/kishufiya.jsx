@@ -62,6 +62,7 @@ import GUI from './render-gui.jsx';
 import render from './app-target';
 import {LANGUAGE_KEY} from '../lib/detect-locale';
 import {setLibraryLesson} from '../lib/libraries/tw-async-libraries';
+import FullScreenLayer from '../components/kishufiya-layer/full-screen-layer.jsx';
 import MyGames from '../components/kishufiya-my-games/my-games.jsx';
 import {setChrome, setChromeSender} from '../components/kishufiya-chrome/chrome.jsx';
 import {Theme} from '../lib/themes';
@@ -70,7 +71,7 @@ import {CAPS, opens} from '../components/kishufiya-guide/session.js';
 import {stageModeMessage} from '../components/kishufiya-guide/detect.js';
 import {attachCloud, readCloud} from '../lib/kishufiya-cloud.js';
 import {setMenus} from '../lib/kishufiya-menus.js';
-import {isOwn, showingMessage} from '../lib/kishufiya-showing.js';
+import {isOwn, showingMessage, layerIsOpen, onLayersChange} from '../lib/kishufiya-showing.js';
 import {layerOrderChanged, stageOrder} from '../lib/kishufiya-layers.js';
 import {
     PLATFORM_MAX_THUMBNAIL_BYTES,
@@ -117,15 +118,17 @@ const tellStageMode = () => {
 // (lib/kishufiya-showing.js): false while a project the page did not hand it is loaded, or a layer that
 // replaces the editor ("המשחקים שלי") is open. `toldOwn` undefined: not told yet (said once after 'editor-ready').
 let foreignProject = false;
-let layerOpen = false;
 let toldOwn = null;
 const tellShowing = () => {
-    const own = isOwn({foreignProject, replacedByLayer: layerOpen});
+    const own = isOwn({foreignProject, replacedByLayer: layerIsOpen()});
     const msg = showingMessage(toldOwn, own);
     if (!msg) return;
     toldOwn = own;
     post({kishufiya: 'to-lesson', msg});
 };
+onLayersChange(() => {
+    if (up) tellShowing();
+});
 let gameId = null; // the open game's id in "המשחקים שלי"
 let knownTitle = null; // the name as the platform has it: a change from it is the child's
 
@@ -457,21 +460,19 @@ window.addEventListener('kishufiya-new-game', () => {
 const MyGamesHost = () => {
     const [open, setOpen] = useState(false);
     useEffect(() => {
-        layerOpen = open;
-        if (up) tellShowing();
-    }, [open]);
-    useEffect(() => {
         const show = () => setOpen(true);
         window.addEventListener('kishufiya-my-games', show);
         return () => window.removeEventListener('kishufiya-my-games', show);
     }, []);
     if (!open) return null;
     return (
-        <MyGames
-            currentId={gameId}
-            onClose={() => setOpen(false)} // eslint-disable-line react/jsx-no-bind
-            onOpen={href => post({kishufiya: 'navigate', href})} // eslint-disable-line react/jsx-no-bind
-        />
+        <FullScreenLayer>
+            <MyGames
+                currentId={gameId}
+                onClose={() => setOpen(false)} // eslint-disable-line react/jsx-no-bind
+                onOpen={href => post({kishufiya: 'navigate', href})} // eslint-disable-line react/jsx-no-bind
+            />
+        </FullScreenLayer>
     );
 };
 

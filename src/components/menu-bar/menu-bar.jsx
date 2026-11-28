@@ -631,7 +631,7 @@ class MenuBar extends React.Component {
                                             {newProjectMessage}
                                         </MenuItem>
                                     )}
-                                    {this.props.onClickNewWindow && (
+                                    {this.props.onClickNewWindow && rules.newWindow && (
                                         <MenuItem
                                             isRtl={this.props.isRtl}
                                             onClick={this.handleClickNewWindow}

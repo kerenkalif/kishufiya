@@ -23,6 +23,7 @@ export const menuRules = (mode, inLesson = false) => {
         restorePoints: staff,
         packager: staff,
         loadFromComputer: staff, // and its keyboard shortcut (Ctrl+O)
+        newWindow: staff, // "New window" (desktop app item), not for a child
         newGame: staff || !inLesson
     };
 };
