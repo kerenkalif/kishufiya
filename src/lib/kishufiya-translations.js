@@ -10,6 +10,16 @@ import guiWords from './kishufiya-gui-words.json';
 const addedMessages = {
     he: {
         'kishufiya.menuBar.tidyBlocks': 'ארגן בלוקים',
+        'kishufiya.menuBar.undo': 'ביטול',
+        'kishufiya.menuBar.redo': 'ביצוע חוזר',
+        'kishufiya.menuBar.undoDeleteSprite': 'ביטול: מחיקת הדמות {name}',
+        'kishufiya.menuBar.redoDeleteSprite': 'ביצוע חוזר: מחיקת הדמות {name}',
+        'kishufiya.menuBar.undoDeleteCostume': 'ביטול: מחיקת התלבושת {name} של הדמות {sprite}',
+        'kishufiya.menuBar.redoDeleteCostume': 'ביצוע חוזר: מחיקת התלבושת {name} של הדמות {sprite}',
+        'kishufiya.menuBar.undoDeleteSound': 'ביטול: מחיקת הצליל {name} של הדמות {sprite}',
+        'kishufiya.menuBar.redoDeleteSound': 'ביצוע חוזר: מחיקת הצליל {name} של הדמות {sprite}',
+        'kishufiya.menuBar.undoFailed': 'לא הצלחנו להחזיר את {name}. אפשר ללחוץ שוב.',
+        'kishufiya.menuBar.undoSkipped': 'לא הצלחנו להחזיר את {name}, אז דילגנו עליו.',
         'kishufiya.menuBar.projectTitleLabel': 'שם הפרויקט',
         // Tooltips scratch-l10n has no Hebrew for (accessibility audit 8-4)
         'tw.stageHeader.full': 'עברו לבמה מלאה',

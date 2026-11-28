@@ -52,6 +52,10 @@ import {compose} from 'redux';
 import {setStageSize, setStageWidth} from '../reducers/stage-size';
 import {setProjectTitle} from '../reducers/project-title';
 import {setProjectUnchanged} from '../reducers/project-changed';
+import {clearRestore} from '../reducers/restore-deletion';
+import {history} from '../lib/kishufiya-history.js';
+import {setTabOpener, TABS} from '../lib/kishufiya-deletions.js';
+import {activateTab, BLOCKS_TAB_INDEX, COSTUMES_TAB_INDEX, SOUNDS_TAB_INDEX} from '../reducers/editor-tab';
 import {
     STAGE_SIZE_MODES, STAGE_DISPLAY_SCALE_METADATA, MIN_DRAGGED_STAGE_WIDTH, FIXED_WIDTH
 } from '../lib/layout-constants';
@@ -100,6 +104,7 @@ let cloud = null; // the game's ☁ variables (attachCloud)
 setChromeSender(message => post(message));
 let up = false; // the VM exists and the editor's own default project has finished loading
 let dirty = false;
+let clearRestoreState = () => {}; // set by <Bridge>: a loaded game has nothing to restore
 let nameProject = () => {}; // set by <Bridge>, which can reach the GUI's store
 // Also set by <Bridge>: the game as the page has it now is saved, so the editor's own "leave this page?"
 // question (project-saver-hoc) stops popping up when the child presses home after a save.
@@ -176,9 +181,11 @@ const markChanged = () => {
 // a reason to save (it cost one save per opened game, 2026-10-24).
 let loading = false;
 
-const load = async (url, title, lesson, id, menus) => {
+const load = async (url, title, lesson, id, menus, undoBar) => {
     setLibraryLesson(lesson);
-    setMenus(menus, Boolean(lesson));
+    setMenus(menus, Boolean(lesson), undoBar);
+    clearRestoreState();
+    history.clear(); // a loaded game has nothing to undo
     gameId = id || null;
     loading = true;
     try {
@@ -286,8 +293,8 @@ window.addEventListener('message', e => {
     if (!up && !(e.data.kishufiya === 'to-editor' && opens(e.data.msg))) return;
     if (e.data.kishufiya === 'hello') post({kishufiya: 'ready'});
     else if (e.data.kishufiya === 'load') {
-        const {url, title, lesson, gameId: id, menus} = e.data;
-        load(url, title, lesson, id, menus);
+        const {url, title, lesson, gameId: id, menus, undoBar} = e.data;
+        load(url, title, lesson, id, menus, undoBar);
     } else if (e.data.kishufiya === 'save') save(e.data.id, e.data.thumbnail);
     else if (e.data.kishufiya === 'to-editor' && e.data.msg) fromLesson(e.data.msg);
     else if (e.data.kishufiya === 'chrome') {
@@ -365,9 +372,11 @@ const Bridge = connect(
         onLarge: () => dispatch(setStageSize(STAGE_SIZE_MODES.large)),
         onTitle: title => dispatch(setProjectTitle(title)),
         onFit: stageWidth => dispatch(setStageWidth(stageWidth)),
-        onSaved: () => dispatch(setProjectUnchanged())
+        onSaved: () => dispatch(setProjectUnchanged()),
+        onClearRestore: () => dispatch(clearRestore()),
+        onShowTab: tab => dispatch(activateTab(tab))
     })
-)(({size, width, title, full, onLarge, onTitle, onFit, onSaved}) => {
+)(({size, width, title, full, onLarge, onTitle, onFit, onSaved, onClearRestore, onShowTab}) => {
     useEffect(onLarge, []);
     useEffect(() => {
         fullNow = full;
@@ -376,6 +385,11 @@ const Bridge = connect(
     }, [full]);
     nameProject = onTitle;
     markSaved = onSaved;
+    clearRestoreState = onClearRestore;
+    // what the undo bar brings back is shown: its tab opens (lib/kishufiya-deletions.js)
+    setTabOpener(tab => onShowTab({
+        [TABS.blocks]: BLOCKS_TAB_INDEX, [TABS.costumes]: COSTUMES_TAB_INDEX, [TABS.sounds]: SOUNDS_TAB_INDEX
+    }[tab]));
     // The child renamed the game in the title field: the platform keeps the name ("המשחקים שלי").
     useEffect(() => {
         const name = (title || '').trim();

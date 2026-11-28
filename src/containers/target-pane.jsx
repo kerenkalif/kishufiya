@@ -12,6 +12,7 @@ import {activateTab, COSTUMES_TAB_INDEX, BLOCKS_TAB_INDEX} from '../reducers/edi
 import {setReceivedBlocks} from '../reducers/hovered-target';
 import {showStandardAlert, closeAlertWithId} from '../reducers/alerts';
 import {setRestore} from '../reducers/restore-deletion';
+import {recordSpriteDeletion} from '../lib/kishufiya-deletions.js';
 import DragConstants from '../lib/drag-constants';
 import TargetPaneComponent from '../components/target-pane/target-pane.jsx';
 import {getSpriteLibrary} from '../lib/libraries/tw-async-libraries';
@@ -79,8 +80,11 @@ class TargetPane extends React.Component {
         this.props.vm.postSpriteInfo({y});
     }
     handleDeleteSprite (id) {
+        const deleted = this.props.vm.runtime.getTargetById(id);
+        const name = deleted ? deleted.getName() : '';
         const restoreSprite = this.props.vm.deleteSprite(id);
         const restoreFun = () => restoreSprite().then(this.handleActivateBlocksTab);
+        recordSpriteDeletion(this.props.vm, id, name, restoreSprite, this.handleActivateBlocksTab);
 
         this.props.dispatchUpdateRestore({
             restoreFun: restoreFun,

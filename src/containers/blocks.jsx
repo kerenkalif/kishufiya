@@ -47,6 +47,7 @@ import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
 import {showRemembered} from '../lib/kishufiya-cloud.js';
 import {installScrollPolicy} from '../lib/kishufiya-scroll.js';
 import {installTidyMenu} from '../lib/kishufiya-tidy.js';
+import {attachUndoWorkspace, detachUndoWorkspace, workspaceReloaded, workspaceWillReload} from '../lib/kishufiya-undo.js';
 
 // TW: Strings we add to scratch-blocks are localized here
 const messages = defineMessages({
@@ -171,6 +172,7 @@ class Blocks extends React.Component {
         );
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
         AddonHooks.blocklyWorkspace = this.workspace;
+        attachUndoWorkspace(this.workspace); // the menu bar's undo / redo buttons
 
         // Register buttons under new callback keys for creating variables,
         // lists, and procedures from extensions.
@@ -292,6 +294,7 @@ class Blocks extends React.Component {
     componentWillUnmount () {
         this.detachVM();
         this.unmounted = true;
+        detachUndoWorkspace();
         this.workspace.dispose();
         clearTimeout(this.toolboxUpdateTimeout);
 
@@ -468,6 +471,7 @@ class Blocks extends React.Component {
         }
     }
     onWorkspaceUpdate (data) {
+        workspaceWillReload(); // the stacks still hold the sprite that is left: the undo history keeps them for it
         // When we change sprites, update the toolbox to have the new sprite's blocks
         const toolboxXML = this.getToolboxXML();
         if (toolboxXML) {
@@ -512,6 +516,8 @@ class Blocks extends React.Component {
         // fresh workspace and we don't want any changes made to another sprites
         // workspace to be 'undone' here.
         this.workspace.clearUndo();
+        // the clear is not a workspace event; the history puts back the steps of the sprite shown now (if its blocks fit)
+        workspaceReloaded(this.props.vm.editingTarget ? this.props.vm.editingTarget.id : '');
     }
     handleMonitorsUpdate (monitors) {
         // Update the checkboxes of the relevant monitors.

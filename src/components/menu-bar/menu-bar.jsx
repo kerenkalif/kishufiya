@@ -38,7 +38,8 @@ import {openTipsLibrary, openSettingsModal, openRestorePointModal} from '../../r
 import {setPlayer} from '../../reducers/mode';
 import {BLOCKS_TAB_INDEX} from '../../reducers/editor-tab';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
-import {currentMenuRules, subscribeMenus} from '../../lib/kishufiya-menus.js';
+import {currentMenuRules, menusShown, subscribeMenus} from '../../lib/kishufiya-menus.js';
+import {barView, currentNotice, currentTop, isPressKey, runUndo, subscribeUndo} from '../../lib/kishufiya-undo.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -98,6 +99,8 @@ import fileIcon from './icon--file.svg';
 import editIcon from './icon--edit.svg';
 import addonsIcon from './addons.svg';
 import tidyIcon from './tidy-blocks.svg';
+import undoIcon from './icon--undo.svg';
+import redoIcon from './icon--redo.svg';
 import errorIcon from './tw-error.svg';
 import advancedIcon from './tw-advanced.svg';
 
@@ -120,6 +123,56 @@ const ariaMessages = defineMessages({
 });
 
 const kishufiyaMessages = defineMessages({
+    undo: {
+        id: 'kishufiya.menuBar.undo',
+        defaultMessage: 'Undo',
+        description: 'Menu bar button: takes back the last change in the code area, as Ctrl+Z does'
+    },
+    redo: {
+        id: 'kishufiya.menuBar.redo',
+        defaultMessage: 'Redo',
+        description: 'Menu bar button: brings back what the undo button took back, as Ctrl+Y does'
+    },
+    undoDeleteSprite: {
+        id: 'kishufiya.menuBar.undoDeleteSprite',
+        defaultMessage: 'Undo: delete sprite {name}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    redoDeleteSprite: {
+        id: 'kishufiya.menuBar.redoDeleteSprite',
+        defaultMessage: 'Redo: delete sprite {name}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    undoDeleteCostume: {
+        id: 'kishufiya.menuBar.undoDeleteCostume',
+        defaultMessage: 'Undo: delete costume {name} of sprite {sprite}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    redoDeleteCostume: {
+        id: 'kishufiya.menuBar.redoDeleteCostume',
+        defaultMessage: 'Redo: delete costume {name} of sprite {sprite}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    undoDeleteSound: {
+        id: 'kishufiya.menuBar.undoDeleteSound',
+        defaultMessage: 'Undo: delete sound {name} of sprite {sprite}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    redoDeleteSound: {
+        id: 'kishufiya.menuBar.redoDeleteSound',
+        defaultMessage: 'Redo: delete sound {name} of sprite {sprite}',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    undoFailed: {
+        id: 'kishufiya.menuBar.undoFailed',
+        defaultMessage: 'Could not bring back {name}. You can press again.',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
+    undoSkipped: {
+        id: 'kishufiya.menuBar.undoSkipped',
+        defaultMessage: 'Could not bring back {name}, so it was skipped.',
+        description: 'Menu bar undo / redo: tooltip or notice about a deleted sprite, costume or sound'
+    },
     tidyBlocks: {
         id: 'kishufiya.menuBar.tidyBlocks',
         defaultMessage: 'Tidy up blocks',
@@ -249,10 +302,13 @@ class MenuBar extends React.Component {
         document.addEventListener('keydown', this.handleKeyPress);
         // which items show is decided by lib/kishufiya-menus.js, from the page's load message
         this.stopMenus = subscribeMenus(() => this.forceUpdate());
+        // the undo / redo buttons light up and dim with the code area's history (lib/kishufiya-undo.js)
+        this.stopUndo = subscribeUndo(() => this.forceUpdate());
     }
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
         if (this.stopMenus) this.stopMenus();
+        if (this.stopUndo) this.stopUndo();
     }
     // כישופייה: the button tidies the scripts; the only other tidy is the one the lesson asks for (guide.js 'tidy').
     handleClickTidyBlocks () {
@@ -448,6 +504,54 @@ class MenuBar extends React.Component {
             </MenuLabel>
         );
     }
+    // The undo / redo buttons (kishufiya-undo.js): ONE history of code edits and of deleted sprites, costumes and
+    // sounds, in the order they happened. The tooltip names a deletion ("ביטול: מחיקת הדמות מטבע").
+    renderUndoRedo () {
+        const {intl, isCodeTab, isRtl} = this.props;
+        const view = barView({isRtl, isCodeTab, top: currentTop()});
+        // a deletion names itself and its sprite; a code step is the plain word
+        const labelOf = (side, redo) => {
+            const what = side.label;
+            if (!what) return intl.formatMessage(redo ? kishufiyaMessages.redo : kishufiyaMessages.undo);
+            return intl.formatMessage(kishufiyaMessages[`${redo ? 'redo' : 'undo'}Delete${what.item}`],
+                {name: what.name, sprite: what.spriteName});
+        };
+        const notice = currentNotice();
+        const noticeText = notice && intl.formatMessage(
+            kishufiyaMessages[notice.kind === 'skipped' ? 'undoSkipped' : 'undoFailed'], {name: notice.name});
+        const button = (key, icon, label, side, onClick) => (
+            <div
+                className={classNames(styles.menuBarItem, {
+                    [styles.hoverable]: side.enabled,
+                    [styles.disabled]: !side.enabled,
+                    [styles.mirrored]: side.mirrored
+                })}
+                data-guide={key}
+                role="button"
+                tabIndex={0}
+                aria-label={label}
+                aria-disabled={!side.enabled}
+                title={label}
+                onClick={side.enabled ? onClick : null}
+                onKeyDown={side.enabled ? e => isPressKey(e.key) && onClick() : null}
+            >
+                <img
+                    alt=""
+                    src={icon}
+                    draggable={false}
+                    width={20}
+                    height={20}
+                />
+            </div>
+        );
+        return (
+            <React.Fragment>
+                {button('undo', undoIcon, labelOf(view.undo, false), view.undo, () => runUndo(false))}
+                {button('redo', redoIcon, labelOf(view.redo, true), view.redo, () => runUndo(true))}
+                {noticeText && <div className={styles.undoNotice} role="status">{noticeText}</div>}
+            </React.Fragment>
+        );
+    }
     wrapAboutMenuCallback (callback) {
         return () => {
             callback();
@@ -456,6 +560,12 @@ class MenuBar extends React.Component {
     }
     render () {
         const rules = currentMenuRules();
+        const shown = menusShown(rules, {
+            saveItems: Boolean(this.props.canSave || this.props.canCreateCopy || this.props.canRemix),
+            newWindowAvailable: Boolean(this.props.onClickNewWindow),
+            packagerAvailable: Boolean(this.props.onClickPackager),
+            playerOnly: Boolean(this.props.isPlayerOnly)
+        });
         const saveNowMessage = (
             <FormattedMessage
                 defaultMessage="Save now"
@@ -591,7 +701,7 @@ class MenuBar extends React.Component {
                             onRequestOpen={this.props.onClickSettings}
                             settingsMenuOpen={this.props.settingsMenuOpen}
                         />)}
-                        {(this.props.canManageFiles) && (
+                        {(this.props.canManageFiles && shown.file) && (
                             <MenuLabel
                                 open={this.props.fileMenuOpen}
                                 onOpen={this.props.onClickFile}
@@ -671,13 +781,15 @@ class MenuBar extends React.Component {
                                                 {this.props.intl.formatMessage(sharedMessages.loadFromComputerTitle)}
                                             </MenuItem>
                                         )}
-                                        <SB3Downloader>
-                                            {(_className, downloadProject) => (
-                                                <MenuItem onClick={this.getSaveToComputerHandler(downloadProject)}>
-                                                    {'הורדה למחשב'}
-                                                </MenuItem>
-                                            )}
-                                        </SB3Downloader>
+                                        {rules.downloadToComputer && (
+                                            <SB3Downloader>
+                                                {(_className, downloadProject) => (
+                                                    <MenuItem onClick={this.getSaveToComputerHandler(downloadProject)}>
+                                                        {'הורדה למחשב'}
+                                                    </MenuItem>
+                                                )}
+                                            </SB3Downloader>
+                                        )}
                                     </MenuSection>
                                     {this.props.onClickPackager && rules.packager && (
                                         <MenuSection>
@@ -707,7 +819,7 @@ class MenuBar extends React.Component {
                                 </MenuBarMenu>
                             </MenuLabel>
                         )}
-                        <MenuLabel
+                        {shown.edit && <MenuLabel
                             open={this.props.editMenuOpen}
                             onOpen={this.props.onClickEdit}
                             onClose={this.props.onRequestCloseEdit}
@@ -738,7 +850,7 @@ class MenuBar extends React.Component {
                                 open={this.props.editMenuOpen}
                                 place={this.props.isRtl ? 'left' : 'right'}
                             >
-                                {this.props.isPlayerOnly ? null : (
+                                {this.props.isPlayerOnly || !rules.restoreDeleted ? null : (
                                     <DeletionRestorer>{(handleRestore, {restorable, deletedItem}) => (
                                         <MenuItem
                                             className={classNames({[styles.disabled]: !restorable})}
@@ -846,7 +958,8 @@ class MenuBar extends React.Component {
                                     </MenuSection>
                                 )}
                             </MenuBarMenu>
-                        </MenuLabel>
+                        </MenuLabel>}
+                        {rules.undoBar && !this.props.isPlayerOnly && this.renderUndoRedo()}
                         {this.props.isTotallyNormal && (
                             <MenuLabel
                                 open={this.props.modeMenuOpen}

@@ -1,5 +1,5 @@
 //   npx jest test/unit/kishufiya-menus
-import {menuRules, menusMode, setMenus, currentMenuRules, subscribeMenus} from '../../../src/lib/kishufiya-menus.js';
+import {menuRules, menusMode, menusShown, setMenus, currentMenuRules, subscribeMenus, undoBarShown, UNDO_BAR_ENABLED} from '../../../src/lib/kishufiya-menus.js';
 import {isOwn, showingMessage} from '../../../src/lib/kishufiya-showing.js';
 
 describe('menusMode', () => {
@@ -26,7 +26,13 @@ describe('menuRules', () => {
         expect(menuRules('staff', true).newGame).toBe(true);
     });
     test('staff sees everything', () => {
-        expect(Object.values(menuRules('staff', true)).every(Boolean)).toBe(true);
+        const rules = menuRules('staff', true);
+        expect(Object.entries(rules).filter(([k]) => k !== 'undoBar').every(([, v]) => v)).toBe(true);
+    });
+    test('with the undo bar, "ביטול" brings deletions back: nobody keeps the old restore item', () => {
+        expect(menuRules('staff', true, true).restoreDeleted).toBe(false);
+        expect(menuRules('child', true, true).restoreDeleted).toBe(false);
+        expect(menuRules('staff', true, true).undoBar).toBe(true);
     });
 });
 
@@ -55,5 +61,73 @@ describe('showing', () => {
         expect(showingMessage(true, true)).toBeNull();
         expect(showingMessage(true, false)).toEqual({type: 'showing', own: false});
         expect(showingMessage(false, true)).toEqual({type: 'showing', own: true});
+    });
+});
+
+describe('menusShown: a menu with no usable item is not shown', () => {
+    test('a child with the undo buttons has no edit menu (its only item was restore)', () => {
+        expect(menusShown(menuRules('child', true, true)).edit).toBe(false);
+        expect(menusShown(menuRules('child', false, true)).edit).toBe(false);
+    });
+    test('switch off: nothing changes, a child keeps restore in the edit menu', () => {
+        expect(menuRules('child', true).restoreDeleted).toBe(true);
+        expect(menusShown(menuRules('child', true)).edit).toBe(true);
+    });
+    test('staff see every menu, with or without the buttons', () => {
+        for (const bar of [false, true]) {
+            expect(menusShown(menuRules('staff', true, bar))).toEqual({file: true, edit: true});
+        }
+    });
+    test('a child always has the file menu (download is hers)', () => {
+        expect(menuRules('child', true, true).downloadToComputer).toBe(true);
+        expect(menusShown(menuRules('child', true, true)).file).toBe(true);
+    });
+    test('the file menu goes when every item of it is off', () => {
+        const rules = {...menuRules('child', true), downloadToComputer: false};
+        expect(menusShown(rules, {saveItems: false}).file).toBe(false);
+        expect(menusShown(rules, {saveItems: true}).file).toBe(true);
+        expect(menusShown({...menuRules('staff', true), newGame: false, loadFromComputer: false,
+            downloadToComputer: false, restorePoints: false}, {newWindowAvailable: false, packagerAvailable: false})
+            .file).toBe(false);
+    });
+    test('every audience: the edit menu shows exactly when some item of it is on', () => {
+        for (const mode of ['child', 'staff']) {
+            for (const inLesson of [false, true]) {
+                for (const bar of [false, true]) {
+                    const r = menuRules(mode, inLesson, bar);
+                    const edit = ['restoreDeleted', 'turbo', 'fps60', 'username', 'cloudVariables', 'advancedSettings']
+                        .some(k => r[k]);
+                    expect(menusShown(r).edit).toBe(edit);
+                }
+            }
+        }
+    });
+});
+
+describe('menusShown: player only', () => {
+    test('a page that only plays has no editing menus', () => {
+        expect(menusShown(menuRules('staff', true, true), {playerOnly: true})).toEqual({file: false, edit: false});
+    });
+});
+
+describe('the undo bar switch', () => {
+    test('off by default (new feature behind a switch), on only when the page says so', () => {
+        expect(UNDO_BAR_ENABLED).toBe(false);
+        expect(undoBarShown(undefined)).toBe(false);
+        expect(undoBarShown(false)).toBe(false);
+        expect(undoBarShown('1')).toBe(false);
+        expect(undoBarShown(true)).toBe(true);
+    });
+    test('the buttons are for everyone once on', () => {
+        expect(menuRules('child', true, true).undoBar).toBe(true);
+        expect(menuRules('staff', true, true).undoBar).toBe(true);
+        expect(menuRules('child', true).undoBar).toBe(false);
+    });
+    test('the load message turns it on and off', () => {
+        setMenus('child', true, true);
+        expect(currentMenuRules().undoBar).toBe(true);
+        expect(currentMenuRules().restoreDeleted).toBe(false);
+        setMenus('child', true);
+        expect(currentMenuRules().undoBar).toBe(false);
     });
 });
