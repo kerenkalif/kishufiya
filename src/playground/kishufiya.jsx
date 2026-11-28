@@ -176,9 +176,9 @@ const markChanged = () => {
 // a reason to save (it cost one save per opened game, 2026-10-24).
 let loading = false;
 
-const load = async (url, title, lesson, id, menus) => {
+const load = async (url, title, lesson, id, menus, undoBar) => {
     setLibraryLesson(lesson);
-    setMenus(menus, Boolean(lesson));
+    setMenus(menus, Boolean(lesson), undoBar);
     gameId = id || null;
     loading = true;
     try {
@@ -286,8 +286,8 @@ window.addEventListener('message', e => {
     if (!up && !(e.data.kishufiya === 'to-editor' && opens(e.data.msg))) return;
     if (e.data.kishufiya === 'hello') post({kishufiya: 'ready'});
     else if (e.data.kishufiya === 'load') {
-        const {url, title, lesson, gameId: id, menus} = e.data;
-        load(url, title, lesson, id, menus);
+        const {url, title, lesson, gameId: id, menus, undoBar} = e.data;
+        load(url, title, lesson, id, menus, undoBar);
     } else if (e.data.kishufiya === 'save') save(e.data.id, e.data.thumbnail);
     else if (e.data.kishufiya === 'to-editor' && e.data.msg) fromLesson(e.data.msg);
     else if (e.data.kishufiya === 'chrome') {

@@ -10,6 +10,8 @@ import guiWords from './kishufiya-gui-words.json';
 const addedMessages = {
     he: {
         'kishufiya.menuBar.tidyBlocks': 'ארגן בלוקים',
+        'kishufiya.menuBar.undo': 'ביטול',
+        'kishufiya.menuBar.redo': 'ביצוע חוזר',
         'kishufiya.menuBar.projectTitleLabel': 'שם הפרויקט',
         // Tooltips scratch-l10n has no Hebrew for (accessibility audit 8-4)
         'tw.stageHeader.full': 'עברו לבמה מלאה',

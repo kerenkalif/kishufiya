@@ -38,7 +38,8 @@ import {openTipsLibrary, openSettingsModal, openRestorePointModal} from '../../r
 import {setPlayer} from '../../reducers/mode';
 import {BLOCKS_TAB_INDEX} from '../../reducers/editor-tab';
 import tidyBlocks from '../../lib/kishufiya-tidy.js';
-import {currentMenuRules, subscribeMenus} from '../../lib/kishufiya-menus.js';
+import {currentMenuRules, menusShown, subscribeMenus} from '../../lib/kishufiya-menus.js';
+import {currentUndoState, runUndo, subscribeUndo, undoAction, RESTORE} from '../../lib/kishufiya-undo.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -98,6 +99,8 @@ import fileIcon from './icon--file.svg';
 import editIcon from './icon--edit.svg';
 import addonsIcon from './addons.svg';
 import tidyIcon from './tidy-blocks.svg';
+import undoIcon from './icon--undo.svg';
+import redoIcon from './icon--redo.svg';
 import errorIcon from './tw-error.svg';
 import advancedIcon from './tw-advanced.svg';
 
@@ -120,6 +123,16 @@ const ariaMessages = defineMessages({
 });
 
 const kishufiyaMessages = defineMessages({
+    undo: {
+        id: 'kishufiya.menuBar.undo',
+        defaultMessage: 'Undo',
+        description: 'Menu bar button: takes back the last change in the code area, as Ctrl+Z does'
+    },
+    redo: {
+        id: 'kishufiya.menuBar.redo',
+        defaultMessage: 'Redo',
+        description: 'Menu bar button: brings back what the undo button took back, as Ctrl+Y does'
+    },
     tidyBlocks: {
         id: 'kishufiya.menuBar.tidyBlocks',
         defaultMessage: 'Tidy up blocks',
@@ -249,10 +262,13 @@ class MenuBar extends React.Component {
         document.addEventListener('keydown', this.handleKeyPress);
         // which items show is decided by lib/kishufiya-menus.js, from the page's load message
         this.stopMenus = subscribeMenus(() => this.forceUpdate());
+        // the undo / redo buttons light up and dim with the code area's history (lib/kishufiya-undo.js)
+        this.stopUndo = subscribeUndo(() => this.forceUpdate());
     }
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
         if (this.stopMenus) this.stopMenus();
+        if (this.stopUndo) this.stopUndo();
     }
     // כישופייה: the button tidies the scripts; the only other tidy is the one the lesson asks for (guide.js 'tidy').
     handleClickTidyBlocks () {
@@ -448,6 +464,41 @@ class MenuBar extends React.Component {
             </MenuLabel>
         );
     }
+    // The undo / redo buttons (kishufiya-undo.js). Undo is the code area's history while it has one; when it is
+    // empty, it brings back the last deleted sprite, costume or sound, which is what the edit menu's "restore" did.
+    renderUndoRedo () {
+        const history = currentUndoState();
+        const {intl, isCodeTab} = this.props;
+        const button = (key, icon, message, enabled, onClick) => (
+            <div
+                className={classNames(styles.menuBarItem, {[styles.hoverable]: enabled, [styles.disabled]: !enabled})}
+                data-guide={key}
+                role="button"
+                aria-disabled={!enabled}
+                title={intl.formatMessage(message)}
+                onClick={enabled ? onClick : null}
+            >
+                <img
+                    alt={intl.formatMessage(message)}
+                    src={icon}
+                    draggable={false}
+                    width={20}
+                    height={20}
+                />
+            </div>
+        );
+        return (
+            <React.Fragment>
+                <DeletionRestorer>{(handleRestore, {restorable}) => {
+                    const action = undoAction(Boolean(isCodeTab && history.undo), restorable);
+                    return button('undo', undoIcon, kishufiyaMessages.undo, action !== null,
+                        action === RESTORE ? handleRestore : () => runUndo(false));
+                }}</DeletionRestorer>
+                {button('redo', redoIcon, kishufiyaMessages.redo, Boolean(isCodeTab && history.redo),
+                    () => runUndo(true))}
+            </React.Fragment>
+        );
+    }
     wrapAboutMenuCallback (callback) {
         return () => {
             callback();
@@ -456,6 +507,11 @@ class MenuBar extends React.Component {
     }
     render () {
         const rules = currentMenuRules();
+        const shown = menusShown(rules, {
+            saveItems: Boolean(this.props.canSave || this.props.canCreateCopy || this.props.canRemix),
+            newWindowAvailable: Boolean(this.props.onClickNewWindow),
+            packagerAvailable: Boolean(this.props.onClickPackager)
+        });
         const saveNowMessage = (
             <FormattedMessage
                 defaultMessage="Save now"
@@ -591,7 +647,7 @@ class MenuBar extends React.Component {
                             onRequestOpen={this.props.onClickSettings}
                             settingsMenuOpen={this.props.settingsMenuOpen}
                         />)}
-                        {(this.props.canManageFiles) && (
+                        {(this.props.canManageFiles && shown.file) && (
                             <MenuLabel
                                 open={this.props.fileMenuOpen}
                                 onOpen={this.props.onClickFile}
@@ -671,13 +727,15 @@ class MenuBar extends React.Component {
                                                 {this.props.intl.formatMessage(sharedMessages.loadFromComputerTitle)}
                                             </MenuItem>
                                         )}
-                                        <SB3Downloader>
-                                            {(_className, downloadProject) => (
-                                                <MenuItem onClick={this.getSaveToComputerHandler(downloadProject)}>
-                                                    {'הורדה למחשב'}
-                                                </MenuItem>
-                                            )}
-                                        </SB3Downloader>
+                                        {rules.downloadToComputer && (
+                                            <SB3Downloader>
+                                                {(_className, downloadProject) => (
+                                                    <MenuItem onClick={this.getSaveToComputerHandler(downloadProject)}>
+                                                        {'הורדה למחשב'}
+                                                    </MenuItem>
+                                                )}
+                                            </SB3Downloader>
+                                        )}
                                     </MenuSection>
                                     {this.props.onClickPackager && rules.packager && (
                                         <MenuSection>
@@ -707,7 +765,7 @@ class MenuBar extends React.Component {
                                 </MenuBarMenu>
                             </MenuLabel>
                         )}
-                        <MenuLabel
+                        {shown.edit && <MenuLabel
                             open={this.props.editMenuOpen}
                             onOpen={this.props.onClickEdit}
                             onClose={this.props.onRequestCloseEdit}
@@ -738,7 +796,7 @@ class MenuBar extends React.Component {
                                 open={this.props.editMenuOpen}
                                 place={this.props.isRtl ? 'left' : 'right'}
                             >
-                                {this.props.isPlayerOnly ? null : (
+                                {this.props.isPlayerOnly || !rules.restoreDeleted ? null : (
                                     <DeletionRestorer>{(handleRestore, {restorable, deletedItem}) => (
                                         <MenuItem
                                             className={classNames({[styles.disabled]: !restorable})}
@@ -846,7 +904,8 @@ class MenuBar extends React.Component {
                                     </MenuSection>
                                 )}
                             </MenuBarMenu>
-                        </MenuLabel>
+                        </MenuLabel>}
+                        {rules.undoBar && !this.props.isPlayerOnly && this.renderUndoRedo()}
                         {this.props.isTotallyNormal && (
                             <MenuLabel
                                 open={this.props.modeMenuOpen}

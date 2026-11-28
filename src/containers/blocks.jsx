@@ -47,6 +47,7 @@ import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
 import {showRemembered} from '../lib/kishufiya-cloud.js';
 import {installScrollPolicy} from '../lib/kishufiya-scroll.js';
 import {installTidyMenu} from '../lib/kishufiya-tidy.js';
+import {attachUndoWorkspace, detachUndoWorkspace, notifyUndo} from '../lib/kishufiya-undo.js';
 
 // TW: Strings we add to scratch-blocks are localized here
 const messages = defineMessages({
@@ -171,6 +172,7 @@ class Blocks extends React.Component {
         );
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
         AddonHooks.blocklyWorkspace = this.workspace;
+        attachUndoWorkspace(this.workspace); // the menu bar's undo / redo buttons
 
         // Register buttons under new callback keys for creating variables,
         // lists, and procedures from extensions.
@@ -292,6 +294,7 @@ class Blocks extends React.Component {
     componentWillUnmount () {
         this.detachVM();
         this.unmounted = true;
+        detachUndoWorkspace();
         this.workspace.dispose();
         clearTimeout(this.toolboxUpdateTimeout);
 
@@ -512,6 +515,7 @@ class Blocks extends React.Component {
         // fresh workspace and we don't want any changes made to another sprites
         // workspace to be 'undone' here.
         this.workspace.clearUndo();
+        notifyUndo(); // the clear is not a workspace event: the buttons look again
     }
     handleMonitorsUpdate (monitors) {
         // Update the checkboxes of the relevant monitors.
