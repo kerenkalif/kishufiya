@@ -3,6 +3,7 @@
 // "מצאו את האות בכתב!" the "!" landed on the right. A bubble whose text starts in a right-to-left
 // script is drawn with the canvas set right to left, from the bubble's right edge.
 import TextBubbleSkin from 'scratch-render/src/TextBubbleSkin';
+import {isolateSignedNumbers} from './kishufiya-ltr-numbers';
 
 // Letters of a right-to-left script (Hebrew, Arabic and their presentation forms).
 const RTL_LETTER = '\\u0590-\\u08FF\\uFB1D-\\uFDFF\\uFE70-\\uFEFC';
@@ -25,7 +26,7 @@ TextBubbleSkin.prototype._renderTextBubble = function (scale) {
         ctx.save();
         ctx.direction = 'rtl';
         ctx.textAlign = 'start';
-        fillText.call(ctx, line, right, y);
+        fillText.call(ctx, isolateSignedNumbers(line), right, y);
         ctx.restore();
     };
     try {
