@@ -155,8 +155,9 @@
 //   (editor-ready carries runs: true - this build says script-ran)
 //   key {key}                                       a key pressed (KeyboardEvent.key) - not in a box being typed
 //                                                   into, nor while frozen; always one the game got too (K12)
-//   editing {sprite}                                the sprite open in the editor ('Stage' for the stage): on
-//                                                   load and whenever another one is opened
+//   editing {sprite, thumb?}                        the sprite open in the editor ('Stage' for the stage): on
+//                                                   load and whenever another one is opened. thumb: its costume as a small
+//                                                   png data URL (sprite-thumb.js), drawn before its name in the strip
 //   sprite-clicked {sprite}                         a sprite (or the stage) clicked on the stage, as its
 //                                                   "when this sprite clicked" scripts start
 //   guide-clicked {via}                             the child clicked the guided target itself (a button, a
@@ -180,7 +181,9 @@
 //                                                   is in
 import {readRects, carriedNow, dialogBox} from './rects-dom.js';
 import {busyTracker} from './rects.js';
-import {setKeptBottom} from '../../lib/kishufiya-key-bar.js';
+import {setKeptBottom, setKeptTop} from '../../lib/kishufiya-key-bar.js';
+import {thumbFor, SPRITE_THUMB_WAIT_MS} from './sprite-thumb.js';
+import getCostumeUrl from '../../lib/get-costume-url';
 import {resolve, scrollContainer, codeArea, blockAt, surrounding, uiElement, workspace, editorWindow, frameOf, codeScroller, softFound, stageFrame} from './targets.js';
 import {drawnBoxes, TOLD_HATS, GHOST_ROW, attachOf, dropBox, focusGame, forwardedKey, gameHeard, gameKey, gameState, guideMarking, keyReadNow,
     missingStep, onTheWay, passingBy, tidyStep, pointerPlace, pressingBroadcast, quietReports, ranUnder, ringAlone, ringInScreen, scriptInView,
@@ -674,6 +677,7 @@ const reserve = msg => {
     if (!asked) return;
     reservedTop = asked.top;
     reservedBottom = asked.bottom;
+    setKeptTop(asked.top); // the sprite's picture in the corner stands under the strip too (watermark.jsx)
     setKeptBottom(asked.bottom); // the stage's full-screen keeps it too, and the browser's full-screen gives way while it is there
     applyReserve();
 };
@@ -1364,6 +1368,20 @@ export const handleGuide = (msg, say = send) => {
     return said;
 };
 
+// 'editing' with the sprite's small picture (sprite-thumb.js): the picture is made once for each costume and kept, so a sprite opened again says it at once; a first one waits
+// for it at most SPRITE_THUMB_WAIT_MS and is said without it when it does not come, never later (the sprite's opening is what the lesson waits for).
+const tellEditing = target => {
+    const name = target.getName();
+    let said = false;
+    const say = thumb => {
+        if (said) return;
+        said = true;
+        send({type: 'editing', sprite: name, ...(thumb ? {thumb} : {})});
+    };
+    const timer = setTimeout(() => say(null), SPRITE_THUMB_WAIT_MS);
+    thumbFor(target, getCostumeUrl).then(thumb => { clearTimeout(timer); say(thumb); }, () => { clearTimeout(timer); say(null); });
+};
+
 // The code area's place, told when it changes: the page keeps ניצוצי off the sprite tiles and the zoom
 // buttons (2026-10-26).
 let lastArea = '';
@@ -1515,7 +1533,7 @@ export const attachGuide = (theVm, sender) => {
         diffCode(); // a sprite opened: its blocks as they are now are the baseline
         // which one: a lesson step "עוברים לרקע" is done once it is open (platform 2026-10-26)
         const target = vm.editingTarget;
-        if (target) send({type: 'editing', sprite: target.getName()});
+        if (target) tellEditing(target);
     }, 0));
     // a sprite clicked on the stage: its "when this sprite clicked" scripts start here (scratch-vm io/mouse.js)
     const mouse = vm.runtime.ioDevices && vm.runtime.ioDevices.mouse;
